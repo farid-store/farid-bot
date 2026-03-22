@@ -1,28 +1,30 @@
 export default async function handler(req, res) {
-  // Verifikasi POST
-  if (req.method !== 'POST') return res.status(200).send('Farid Store Bot V8 - Fully Fixed & Interactive');
+  if (req.method !== 'POST') return res.status(200).send('Farid Store Bot V9 - HTML Stable Edition');
 
   const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN;
   const BIN_ID = process.env.BIN_ID;
   const API_KEY = process.env.API_KEY;
 
   // ---------------------------------------------------------
-  // FUNGSI BANTUAN API & WAKTU
+  // FUNGSI API TELEGRAM (ANTI-ERROR)
   // ---------------------------------------------------------
   const callTelegramAPI = async (method, payload) => {
     try {
-      await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/${method}`, {
+      const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/${method}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
+      const result = await response.json();
+      if (!result.ok) console.error("Telegram API Error:", result);
+      return result;
     } catch (e) {
-      console.error("Telegram API Error:", e);
+      console.error("Fetch Error:", e);
     }
   };
 
   const getWebDate = () => {
-    const d = new Date(new Date().getTime() + (7 * 60 * 60 * 1000)); // Waktu WIB
+    const d = new Date(new Date().getTime() + (7 * 60 * 60 * 1000)); // WIB
     return `${d.getUTCDate()}/${d.getUTCMonth()+1}/${d.getUTCFullYear()} ${d.getUTCHours().toString().padStart(2,'0')}:${d.getUTCMinutes().toString().padStart(2,'0')}`;
   };
 
@@ -56,7 +58,7 @@ export default async function handler(req, res) {
   };
 
   // ---------------------------------------------------------
-  // 1. PENANGANAN KLIK TOMBOL TRANSPARAN (INLINE KEYBOARD)
+  // 1. PENANGANAN KLIK TOMBOL BUBBLE (INLINE KEYBOARD)
   // ---------------------------------------------------------
   if (req.body.callback_query) {
     const cb = req.body.callback_query;
@@ -64,7 +66,7 @@ export default async function handler(req, res) {
     const chatId = cb.message.chat.id;
     const messageId = cb.message.message_id;
 
-    // WAJIB: Menjawab callback agar tombol tidak loading/nge-freeze
+    // Jawab callback agar tombol tidak muter-muter/freeze
     await callTelegramAPI('answerCallbackQuery', { callback_query_id: cb.id });
 
     try {
@@ -76,13 +78,17 @@ export default async function handler(req, res) {
 
       // A. BATALKAN PROSES UNDO
       if (data === 'cancel_undo') {
-        await callTelegramAPI('editMessageText', { chat_id: chatId, message_id: messageId, text: `✅ *Aksi Dibatalkan.*\nData Anda aman.`, parse_mode: 'Markdown' });
+        await callTelegramAPI('editMessageText', { 
+          chat_id: chatId, message_id: messageId, 
+          text: `✅ <b>Proses Dibatalkan.</b>\nData Anda aman dan tidak ada yang dihapus.`, 
+          parse_mode: 'HTML' 
+        });
         return res.status(200).send('OK');
       }
 
       // B. PROSES UNDO PERMANEN
       if (data.startsWith('undo_')) {
-        const parts = data.split('_'); // Format: undo_item_12345
+        const parts = data.split('_'); 
         const type = parts[1];
         const idStr = parts[2];
         
@@ -97,7 +103,11 @@ export default async function handler(req, res) {
 
         if (deletedName !== '') {
           await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-Master-Key': API_KEY }, body: JSON.stringify(dbData) });
-          await callTelegramAPI('editMessageText', { chat_id: chatId, message_id: messageId, text: `🗑️ *TRANSAKSI DIHAPUS*\nData *${deletedName}* telah dihapus permanen.`, parse_mode: 'Markdown' });
+          await callTelegramAPI('editMessageText', { 
+            chat_id: chatId, message_id: messageId, 
+            text: `🗑️ <b>TRANSAKSI DIHAPUS</b>\nData <b>${deletedName}</b> telah dihapus permanen.`, 
+            parse_mode: 'HTML' 
+          });
         }
         return res.status(200).send('OK');
       }
@@ -108,10 +118,10 @@ export default async function handler(req, res) {
         const item = dbData.items.find(i => String(i.id) === idStr);
         if (item) {
           const safeName = item.name.replace(/ /g, '_');
-          const msg = `✏️ *EDIT BARANG*\n\nBarang: *${item.name}*\n\n👇 *Salin teks di bawah ini*, ubah Nominal Modal / Jual, lalu kirim kembali:\n\n\`/edit ${item.id} ${safeName} ${item.modal} ${item.price}\``;
-          await callTelegramAPI('sendMessage', { chat_id: chatId, text: msg, parse_mode: 'Markdown' });
+          const msg = `✏️ <b>EDIT BARANG</b>\n\nBarang: <b>${item.name}</b>\n\n👇 <b>Salin teks di bawah ini</b>, ubah Nominal Modal / Jual, lalu kirim kembali:\n\n<code>/edit ${item.id} ${safeName} ${item.modal} ${item.price}</code>`;
+          await callTelegramAPI('sendMessage', { chat_id: chatId, text: msg, parse_mode: 'HTML' });
         } else {
-          await callTelegramAPI('sendMessage', { chat_id: chatId, text: `❌ Data barang sudah tidak ditemukan.`, parse_mode: 'Markdown' });
+          await callTelegramAPI('sendMessage', { chat_id: chatId, text: `❌ Data barang sudah tidak ditemukan.`, parse_mode: 'HTML' });
         }
         return res.status(200).send('OK');
       }
@@ -121,16 +131,16 @@ export default async function handler(req, res) {
         const idStr = data.replace('laku_', '');
         const item = dbData.items.find(i => String(i.id) === idStr);
         if (item) {
-          const msg = `💸 *PROSES TERJUAL*\n\nBarang: *${item.name}*\nTarget Jual: Rp ${item.price.toLocaleString('id-ID')}\n\n👇 *Salin teks di bawah*, ubah angka akhir sesuai harga deal sebenarnya, lalu kirim:\n\n\`/lakuid ${item.id} ${item.price}\``;
-          await callTelegramAPI('sendMessage', { chat_id: chatId, text: msg, parse_mode: 'Markdown' });
+          const msg = `💸 <b>PROSES TERJUAL</b>\n\nBarang: <b>${item.name}</b>\nTarget Jual: Rp ${item.price.toLocaleString('id-ID')}\n\n👇 <b>Salin teks di bawah</b>, ubah angka ujung sesuai harga deal sebenarnya, lalu kirim:\n\n<code>/lakuid ${item.id} ${item.price}</code>`;
+          await callTelegramAPI('sendMessage', { chat_id: chatId, text: msg, parse_mode: 'HTML' });
         } else {
-          await callTelegramAPI('sendMessage', { chat_id: chatId, text: `❌ Data barang sudah tidak ditemukan.`, parse_mode: 'Markdown' });
+          await callTelegramAPI('sendMessage', { chat_id: chatId, text: `❌ Data barang sudah tidak ditemukan.`, parse_mode: 'HTML' });
         }
         return res.status(200).send('OK');
       }
 
     } catch (e) {
-      console.error(e);
+      console.error("Callback Error:", e);
     }
     return res.status(200).send('OK');
   }
@@ -142,31 +152,33 @@ export default async function handler(req, res) {
   if (!message || !message.text) return res.status(200).send('OK');
 
   const text = message.text.trim();
+  const normalizedText = text.toLowerCase();
   const chatId = message.chat.id;
   const parts = text.split(' ');
   const command = parts[0].toLowerCase();
 
   // ==========================================
-  // SHORTCUT PRIORITAS UTAMA (Tanpa perlu tarik Database)
+  // JALUR PRIORITAS: BANTUAN & MENU KEMBALI
   // ==========================================
-  if (text.includes('Bantuan') || command === '/help') {
-    const helpMsg = `🛠️ *FORMAT TRANSAKSI MANUAL:*\n_Pisahkan dg spasi, ganti spasi nama barang dg garis bawah (_)_\n\n` +
-               `*1. Beli Stok (Masuk Gudang):*\n\`/stok Poco_M3 500000 700000\`\n\n` +
-               `*2. Jual Cepat (Tanpa Gudang):*\n\`/jual Vivo_Y20 1000000 1300000\`\n\n` +
-               `*3. Jasa Servis:*\n\`/jasa Ganti_LCD_Oppo 250000\`\n\n` +
-               `*4. Biaya Toko:*\n\`/out Token_Listrik 100000\`\n\n` +
-               `💡 _Tips: Untuk Edit/Tandai Laku, gunakan menu 📦 Cek Stok._`;
-    await callTelegramAPI('sendMessage', { chat_id: chatId, text: helpMsg, parse_mode: 'Markdown', reply_markup: menuKeyboard });
+  if (normalizedText.includes('bantuan format') || command === '/help') {
+    const helpMsg = `🛠️ <b>FORMAT TRANSAKSI MANUAL:</b>\n` +
+               `<i>Pisahkan dengan spasi, ganti spasi di nama barang dengan garis bawah (_)</i>\n\n` +
+               `<b>1. Beli Stok (Masuk Gudang):</b>\n<code>/stok Poco_M3 500000 700000</code>\n\n` +
+               `<b>2. Jual Cepat (Tanpa Gudang):</b>\n<code>/jual Vivo_Y20 1000000 1300000</code>\n\n` +
+               `<b>3. Jasa Servis:</b>\n<code>/jasa Ganti_LCD_Oppo 250000</code>\n\n` +
+               `<b>4. Biaya Toko:</b>\n<code>/out Token_Listrik 100000</code>\n\n` +
+               `💡 <i>Tips: Untuk mengedit atau menandai barang laku dari gudang, cukup klik menu 📦 Cek Stok di bawah.</i>`;
+    await callTelegramAPI('sendMessage', { chat_id: chatId, text: helpMsg, parse_mode: 'HTML', reply_markup: menuKeyboard });
     return res.status(200).send('OK');
   }
 
-  if (text === '🔙 Menu Utama' || text === '❌ KEMBALI') {
-    await callTelegramAPI('sendMessage', { chat_id: chatId, text: `✅ Kembali ke Menu Utama.`, parse_mode: 'Markdown', reply_markup: menuKeyboard });
+  if (normalizedText === '🔙 menu utama' || normalizedText === '❌ kembali') {
+    await callTelegramAPI('sendMessage', { chat_id: chatId, text: `✅ Kembali ke Menu Utama.`, parse_mode: 'HTML', reply_markup: menuKeyboard });
     return res.status(200).send('OK');
   }
 
   // ==========================================
-  // TARIK DATABASE UNTUK MENU LAINNYA
+  // TARIK DATABASE UNTUK FITUR LAINNYA
   // ==========================================
   try {
     const getResponse = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: { 'X-Master-Key': API_KEY } });
@@ -182,11 +194,11 @@ export default async function handler(req, res) {
     const nowStr = getWebDate();
     const timestampId = new Date().getTime();
     
-    // Logika Kalkulasi & Waktu
     const wibNow = new Date(timestampId + (7 * 60 * 60 * 1000));
     const currM = wibNow.getMonth(); const currY = wibNow.getFullYear();
     const lastM = currM === 0 ? 11 : currM - 1; const lastY = currM === 0 ? currY - 1 : currY;
 
+    // KALKULASI LEDGER
     const startBal = Number(dbData.startBalance) || 0;
     let belanjaBaru = 0, uangMasuk = 0, profitMain = 0, floatPrice = 0, floatModal = 0;
     let stockCount = 0, soldCount = 0, unitBulanIni = 0, unitBulanLalu = 0, profitBulanIni = 0;
@@ -225,23 +237,23 @@ export default async function handler(req, res) {
 
     // --------------------------------------------------------
     // PERINTAH: DASHBOARD
-    if (command === '/start' || text.includes('Dashboard')) {
-      replyMsg = `📊 *DIGITAL LEDGER - FARID STORE*\n` +
+    if (command === '/start' || normalizedText.includes('dashboard')) {
+      replyMsg = `📊 <b>DIGITAL LEDGER - FARID STORE</b>\n` +
                  `------------------------------\n` +
-                 `💵 *Kas Tunai:* Rp ${cash.toLocaleString('id-ID')}\n` +
-                 `📦 *Stok Gudang:* Rp ${floatModal.toLocaleString('id-ID')} (${stockCount} Unit)\n` +
-                 `🎯 *Potensi Untung:* Rp ${(floatPrice - floatModal).toLocaleString('id-ID')}\n` +
-                 `📈 *Akumulasi Laba:* Rp ${totalProfitReal.toLocaleString('id-ID')}\n` +
+                 `💵 <b>Kas Tunai:</b> Rp ${cash.toLocaleString('id-ID')}\n` +
+                 `📦 <b>Stok Gudang:</b> Rp ${floatModal.toLocaleString('id-ID')} (${stockCount} Unit)\n` +
+                 `🎯 <b>Potensi Untung:</b> Rp ${(floatPrice - floatModal).toLocaleString('id-ID')}\n` +
+                 `📈 <b>Akumulasi Laba:</b> Rp ${totalProfitReal.toLocaleString('id-ID')}\n` +
                  `------------------------------\n` +
-                 `💎 *TOTAL ASET:* Rp ${totalAsetReal.toLocaleString('id-ID')}\n\n` +
-                 `_Pilih menu di bawah 👇_`;
-      await callTelegramAPI('sendMessage', { chat_id: chatId, text: replyMsg, parse_mode: 'Markdown', reply_markup: menuKeyboard });
+                 `💎 <b>TOTAL ASET:</b> Rp ${totalAsetReal.toLocaleString('id-ID')}\n\n` +
+                 `<i>Pilih menu di bawah 👇</i>`;
+      await callTelegramAPI('sendMessage', { chat_id: chatId, text: replyMsg, parse_mode: 'HTML', reply_markup: menuKeyboard });
       return res.status(200).send('OK');
     }
 
     // --------------------------------------------------------
     // PERINTAH: ANALISA BISNIS
-    else if (text.includes('Analisa Bisnis')) {
+    else if (normalizedText.includes('analisa bisnis')) {
       const pPengelola = profitBulanIni * 0.50; const pInvestor = profitBulanIni * 0.40;
       const pOps = profitBulanIni * 0.07; const pZakat = profitBulanIni * 0.03;
       const sortedBrands = Object.keys(brands).sort((a,b) => brands[b] - brands[a]).slice(0, 3);
@@ -249,73 +261,71 @@ export default async function handler(req, res) {
       sortedBrands.forEach((b, i) => { topBrandsText += `  ${i+1}. ${b} (${brands[b]} Unit)\n`; });
       if(topBrandsText === '') topBrandsText = "  Belum ada data\n";
 
-      replyMsg = `📈 *ANALISA BISNIS REAL-TIME*\n\n` +
-                 `*STATISTIK UNIT*\n` +
-                 `▫️ Ready di Gudang    : *${stockCount}*\n` +
-                 `▫️ Terjual Bulan Ini  : *${unitBulanIni}*\n` +
-                 `▫️ Terjual Bulan Lalu : *${unitBulanLalu}*\n` +
-                 `▫️ Terjual All Time   : *${soldCount}*\n\n` +
-                 `🏆 *TOP 3 MEREK*\n${topBrandsText}\n` +
-                 `🤝 *BAGI HASIL (BULAN INI)*\n` +
-                 `_Laba Kotor Bln Ini: Rp ${profitBulanIni.toLocaleString('id-ID')}_\n` +
+      replyMsg = `📈 <b>ANALISA BISNIS REAL-TIME</b>\n\n` +
+                 `<b>STATISTIK UNIT</b>\n` +
+                 `▫️ Ready di Gudang : <b>${stockCount}</b>\n` +
+                 `▫️ Terjual Bulan Ini  : <b>${unitBulanIni}</b>\n` +
+                 `▫️ Terjual Bulan Lalu : <b>${unitBulanLalu}</b>\n` +
+                 `▫️ Total Unit All Time: <b>${soldCount}</b>\n\n` +
+                 `🏆 <b>TOP 3 MEREK</b>\n${topBrandsText}\n` +
+                 `🤝 <b>BAGI HASIL (BULAN INI)</b>\n` +
+                 `<i>Laba Kotor Bln Ini: Rp ${profitBulanIni.toLocaleString('id-ID')}</i>\n` +
                  `👨‍💼 Pengelola (50%) : Rp ${pPengelola.toLocaleString('id-ID')}\n` +
                  `📈 Investor (40%)  : Rp ${pInvestor.toLocaleString('id-ID')}\n` +
                  `⚙️ Operasional (7%): Rp ${pOps.toLocaleString('id-ID')}\n` +
                  `🤲 Zakat (3%)      : Rp ${pZakat.toLocaleString('id-ID')}`;
-      await callTelegramAPI('sendMessage', { chat_id: chatId, text: replyMsg, parse_mode: 'Markdown', reply_markup: menuKeyboard });
+      await callTelegramAPI('sendMessage', { chat_id: chatId, text: replyMsg, parse_mode: 'HTML', reply_markup: menuKeyboard });
       return res.status(200).send('OK');
     }
 
     // --------------------------------------------------------
     // PERINTAH: LAPORAN WA
-    else if (text.includes('Laporan WA')) {
+    else if (normalizedText.includes('laporan wa')) {
       const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-      replyMsg = `📊 *LAPORAN KEUANGAN FARID STORE*\n` +
+      replyMsg = `📊 <b>LAPORAN KEUANGAN FARID STORE</b>\n` +
                  `🗓️ Periode: ${monthNames[currM]} ${currY}\n` +
                  `------------------------------\n\n` +
-                 `💵 *Sisa Tunai: Rp ${cash.toLocaleString('id-ID')}*\n` +
+                 `💵 <b>Sisa Tunai: Rp ${cash.toLocaleString('id-ID')}</b>\n` +
                  `📦 Nilai Stok Gudang: Rp ${floatModal.toLocaleString('id-ID')}\n` +
                  `🎯 Potensi Untung: Rp ${(floatPrice - floatModal).toLocaleString('id-ID')}\n` +
                  `------------------------------\n` +
-                 `📈 *TOTAL ASET: Rp ${totalAsetReal.toLocaleString('id-ID')}*\n\n` +
-                 `🔥 *PROFIT KESELURUHAN*\n` +
-                 `✨ *Total Bersih: Rp ${totalProfitReal.toLocaleString('id-ID')}*\n` +
+                 `📈 <b>TOTAL ASET: Rp ${totalAsetReal.toLocaleString('id-ID')}</b>\n\n` +
+                 `🔥 <b>PROFIT KESELURUHAN</b>\n` +
+                 `✨ <b>Total Bersih: Rp ${totalProfitReal.toLocaleString('id-ID')}</b>\n` +
                  `------------------------------\n` +
-                 `_Digital Ledger - Farid Store_`;
-      await callTelegramAPI('sendMessage', { chat_id: chatId, text: replyMsg, parse_mode: 'Markdown', reply_markup: menuKeyboard });
+                 `<i>Digital Ledger - Farid Store</i>`;
+      await callTelegramAPI('sendMessage', { chat_id: chatId, text: replyMsg, parse_mode: 'HTML', reply_markup: menuKeyboard });
       return res.status(200).send('OK');
     }
 
     // --------------------------------------------------------
     // PERINTAH: BATAL TERAKHIR (KONFIRMASI)
-    else if (text.includes('Batal Terakhir')) {
+    else if (normalizedText.includes('batal terakhir')) {
       let allEntries = [];
       dbData.items.forEach((item) => allEntries.push({ id: item.id, name: item.name, price: item.price, type: 'item' }));
       dbData.extraProfits.forEach((item) => allEntries.push({ id: item.id, name: item.name, price: item.profit, type: 'extra' }));
 
       if (allEntries.length === 0) {
-        await callTelegramAPI('sendMessage', { chat_id: chatId, text: "⚠️ Tidak ada data untuk dibatalkan.", parse_mode: 'Markdown', reply_markup: menuKeyboard });
+        await callTelegramAPI('sendMessage', { chat_id: chatId, text: "⚠️ Tidak ada data untuk dibatalkan.", parse_mode: 'HTML', reply_markup: menuKeyboard });
       } else {
         allEntries.sort((a, b) => b.id - a.id);
         const newest = allEntries[0];
         
-        replyMsg = `⚠️ *KONFIRMASI PEMBATALAN*\n\nYakin membatalkan transaksi terakhir ini?\n\n📝 *Item:* ${newest.name}\n💵 *Nilai:* Rp ${Math.abs(newest.price).toLocaleString('id-ID')}`;
-        
-        // Memunculkan tombol transparan (inline) agar aman
+        replyMsg = `⚠️ <b>KONFIRMASI PEMBATALAN</b>\n\nYakin membatalkan transaksi terakhir ini?\n\n📝 <b>Item:</b> ${newest.name}\n💵 <b>Nilai:</b> Rp ${Math.abs(newest.price).toLocaleString('id-ID')}`;
         const inlineKeyboard = {
           inline_keyboard: [
             [{ text: '❌ BATALKAN', callback_data: 'cancel_undo' }],
             [{ text: '🗑️ YA, HAPUS PERMANEN', callback_data: `undo_${newest.type}_${newest.id}` }]
           ]
         };
-        await callTelegramAPI('sendMessage', { chat_id: chatId, text: replyMsg, parse_mode: 'Markdown', reply_markup: inlineKeyboard });
+        await callTelegramAPI('sendMessage', { chat_id: chatId, text: replyMsg, parse_mode: 'HTML', reply_markup: inlineKeyboard });
       }
       return res.status(200).send('OK');
     }
 
     // --------------------------------------------------------
-    // PERINTAH: CEK STOK & PAGINATION BAWAH
-    else if (text.includes('Cek Stok') || text.startsWith('➡️ Hal') || text.startsWith('⬅️ Hal')) {
+    // PERINTAH: CEK STOK (PAGINATION)
+    else if (normalizedText.includes('cek stok') || text.startsWith('➡️ Hal') || text.startsWith('⬅️ Hal')) {
       let page = 1;
       if (text.startsWith('➡️ Hal')) page = parseInt(text.replace('➡️ Hal ', ''));
       else if (text.startsWith('⬅️ Hal')) page = parseInt(text.replace('⬅️ Hal ', ''));
@@ -328,14 +338,14 @@ export default async function handler(req, res) {
       if (page < 1) page = 1;
 
       if (stokBarang.length === 0) {
-        await callTelegramAPI('sendMessage', { chat_id: chatId, text: "📦 *GUDANG KOSONG*\nPutaran kas mantap!", parse_mode: 'Markdown', reply_markup: menuKeyboard });
+        await callTelegramAPI('sendMessage', { chat_id: chatId, text: "📦 <b>GUDANG KOSONG</b>\nPutaran kas mantap!", parse_mode: 'HTML', reply_markup: menuKeyboard });
         return res.status(200).send('OK');
       }
 
       const startIndex = (page - 1) * itemsPerPage;
       const currentItems = stokBarang.slice(startIndex, startIndex + itemsPerPage);
 
-      let listText = `📋 *DAFTAR STOK (Hal ${page}/${totalPages})*\nTotal Unit: *${stokBarang.length} HP*\n──────────────\n`;
+      let listText = `📋 <b>DAFTAR STOK (Hal ${page}/${totalPages})</b>\nTotal Unit: <b>${stokBarang.length} HP</b>\n──────────────\n`;
       let keyboardRows = [];
       let currentRow = [];
 
@@ -345,15 +355,12 @@ export default async function handler(req, res) {
         const selisihHari = Math.floor((wibNow - itemDate) / (1000 * 60 * 60 * 24));
         const warning = selisihHari > 14 ? " ⚠️" : "";
         
-        listText += `\n*${globalIndex}. ${item.name}*${warning}\n└ M: ${item.modal/1000}k | J: ${item.price/1000}k | ⏳ ${selisihHari} Hari\n`;
-        
-        // Buat Tombol Angka di bawah (5 per baris)
+        listText += `\n<b>${globalIndex}. ${item.name}</b>${warning}\n└ M: ${item.modal/1000}k | J: ${item.price/1000}k | ⏳ ${selisihHari} Hari\n`;
         currentRow.push({ text: `📦 ${globalIndex}` });
         if (currentRow.length === 5) { keyboardRows.push(currentRow); currentRow = []; }
       });
       if (currentRow.length > 0) keyboardRows.push(currentRow);
 
-      // Navigasi
       let navRow = [];
       if (page > 1) navRow.push({ text: `⬅️ Hal ${page - 1}` });
       navRow.push({ text: '🔙 Menu Utama' });
@@ -361,12 +368,12 @@ export default async function handler(req, res) {
       keyboardRows.push(navRow);
 
       const pagedKeyboard = { keyboard: keyboardRows, resize_keyboard: true, is_persistent: true };
-      await callTelegramAPI('sendMessage', { chat_id: chatId, text: listText + `\n\n👇 *Pilih tombol nomor di bawah untuk Edit/Laku:*`, parse_mode: 'Markdown', reply_markup: pagedKeyboard });
+      await callTelegramAPI('sendMessage', { chat_id: chatId, text: listText + `\n\n👇 <i>Pilih tombol nomor di bawah untuk Edit/Laku:</i>`, parse_mode: 'HTML', reply_markup: pagedKeyboard });
       return res.status(200).send('OK');
     }
 
     // --------------------------------------------------------
-    // KLIK TOMBOL NOMOR BARANG (Munculkan Bubble Detail + Tombol Edit/Laku)
+    // KLIK TOMBOL NOMOR BARANG (MUNCULKAN BUBBLE)
     else if (text.match(/^📦 \d+$/)) {
       const idx = parseInt(text.replace('📦 ', '')) - 1;
       const stokBarang = dbData.items.filter(item => item.status === 'stok');
@@ -376,12 +383,12 @@ export default async function handler(req, res) {
         const itemDate = parseDateToWIB(item.entryDate);
         const selisihHari = Math.floor((wibNow - itemDate) / (1000 * 60 * 60 * 24));
         
-        const detailMsg = `🔍 *DETAIL BARANG (No. ${idx + 1})*\n\n` +
-                          `📱 *Nama:* ${item.name}\n` +
-                          `💸 *Modal:* Rp ${item.modal.toLocaleString('id-ID')}\n` +
-                          `🎯 *Target Jual:* Rp ${item.price.toLocaleString('id-ID')}\n` +
-                          `⏳ *Mengendap:* ${selisihHari} Hari\n\n` +
-                          `_Pilih aksi untuk item ini:_ 👇`;
+        const detailMsg = `🔍 <b>DETAIL BARANG (No. ${idx + 1})</b>\n\n` +
+                          `📱 <b>Nama:</b> ${item.name}\n` +
+                          `💸 <b>Modal:</b> Rp ${item.modal.toLocaleString('id-ID')}\n` +
+                          `🎯 <b>Target Jual:</b> Rp ${item.price.toLocaleString('id-ID')}\n` +
+                          `⏳ <b>Mengendap:</b> ${selisihHari} Hari\n\n` +
+                          `<i>Pilih aksi untuk item ini:</i> 👇`;
 
         const inlineActionKeyboard = {
           inline_keyboard: [
@@ -391,9 +398,9 @@ export default async function handler(req, res) {
             ]
           ]
         };
-        await callTelegramAPI('sendMessage', { chat_id: chatId, text: detailMsg, parse_mode: 'Markdown', reply_markup: inlineActionKeyboard });
+        await callTelegramAPI('sendMessage', { chat_id: chatId, text: detailMsg, parse_mode: 'HTML', reply_markup: inlineActionKeyboard });
       } else {
-        await callTelegramAPI('sendMessage', { chat_id: chatId, text: `❌ *Error:* Barang tidak ditemukan.`, parse_mode: 'Markdown' });
+        await callTelegramAPI('sendMessage', { chat_id: chatId, text: `❌ <b>Error:</b> Barang tidak ditemukan.`, parse_mode: 'HTML' });
       }
       return res.status(200).send('OK');
     }
@@ -410,7 +417,7 @@ export default async function handler(req, res) {
       if (idx !== -1 && newName && !isNaN(newModal) && !isNaN(newPrice)) {
         dbData.items[idx].name = newName; dbData.items[idx].modal = newModal; dbData.items[idx].price = newPrice;
         isUpdated = true;
-        replyMsg = `✅ *PERUBAHAN DISIMPAN!*\n\nData menjadi:\n📱 ${newName}\n💸 M: Rp ${newModal.toLocaleString('id-ID')}\n🎯 J: Rp ${newPrice.toLocaleString('id-ID')}`;
+        replyMsg = `✅ <b>PERUBAHAN DISIMPAN!</b>\n\nData menjadi:\n📱 ${newName}\n💸 M: Rp ${newModal.toLocaleString('id-ID')}\n🎯 J: Rp ${newPrice.toLocaleString('id-ID')}`;
       } else {
         replyMsg = `❌ Format salah atau ID tidak ditemukan.`;
       }
@@ -424,7 +431,7 @@ export default async function handler(req, res) {
         let item = dbData.items[idx];
         item.status = 'sold'; item.price = finalPrice; item.soldAt = nowStr;
         isUpdated = true;
-        replyMsg = `🎉 *UNIT GUDANG CAIR!*\n📱 ${item.name}\n💰 Deal: Rp ${finalPrice.toLocaleString('id-ID')}\n📈 Laba: Rp ${(finalPrice - item.modal).toLocaleString('id-ID')}`;
+        replyMsg = `🎉 <b>UNIT GUDANG CAIR!</b>\n📱 ${item.name}\n💰 Deal: Rp ${finalPrice.toLocaleString('id-ID')}\n📈 Laba: Rp ${(finalPrice - item.modal).toLocaleString('id-ID')}`;
       } else {
         replyMsg = `❌ Gagal Proses Laku. ID Tidak ditemukan.`;
       }
@@ -437,31 +444,31 @@ export default async function handler(req, res) {
       const modal = parseInt(parts[2]) || 0; const price = parseInt(parts[3]) || 0;
       dbData.items.push({ id: timestampId, name: name, status: "sold", type: "new", modal: modal, price: price, entryDate: nowStr, soldAt: nowStr });
       isUpdated = true;
-      replyMsg = `⚡ *JUAL CEPAT BERHASIL!*\n📱 ${name}\n💰 Deal: Rp ${price.toLocaleString('id-ID')}\n📈 Laba: Rp ${(price - modal).toLocaleString('id-ID')}`;
+      replyMsg = `⚡ <b>JUAL CEPAT BERHASIL!</b>\n📱 ${name}\n💰 Deal: Rp ${price.toLocaleString('id-ID')}\n📈 Laba: Rp ${(price - modal).toLocaleString('id-ID')}`;
     }
     else if (command === '/stok') {
       const name = parts[1] ? parts[1].replace(/_/g, ' ') : 'Stok Baru';
       const modal = parseInt(parts[2]) || 0; const price = parseInt(parts[3]) || 0;
       dbData.items.push({ id: timestampId, name: name, status: "stok", type: "new", modal: modal, price: price, entryDate: nowStr, soldAt: '' });
       isUpdated = true;
-      replyMsg = `📦 *MASUK GUDANG*\n📱 ${name}\n💸 Kas Keluar: Rp ${modal.toLocaleString('id-ID')}`;
+      replyMsg = `📦 <b>MASUK GUDANG</b>\n📱 ${name}\n💸 Kas Keluar: Rp ${modal.toLocaleString('id-ID')}`;
     }
     else if (command === '/jasa' || command === '/servis') {
       const name = parts[1] ? parts[1].replace(/_/g, ' ') : 'Laba Jasa';
       const profit = parseInt(parts[2]) || 0;
       dbData.extraProfits.push({ id: timestampId, name: name, modal: 0, price: profit, profit: profit });
       isUpdated = true;
-      replyMsg = `🛠️ *SERVIS SELESAI!*\n📝 ${name}\n💵 Pemasukan: Rp ${profit.toLocaleString('id-ID')}`;
+      replyMsg = `🛠️ <b>SERVIS SELESAI!</b>\n📝 ${name}\n💵 Pemasukan: Rp ${profit.toLocaleString('id-ID')}`;
     }
     else if (command === '/out' || command === '/pengeluaran') {
       const name = parts[1] ? parts[1].replace(/_/g, ' ') : 'Pengeluaran';
       const nominal = parseInt(parts[2]) || 0;
       dbData.extraProfits.push({ id: timestampId, name: `[OUT] ${name}`, modal: 0, price: -Math.abs(nominal), profit: -Math.abs(nominal) });
       isUpdated = true;
-      replyMsg = `🔻 *PENGELUARAN TERCATAT*\n📝 ${name}\n💸 Kas Keluar: Rp ${nominal.toLocaleString('id-ID')}`;
+      replyMsg = `🔻 <b>PENGELUARAN TERCATAT</b>\n📝 ${name}\n💸 Kas Keluar: Rp ${nominal.toLocaleString('id-ID')}`;
     }
     else {
-      // Abaikan chat yang bukan perintah sistem
+      // Abaikan chat ngasal
       return res.status(200).send('OK');
     }
 
@@ -474,16 +481,14 @@ export default async function handler(req, res) {
         headers: { 'Content-Type': 'application/json', 'X-Master-Key': API_KEY },
         body: JSON.stringify(dbData)
       });
-      // Memaksa menu utama muncul lagi di bawah agar bersih
-      await callTelegramAPI('sendMessage', { chat_id: chatId, text: replyMsg + '\n\n🔄 _Sistem berhasil diupdate._', parse_mode: 'Markdown', reply_markup: menuKeyboard });
+      await callTelegramAPI('sendMessage', { chat_id: chatId, text: replyMsg + '\n\n🔄 <i>Sistem berhasil diupdate.</i>', parse_mode: 'HTML', reply_markup: menuKeyboard });
     } else if (replyMsg !== '') {
-      // Jika pesan biasa, update keyboard tapi tidak update DB
-      await callTelegramAPI('sendMessage', { chat_id: chatId, text: replyMsg, parse_mode: 'Markdown', reply_markup: menuKeyboard });
+      await callTelegramAPI('sendMessage', { chat_id: chatId, text: replyMsg, parse_mode: 'HTML', reply_markup: menuKeyboard });
     }
 
   } catch (error) {
     console.error("System Error:", error);
-    await callTelegramAPI('sendMessage', { chat_id: chatId, text: `❌ *Error:* Gagal memproses data.`, parse_mode: 'Markdown' });
+    await callTelegramAPI('sendMessage', { chat_id: chatId, text: `❌ <b>Error:</b> Gagal memproses data.`, parse_mode: 'HTML' });
   }
 
   return res.status(200).send('OK');
