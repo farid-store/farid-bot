@@ -1,99 +1,56 @@
 // ═══════════════════════════════════════════════════════════════════
-//  FARID STORE BOT V10 — Full Admin Edition (Serverless + Hybrid Fixed)
+//  FARID STORE BOT V11 — Full Dynamic Inline Keyboard Edition
 //  Vercel Serverless Webhook Handler
+//  
+//  PERUBAHAN UTAMA V11:
+//  - Hapus semua MAIN_KEYBOARD / reply keyboard persisten
+//  - Semua navigasi menggunakan inline keyboard dinamis di bubble chat
+//  - Keyboard selalu relevan dengan konteks halaman yang sedang dibuka
+//  - Navigasi halaman stok dengan tombol nomor item langsung
+//  - Setiap item stok punya bubble detail + tombol edit/hapus kontekstual
+//  - Flow input multi-step tetap menggunakan force_reply (bersih)
 // ═══════════════════════════════════════════════════════════════════
 
 // ── CONFIG ──────────────────────────────────────────────────────────
-const BOT_TOKEN  = process.env.BOT_TOKEN;
-const ADMIN_IDS  = (process.env.ADMIN_IDS || '').split(',').map(s => s.trim()).filter(Boolean);
-const BIN_ID     = process.env.BIN_ID     || '699644fdae596e708f3582af';
-const JSONBIN_KEY = process.env.JSONBIN_KEY || '$2a$10$tcKHEWwuz2sqRoMCKJfga.1xxTFW0RxpXUPnP.NI4YbivtlK1xxau';
+const BOT_TOKEN   = process.env.BOT_TOKEN;
+const ADMIN_IDS   = (process.env.ADMIN_IDS || '').split(',').map(s => s.trim()).filter(Boolean);
+const BIN_ID      = process.env.BIN_ID      || '699644fdae596e708f3582af';
+const JSONBIN_KEY = process.env.JSONBIN_KEY  || '$2a$10$tcKHEWwuz2sqRoMCKJfga.1xxTFW0RxpXUPnP.NI4YbivtlK1xxau';
 
-const TG   = `https://api.telegram.org/bot${BOT_TOKEN}`;
-const BIN  = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
+const TG  = `https://api.telegram.org/bot${BOT_TOKEN}`;
+const BIN = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
 
-const GOAL = 100_000_000;
-const MILESTONES = [10,20,30,40,50,60,75,90].map(v => v * 1_000_000);
+const GOAL       = 100_000_000;
+const MILESTONES = [10, 20, 30, 40, 50, 60, 75, 90].map(v => v * 1_000_000);
 
 const BRAND_ICONS = {
-  Apple:'🍎', Samsung:'🌌', Xiaomi:'🟠', Oppo:'🟢', Vivo:'🔵',
-  Realme:'🟡', Infinix:'⚡', Tecno:'🔷', iTel:'⬛', Other:'📦'
+  Apple: '🍎', Samsung: '🌌', Xiaomi: '🟠', Oppo: '🟢', Vivo: '🔵',
+  Realme: '🟡', Infinix: '⚡', Tecno: '🔷', iTel: '⬛', Other: '📦'
 };
-
-// ── KEYBOARD BAWAH (PERSISTENT REPLY KEYBOARD) ──────────────────────
-const MAIN_KEYBOARD = {
-  keyboard: [
-    [{ text: '📊 Dashboard' }, { text: '📦 Menu Stok' }],
-    [{ text: '💳 Transaksi' }, { text: '📈 Analitik' }],
-    [{ text: '➕ Catat Masuk' }, { text: '✅ Tandai Terjual' }],
-    [{ text: '⭐ Laba Jasa' }, { text: '⚙️ Pengaturan' }]
-  ],
-  resize_keyboard: true,
-  is_persistent: true
-};
-
-const BOTTOM_COMMANDS = [
-  '📊 Dashboard', '📦 Menu Stok', '💳 Transaksi', '📈 Analitik', 
-  '➕ Catat Masuk', '✅ Tandai Terjual', '⭐ Laba Jasa', '⚙️ Pengaturan',
-  '✏️ Kelola Stok', '❌ Batal'
-];
-
-// Helper untuk membuat keyboard dinamis di bawah layar
-function makeKb(layout) {
-  return { keyboard: layout, resize_keyboard: true, is_persistent: true };
-}
-
-// ── SESSION MANAGEMENT (VIA JSONBIN) ─────────────────────────────────
-// Menyimpan sesi di database agar tidak hilang saat Vercel cold-start
-function getSession(db, uid) {
-  if (!db.sessions) db.sessions = {};
-  if (!db.sessions[uid]) db.sessions[uid] = {};
-  return db.sessions[uid];
-}
-
-function clearSession(db, uid) {
-  if (!db.sessions) db.sessions = {};
-  db.sessions[uid] = {};
-}
 
 // ── UTILS ────────────────────────────────────────────────────────────
-const rp = n => new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',minimumFractionDigits:0}).format(n||0);
+const rp = n => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n || 0);
 const rpShort = n => {
   if (!n) return 'Rp 0';
-  if (n >= 1e9) return `Rp ${(n/1e9).toFixed(1)} M`;
-  if (n >= 1e6) return `Rp ${(n/1e6).toFixed(1)} Jt`;
-  if (n >= 1e3) return `Rp ${(n/1e3).toFixed(0)} Rb`;
+  if (n >= 1e9) return `Rp ${(n / 1e9).toFixed(1)}M`;
+  if (n >= 1e6) return `Rp ${(n / 1e6).toFixed(1)}Jt`;
+  if (n >= 1e3) return `Rp ${(n / 1e3).toFixed(0)}Rb`;
   return `Rp ${n}`;
 };
-
-const pct = (n,d) => d > 0 ? Math.min(100,(n/d*100)).toFixed(1) : '0.0';
-
-const bar = (val, max, len=10) => {
-  const filled = Math.round(Math.min(val/max,1)*len);
-  return '█'.repeat(filled) + '░'.repeat(len-filled);
-};
-
-const now = () => new Date();
-const mkStr = (d=new Date()) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-const monthLabel = mk => {
-  const [y,m] = mk.split('-');
-  const names = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
-  return `${names[+m-1]} ${y}`;
-};
-const longMonth = mk => {
-  const [y,m] = mk.split('-');
-  const names = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
-  return `${names[+m-1]} ${y}`;
-};
+const pct  = (n, d) => d > 0 ? Math.min(100, (n / d * 100)).toFixed(1) : '0.0';
+const bar  = (val, max, len = 10) => { const f = Math.round(Math.min(val / max, 1) * len); return '█'.repeat(f) + '░'.repeat(len - f); };
+const mkStr      = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+const monthLabel = mk => { const [y, m] = mk.split('-'); return `${['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'][+m - 1]} ${y}`; };
+const longMonth  = mk => { const [y, m] = mk.split('-'); return `${['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'][+m - 1]} ${y}`; };
 
 function getBrand(name) {
   const n = name.toUpperCase();
-  if (n.includes('IPHONE')||n.includes('APPLE')||n.includes('IPAD')) return 'Apple';
-  if (n.includes('SAMSUNG')||n.includes('GALAXY')||n.includes('SEIN')||n.startsWith('SAM ')) return 'Samsung';
-  if (n.includes('XIAOMI')||n.includes('Note')||n.includes('REDMI')||n.includes('POCO')||n.includes('MI ')) return 'Xiaomi';
-  if (n.includes('OPPO')||n.includes('RENO')) return 'Oppo';
-  if (n.includes('VIVO')||n.includes('IQOO')) return 'Vivo';
-  if (n.includes('REALME')||n.includes('NARZO')) return 'Realme';
+  if (n.includes('IPHONE') || n.includes('APPLE') || n.includes('IPAD')) return 'Apple';
+  if (n.includes('SAMSUNG') || n.includes('GALAXY') || n.includes('SEIN')) return 'Samsung';
+  if (n.includes('XIAOMI') || n.includes('REDMI') || n.includes('POCO') || n.includes('MI ')) return 'Xiaomi';
+  if (n.includes('OPPO') || n.includes('RENO')) return 'Oppo';
+  if (n.includes('VIVO') || n.includes('IQOO')) return 'Vivo';
+  if (n.includes('REALME') || n.includes('NARZO')) return 'Realme';
   if (n.includes('INFINIX')) return 'Infinix';
   if (n.includes('TECNO')) return 'Tecno';
   if (n.includes('ITEL')) return 'iTel';
@@ -102,26 +59,23 @@ function getBrand(name) {
 
 function parseDate(s) {
   if (!s || s === 'Imported') return new Date();
-  if (s.includes('-') && s.length === 10) return new Date(s+'T00:00:00');
+  if (s.includes('-') && s.length >= 10) return new Date(s.slice(0, 10) + 'T00:00:00');
   const p = s.split(' ')[0].split('/');
-  if (p.length === 3) return new Date(+p[2], +p[1]-1, +p[0]);
+  if (p.length === 3) return new Date(+p[2], +p[1] - 1, +p[0]);
   return new Date();
 }
 
 // ── JSONBIN API ──────────────────────────────────────────────────────
 async function getData() {
-  const r = await fetch(`${BIN}/latest`, {
-    headers: { 'X-Master-Key': JSONBIN_KEY }
-  });
+  const r = await fetch(`${BIN}/latest`, { headers: { 'X-Master-Key': JSONBIN_KEY } });
   if (!r.ok) throw new Error(`JSONBin GET failed: ${r.status}`);
-  const j = await r.json();
-  return j.record;
+  return (await r.json()).record;
 }
 
 async function putData(db) {
   const r = await fetch(BIN, {
     method: 'PUT',
-    headers: { 'Content-Type':'application/json', 'X-Master-Key': JSONBIN_KEY },
+    headers: { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_KEY },
     body: JSON.stringify(db)
   });
   if (!r.ok) throw new Error(`JSONBin PUT failed: ${r.status}`);
@@ -138,63 +92,102 @@ async function tg(method, body) {
   return r.json();
 }
 
-const send      = (chat, text, extra={}) => tg('sendMessage', { chat_id:chat, text, parse_mode:'HTML', ...extra });
-const edit      = (chat, msg, text, extra={}) => tg('editMessageText', { chat_id:chat, message_id:msg, text, parse_mode:'HTML', ...extra });
-const editKb    = (chat, msg, kb) => tg('editMessageReplyMarkup', { chat_id:chat, message_id:msg, reply_markup:{ inline_keyboard:kb } });
-const answer    = (id, text='', alert=false) => tg('answerCallbackQuery', { callback_query_id:id, text, show_alert:alert });
-const deleteMsg = (chat, msg) => tg('deleteMessage', { chat_id:chat, message_id:msg });
+// Kirim pesan baru dengan inline keyboard
+const send   = (chat, text, kb = null, extra = {}) => tg('sendMessage', {
+  chat_id: chat, text, parse_mode: 'HTML',
+  ...(kb ? { reply_markup: { inline_keyboard: kb } } : {}),
+  ...extra
+});
+
+// Edit bubble chat yang sudah ada
+const edit   = (chat, mid, text, kb = null, extra = {}) => tg('editMessageText', {
+  chat_id: chat, message_id: mid, text, parse_mode: 'HTML',
+  ...(kb ? { reply_markup: { inline_keyboard: kb } } : {}),
+  ...extra
+});
+
+// Hanya update keyboard tanpa mengubah teks
+const editKb = (chat, mid, kb) => tg('editMessageReplyMarkup', {
+  chat_id: chat, message_id: mid, reply_markup: { inline_keyboard: kb }
+});
+
+// Hapus keyboard dari bubble (untuk bubble prompt input)
+const removeKb = (chat, mid) => tg('editMessageReplyMarkup', {
+  chat_id: chat, message_id: mid, reply_markup: { inline_keyboard: [] }
+});
+
+const answer    = (id, text = '', alert = false) => tg('answerCallbackQuery', { callback_query_id: id, text, show_alert: alert });
+const deleteMsg = (chat, mid) => tg('deleteMessage', { chat_id: chat, message_id: mid });
+
+// Prompt input: kirim pesan tanpa keyboard, gunakan force_reply agar reply bersih
+const prompt = (chat, text) => tg('sendMessage', {
+  chat_id: chat, text, parse_mode: 'HTML',
+  reply_markup: { force_reply: true, input_field_placeholder: 'Ketik di sini...' }
+});
 
 // ── AUTH ─────────────────────────────────────────────────────────────
 const isAdmin = uid => ADMIN_IDS.includes(String(uid)) || ADMIN_IDS.length === 0;
 
-// ── DATA COMPUTATION ──────────────────────────────────────────────────
+// ── SESSION MANAGEMENT ───────────────────────────────────────────────
+function getSession(db, uid) {
+  if (!db.sessions) db.sessions = {};
+  if (!db.sessions[uid]) db.sessions[uid] = {};
+  return db.sessions[uid];
+}
+
+function clearSession(db, uid) {
+  if (!db.sessions) db.sessions = {};
+  db.sessions[uid] = {};
+}
+
+// ── DATA COMPUTATION ─────────────────────────────────────────────────
 function compute(db) {
   const nowDate = new Date();
   const nowMk   = mkStr();
 
   let monthly = {}, brands = {}, allTx = [];
-  let startBal = Number(db.startBalance)||0;
-  let belanja=0, income=0, profitMain=0, profitExtra=0;
-  let floatModal=0, floatPrice=0, totalUnit=0;
+  let startBal = Number(db.startBalance) || 0;
+  let belanja = 0, income = 0, profitMain = 0, profitExtra = 0;
+  let floatModal = 0, floatPrice = 0, totalUnit = 0;
   let agingStocks = [];
 
-  for (const i of (db.items||[])) {
+  for (const i of (db.items || [])) {
     const ts = i.id ? Math.floor(i.id) : Date.now();
     if (i.status === 'sold') {
       totalUnit++;
-      if (i.type === 'new') { belanja += i.modal; allTx.push({id:ts,name:i.name,type:'buy',amount:i.modal}); }
+      if (i.type === 'new') { belanja += i.modal; allTx.push({ id: ts, name: i.name, type: 'buy', amount: i.modal }); }
       income += i.price;
-      const p = i.price - i.modal;
+      const p     = i.price - i.modal;
       profitMain += p;
       const brand = getBrand(i.name);
-      if (!brands[brand]) brands[brand] = {profit:0,count:0,revenue:0};
+      if (!brands[brand]) brands[brand] = { profit: 0, count: 0, revenue: 0 };
       brands[brand].profit  += p;
       brands[brand].count++;
       brands[brand].revenue += i.price;
       const soldD = parseDate(i.soldAt);
       const mk    = mkStr(soldD);
-      allTx.push({id:soldD.getTime(), name:i.name, type:'sold', amount:i.price, profit:p, mk});
-      if (!monthly[mk]) monthly[mk] = {units:0,profit:0,income:0,expense:0};
+      allTx.push({ id: soldD.getTime(), name: i.name, type: 'sold', amount: i.price, profit: p, mk });
+      if (!monthly[mk]) monthly[mk] = { units: 0, profit: 0, income: 0, expense: 0 };
       monthly[mk].units++;
       monthly[mk].profit  += p;
       monthly[mk].income  += i.price;
       monthly[mk].expense += i.modal;
     } else if (i.status === 'stok') {
-      if (i.type === 'new') { belanja += i.modal; allTx.push({id:ts,name:i.name,type:'buy',amount:i.modal}); }
+      if (i.type === 'new') { belanja += i.modal; allTx.push({ id: ts, name: i.name, type: 'buy', amount: i.modal }); }
       floatPrice += i.price;
       floatModal += i.modal;
-      const ageDays = i.id ? Math.floor((nowDate - new Date(Math.floor(i.id)))/86400000) : 0;
-      agingStocks.push({name:i.name, modal:i.modal, price:i.price, days:ageDays, id:i.id, brand:getBrand(i.name)});
+      const ageDays = i.id ? Math.floor((nowDate - new Date(Math.floor(i.id))) / 86400000) : 0;
+      agingStocks.push({ name: i.name, modal: i.modal, price: i.price, days: ageDays, id: i.id, brand: getBrand(i.name) });
     }
   }
 
-  for (const p of (db.extraProfits||[])) {
+  for (const p of (db.extraProfits || [])) {
     profitExtra += p.profit;
     totalUnit++;
     const d  = new Date(Math.floor(p.id));
     const mk = mkStr(d);
-    allTx.push({id:Math.floor(p.id), name:p.name||'Laba Jasa', type:'extra', amount:p.profit, mk});
-    if (!monthly[mk]) monthly[mk] = {units:0,profit:0,income:0,expense:0};
+    allTx.push({ id: Math.floor(p.id), name: p.name || 'Laba Jasa', type: 'extra', amount: p.profit, mk });
+    if (!monthly[mk]) monthly[mk] = { units: 0, profit: 0, income: 0, expense: 0 };
     monthly[mk].profit  += p.profit;
     monthly[mk].units++;
     monthly[mk].income  += p.profit;
@@ -205,62 +198,222 @@ function compute(db) {
   const totalAset   = cashSisa + floatPrice;
   const avgMargin   = totalUnit > 0 ? totalProfit / totalUnit : 0;
 
-  agingStocks.sort((a,b) => b.days - a.days);
-  allTx.sort((a,b) => b.id - a.id);
+  agingStocks.sort((a, b) => b.days - a.days);
+  allTx.sort((a, b) => b.id - a.id);
 
-  const curMonth = monthly[nowMk] || {units:0,profit:0,income:0,expense:0};
-
-  const prevMil = MILESTONES.filter(m => m <= totalAset).at(-1) || 0;
-  const nextMil = MILESTONES.find(m => m > totalAset) || GOAL;
+  const curMonth = monthly[nowMk] || { units: 0, profit: 0, income: 0, expense: 0 };
+  const prevMil  = MILESTONES.filter(m => m <= totalAset).at(-1) || 0;
+  const nextMil  = MILESTONES.find(m => m > totalAset) || GOAL;
 
   return {
     monthly, brands, allTx,
     startBal, belanja, income, profitMain, profitExtra, totalProfit,
     floatModal, floatPrice, cashSisa, totalAset, totalUnit, avgMargin,
     agingStocks, curMonth, nowMk, prevMil, nextMil,
-    stokCount: (db.items||[]).filter(i => i.status==='stok').length,
+    stokCount: (db.items || []).filter(i => i.status === 'stok').length,
     soldCount: totalUnit,
   };
 }
 
 // ══════════════════════════════════════════════════════════════════════
-//  MESSAGES
+//  KEYBOARD BUILDERS — semua inline, dinamis, kontekstual
 // ══════════════════════════════════════════════════════════════════════
 
-function menuUtama() {
-  return {
-    text: `🏪 <b>FARID STORE</b> — Admin Panel\n━━━━━━━━━━━━━━━━━━━━━\nPilih menu yang ingin kamu akses:`,
-    kb: [
-      [{ text:'📊 Dashboard', callback_data:'menu_dashboard' }, { text:'📦 Stok & Inventori', callback_data:'menu_stok' }],
-      [{ text:'💳 Transaksi', callback_data:'menu_transaksi' }, { text:'📈 Analitik', callback_data:'menu_analitik' }],
-      [{ text:'➕ Catat Masuk', callback_data:'aksi_masuk' },   { text:'✅ Tandai Terjual', callback_data:'aksi_terjual' }],
-      [{ text:'💰 Laba Jasa', callback_data:'aksi_ekstra' },    { text:'⚙️ Pengaturan', callback_data:'menu_settings' }],
-      [{ text:'🔄 Refresh Data', callback_data:'refresh' }]
-    ]
-  };
+// Keyboard Menu Utama
+function kbMenuUtama() {
+  return [
+    [{ text: '📊 Dashboard', callback_data: 'menu_dashboard' }, { text: '📦 Stok & Inventori', callback_data: 'menu_stok' }],
+    [{ text: '💳 Transaksi', callback_data: 'menu_transaksi' }, { text: '📈 Analitik', callback_data: 'menu_analitik' }],
+    [{ text: '➕ Catat Masuk', callback_data: 'aksi_masuk' },   { text: '✅ Tandai Terjual', callback_data: 'aksi_terjual' }],
+    [{ text: '⭐ Laba Jasa', callback_data: 'aksi_ekstra' },    { text: '⚙️ Pengaturan', callback_data: 'menu_settings' }],
+    [{ text: '🔄 Refresh Data', callback_data: 'menu_utama' }]
+  ];
 }
 
-async function msgDashboard(db) {
-  const c = compute(db);
-  const pctGoal  = pct(c.totalAset, GOAL);
-  const barGoal  = bar(c.totalAset, GOAL, 12);
-  const pctMil   = pct(c.totalAset - c.prevMil, c.nextMil - c.prevMil, 12);
-  const barMil   = bar(c.totalAset - c.prevMil, c.nextMil - c.prevMil, 12);
+// Keyboard navigasi halaman stok — menampilkan nomor-nomor item sebagai tombol
+function kbStokItems(items, page, totalPages, LIMIT) {
+  const slice   = items.slice((page - 1) * LIMIT, page * LIMIT);
+  const rows    = [];
+
+  // Tombol item: 2 kolom per baris
+  const itemBtns = slice.map((item, idx) => {
+    const no      = (page - 1) * LIMIT + idx + 1;
+    const ageDays = item.id ? Math.floor((new Date() - new Date(Math.floor(item.id))) / 86400000) : 0;
+    const ageIcon = ageDays > 30 ? '🔴' : ageDays > 14 ? '🟡' : '🟢';
+    const brand   = BRAND_ICONS[getBrand(item.name)] || '📦';
+    return { text: `${ageIcon}${brand} ${no}. ${item.name.slice(0, 18)}${item.name.length > 18 ? '…' : ''}`, callback_data: `item_detail_${item.id}` };
+  });
+
+  // Susun 1 kolom per item agar nama terbaca
+  for (const btn of itemBtns) rows.push([btn]);
+
+  // Navigasi halaman
+  if (totalPages > 1) {
+    const nav = [];
+    if (page > 1) {
+      nav.push({ text: '⏪', callback_data: 'stok_list_1' });
+      nav.push({ text: `◀️ ${page - 1}`, callback_data: `stok_list_${page - 1}` });
+    }
+    nav.push({ text: `• ${page}/${totalPages} •`, callback_data: 'noop' });
+    if (page < totalPages) {
+      nav.push({ text: `${page + 1} ▶️`, callback_data: `stok_list_${page + 1}` });
+      nav.push({ text: '⏩', callback_data: `stok_list_${totalPages}` });
+    }
+    rows.push(nav);
+  }
+
+  rows.push([{ text: '🔍 Cari Barang', callback_data: 'stok_cari' }, { text: '⏳ Stok Lama', callback_data: 'stok_aging' }]);
+  rows.push([{ text: '➕ Catat Masuk', callback_data: 'aksi_masuk' }, { text: '🏠 Menu Utama', callback_data: 'menu_utama' }]);
+  return rows;
+}
+
+// Keyboard detail item stok (muncul saat item diklik)
+function kbItemDetail(itemId, page = 1) {
+  return [
+    [{ text: '✅ Tandai Terjual', callback_data: `item_jual_${itemId}` }],
+    [{ text: '✏️ Edit Nama', callback_data: `item_edit_nama_${itemId}` }, { text: '💰 Edit Harga', callback_data: `item_edit_harga_${itemId}` }],
+    [{ text: '🗑️ Hapus Barang', callback_data: `item_hapus_konfirm_${itemId}` }],
+    [{ text: `◀️ Kembali ke Daftar (Hal. ${page})`, callback_data: `stok_list_${page}` }],
+    [{ text: '🏠 Menu Utama', callback_data: 'menu_utama' }]
+  ];
+}
+
+// Keyboard konfirmasi hapus item
+function kbHapusKonfirm(itemId, page = 1) {
+  return [
+    [{ text: '✅ Ya, Hapus Permanen', callback_data: `item_hapus_eksekusi_${itemId}` }],
+    [{ text: '❌ Batal, Kembali', callback_data: `item_detail_${itemId}` }]
+  ];
+}
+
+// Keyboard navigasi transaksi
+function kbTransaksi() {
+  return [
+    [{ text: '📋 10 Transaksi Terakhir', callback_data: 'tx_list_10' }, { text: '📅 Bulan Ini', callback_data: 'tx_bulan_ini' }],
+    [{ text: '💰 Arus Kas Bulanan', callback_data: 'tx_cashflow' }],
+    [{ text: '➕ Catat Masuk', callback_data: 'aksi_masuk' }, { text: '✅ Terjual', callback_data: 'aksi_terjual' }],
+    [{ text: '⭐ Laba Jasa', callback_data: 'aksi_ekstra' }],
+    [{ text: '🏠 Menu Utama', callback_data: 'menu_utama' }]
+  ];
+}
+
+// Keyboard analitik
+function kbAnalitik() {
+  return [
+    [{ text: '🔥 Top Brand Detail', callback_data: 'analitik_brand' }, { text: '📊 Tren Bulanan', callback_data: 'analitik_tren' }],
+    [{ text: '⏳ Stok Aging', callback_data: 'stok_aging' }, { text: '📋 Laporan Full', callback_data: 'laporan_full' }],
+    [{ text: '🏠 Menu Utama', callback_data: 'menu_utama' }]
+  ];
+}
+
+// Keyboard dashboard
+function kbDashboard() {
+  return [
+    [{ text: '📦 Lihat Stok', callback_data: 'stok_list_1' }, { text: '⏳ Stok Lama', callback_data: 'stok_aging' }],
+    [{ text: '📈 Analitik', callback_data: 'menu_analitik' }, { text: '💳 Transaksi', callback_data: 'menu_transaksi' }],
+    [{ text: '🔄 Refresh', callback_data: 'menu_dashboard' }, { text: '🏠 Menu Utama', callback_data: 'menu_utama' }]
+  ];
+}
+
+// Keyboard menu stok
+function kbMenuStok() {
+  return [
+    [{ text: '📋 Daftar Semua Stok', callback_data: 'stok_list_1' }],
+    [{ text: '⏳ Stok Mengendap (>14hr)', callback_data: 'stok_aging' }, { text: '🔍 Cari Stok', callback_data: 'stok_cari' }],
+    [{ text: '➕ Catat Masuk', callback_data: 'aksi_masuk' }, { text: '✅ Tandai Terjual', callback_data: 'aksi_terjual' }],
+    [{ text: '🔄 Refresh', callback_data: 'menu_stok' }, { text: '🏠 Menu Utama', callback_data: 'menu_utama' }]
+  ];
+}
+
+// Keyboard setelah aksi sukses
+function kbAksiSukses(opts = {}) {
+  const rows = [];
+  if (opts.tambahLagi) rows.push([{ text: opts.tambahLagi.text, callback_data: opts.tambahLagi.cb }]);
+  rows.push([{ text: '📊 Dashboard', callback_data: 'menu_dashboard' }, { text: '📦 Stok', callback_data: 'menu_stok' }]);
+  rows.push([{ text: '🏠 Menu Utama', callback_data: 'menu_utama' }]);
+  return rows;
+}
+
+// Keyboard konfirmasi terjual
+function kbKonfirmasiTerjual() {
+  return [
+    [{ text: '✅ Ya, Konfirmasi', callback_data: 'terjual_confirm' }, { text: '❌ Batal', callback_data: 'cancel' }]
+  ];
+}
+
+// Keyboard pilih tipe barang masuk
+function kbTipeMasuk() {
+  return [
+    [{ text: '🆕 Baru (modal keluar dari kas)', callback_data: 'masuk_tipe_new' }],
+    [{ text: '♻️ Konsinyasi / Titipan', callback_data: 'masuk_tipe_konsinyasi' }],
+    [{ text: '❌ Batal', callback_data: 'cancel' }]
+  ];
+}
+
+// Keyboard saat mencari barang terjual
+function kbPilihBarangTerjual(items) {
+  const kb = items.slice(0, 8).map((item, i) => [
+    { text: `${i + 1}. ${item.name} — ${rpShort(item.price)}`, callback_data: `terjual_item_${i}` }
+  ]);
+  kb.push([{ text: '❌ Batal', callback_data: 'cancel' }]);
+  return kb;
+}
+
+// Keyboard harga jual
+function kbHargaJual(price) {
+  return [
+    [{ text: `💵 Pakai harga list: ${rpShort(price)}`, callback_data: 'terjual_harga_list' }],
+    [{ text: '❌ Batal', callback_data: 'cancel' }]
+  ];
+}
+
+// Keyboard konfirmasi umum (ya/tidak)
+function kbKonfirmasiYaTidak(cbYa, cbTidak) {
+  return [
+    [{ text: '✅ Ya', callback_data: cbYa }, { text: '❌ Batal', callback_data: cbTidak }]
+  ];
+}
+
+// Keyboard settings
+function kbSettings() {
+  return [
+    [{ text: '💼 Ubah Modal Awal', callback_data: 'set_modal' }],
+    [{ text: '⭐ Catat Laba Jasa', callback_data: 'aksi_ekstra' }],
+    [{ text: '🏠 Menu Utama', callback_data: 'menu_utama' }]
+  ];
+}
+
+// Keyboard kembali generik
+function kbKembali(cb, label = '◀️ Kembali') {
+  return [[{ text: label, callback_data: cb }], [{ text: '🏠 Menu Utama', callback_data: 'menu_utama' }]];
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  MESSAGE BUILDERS
+// ══════════════════════════════════════════════════════════════════════
+
+function txtMenuUtama() {
+  return `🏪 <b>FARID STORE</b> — Admin Panel\n━━━━━━━━━━━━━━━━━━━━━\nPilih menu yang ingin kamu akses:`;
+}
+
+async function txtDashboard(db) {
+  const c       = compute(db);
+  const pctGoal = pct(c.totalAset, GOAL);
+  const barGoal = bar(c.totalAset, GOAL, 12);
+  const pctMil  = pct(c.totalAset - c.prevMil, c.nextMil - c.prevMil);
+  const barMil  = bar(c.totalAset - c.prevMil, c.nextMil - c.prevMil, 12);
 
   const sortedMks = Object.keys(c.monthly).sort().slice(-3);
-  const avg3 = sortedMks.reduce((s,k) => s + c.monthly[k].profit, 0) / (sortedMks.length || 1);
+  const avg3      = sortedMks.reduce((s, k) => s + c.monthly[k].profit, 0) / (sortedMks.length || 1);
   let etaStr = '—';
   if (c.totalAset >= GOAL) etaStr = '✅ TERCAPAI!';
   else if (avg3 > 0) {
-    const d = new Date(); d.setMonth(d.getMonth() + Math.ceil((GOAL - c.totalAset)/avg3));
+    const d = new Date(); d.setMonth(d.getMonth() + Math.ceil((GOAL - c.totalAset) / avg3));
     etaStr = longMonth(mkStr(d));
   }
 
-  const curMk = c.nowMk;
-  const cm    = c.curMonth;
-
-  const txt = `
-🏪 <b>FARID STORE — DASHBOARD</b>
+  const cm = c.curMonth;
+  return `🏪 <b>FARID STORE — DASHBOARD</b>
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 
 💰 <b>TOTAL ASET</b>
@@ -269,7 +422,7 @@ ${rp(c.totalAset)}
 
 🏁 <b>MILESTONE BERIKUTNYA</b>
 Target → ${rp(c.nextMil)}
-<code>${barMil}</code> ${pct(c.totalAset - c.prevMil, c.nextMil - c.prevMil)}%
+<code>${barMil}</code> ${pctMil}%
 📅 ETA: <b>${etaStr}</b>
 
 📊 <b>BREAKDOWN ASET</b>
@@ -280,263 +433,152 @@ Target → ${rp(c.nextMil)}
 ${rp(c.totalProfit)} dari ${c.totalUnit} unit
 Rata-rata margin: ${rpShort(c.avgMargin)}/unit
 
-📅 <b>BULAN INI</b> (${longMonth(curMk)})
+📅 <b>BULAN INI</b> (${longMonth(c.nowMk)})
 ├ 💚 Omset: ${rp(cm.income)}
-├ ❤️ HPP: ${rp(cm.expense)}
+├ ❤️  HPP: ${rp(cm.expense)}
 ├ 💛 Laba: ${rp(cm.profit)}
 └ 📦 Terjual: ${cm.units} unit
 
 🗃️ <b>STOK GUDANG</b>
-${c.stokCount} item • Modal: ${rp(c.floatModal)} • Harga: ${rp(c.floatPrice)}
-`.trim();
-
-  return {
-    text: txt,
-    kb: [
-      [{ text:'📈 Analitik Detail', callback_data:'menu_analitik' }, { text:'💳 Transaksi', callback_data:'menu_transaksi' }],
-      [{ text:'📦 Lihat Stok', callback_data:'stok_list_1' }, { text:'⏳ Stok Lama', callback_data:'stok_aging' }],
-      [{ text:'🔄 Refresh', callback_data:'dash_refresh' }, { text:'🏠 Menu', callback_data:'menu_utama' }]
-    ]
-  };
+${c.stokCount} item • Modal: ${rp(c.floatModal)} • Harga: ${rp(c.floatPrice)}`;
 }
 
-async function msgStokMenu(db) {
-  const c = compute(db);
-  const items = (db.items||[]).filter(i => i.status==='stok');
+async function txtMenuStok(db) {
+  const c     = compute(db);
+  const items = (db.items || []).filter(i => i.status === 'stok');
   const byBrand = {};
-  items.forEach(i => { const b = getBrand(i.name); if(!byBrand[b]) byBrand[b]={count:0,modal:0}; byBrand[b].count++; byBrand[b].modal+=i.modal; });
+  items.forEach(i => {
+    const b = getBrand(i.name);
+    if (!byBrand[b]) byBrand[b] = { count: 0, modal: 0 };
+    byBrand[b].count++;
+    byBrand[b].modal += i.modal;
+  });
 
-  let brandRows = Object.entries(byBrand).sort((a,b)=>b[1].count-a[1].count)
-    .map(([b,v]) => `${BRAND_ICONS[b]||'📦'} ${b}: ${v.count} unit • ${rpShort(v.modal)}`).join('\n');
+  const brandRows = Object.entries(byBrand)
+    .sort((a, b) => b[1].count - a[1].count)
+    .map(([b, v]) => `${BRAND_ICONS[b] || '📦'} ${b}: ${v.count} unit • ${rpShort(v.modal)}`)
+    .join('\n');
 
-  const txt = `
-📦 <b>MANAJEMEN STOK GUDANG</b>
+  return `📦 <b>MANAJEMEN STOK GUDANG</b>
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 Total: <b>${items.length} item</b>
 Modal: ${rp(c.floatModal)} | Harga Jual: ${rp(c.floatPrice)}
 Potensi Laba: ${rp(c.floatPrice - c.floatModal)}
 
 📊 <b>KOMPOSISI MEREK</b>
-${brandRows || '—'}
-`.trim();
-
-  return {
-    text: txt,
-    kb: [
-      [{ text:'📋 Daftar Semua Stok', callback_data:'stok_list_1' }],
-      [{ text:'✏️ Kelola Stok (Edit/Hapus)', callback_data:'aksi_kelola_stok' }],
-      [{ text:'⏳ Stok Mengendap (>14 hari)', callback_data:'stok_aging' }],
-      [{ text:'🔍 Cari Stok', callback_data:'stok_cari' }],
-      [{ text:'➕ Catat Barang Masuk', callback_data:'aksi_masuk' }],
-      [{ text:'✅ Tandai Terjual', callback_data:'aksi_terjual' }],
-      [{ text:'🔄 Refresh', callback_data:'menu_stok' }, { text:'🏠 Menu', callback_data:'menu_utama' }]
-    ]
-  };
+${brandRows || '— Stok kosong'}`;
 }
 
-async function msgStokList(db, page=1) {
-  const LIMIT = 15;
-  const items = (db.items||[]).filter(i => i.status==='stok');
-  items.sort((a,b) => (a.id||0) - (b.id||0));
+// Daftar stok berformat ringkas (header), keyboard berisi tombol item
+function txtStokList(items, page, totalPages, LIMIT) {
+  const slice   = items.slice((page - 1) * LIMIT, page * LIMIT);
+  const nowDate = new Date();
 
-  const total = items.length;
-  const pages = Math.ceil(total/LIMIT) || 1;
-  const p     = Math.min(Math.max(page,1), pages);
-  const slice = items.slice((p-1)*LIMIT, p*LIMIT);
+  const ringkasan = slice.map((item, idx) => {
+    const no      = (page - 1) * LIMIT + idx + 1;
+    const ageDays = item.id ? Math.floor((nowDate - new Date(Math.floor(item.id))) / 86400000) : 0;
+    const ageIcon = ageDays > 30 ? '🔴' : ageDays > 14 ? '🟡' : '🟢';
+    return `${ageIcon} <b>${no}.</b> ${item.name} — ${rpShort(item.price)} <i>(${ageDays}hr)</i>`;
+  }).join('\n');
 
-  let rows = slice.map((i,idx) => {
-    const no   = (p-1)*LIMIT + idx + 1;
-    const days = i.id ? Math.floor((new Date()-new Date(Math.floor(i.id)))/86400000) : 0;
-    const age  = days > 30 ? '🔴' : days > 14 ? '🟡' : '🟢';
-    return `${no}. ${age} <b>${i.name}</b>\n    Modal: ${rpShort(i.modal)} → Jual: ${rpShort(i.price)} (${days}hr)`;
-  }).join('\n\n');
-
-  const txt = `
-📦 <b>DAFTAR STOK</b> (hal. ${p}/${pages})
+  return `📦 <b>DAFTAR STOK</b> — Hal. ${page}/${totalPages}
 ━━━━━━━━━━━━━━━━━━━━━━━━━
-${rows || 'Stok kosong!'}
+${ringkasan || 'Stok kosong!'}
 ━━━━━━━━━━━━━━━━━━━━━━━━━
-🟢 < 14hr  🟡 14-30hr  🔴 > 30hr
-Total: ${total} item
-`.trim();
-
-  const navRow = [];
-  if (pages > 1) {
-    if (p > 1) {
-      navRow.push({ text: '⏪ Awal', callback_data: `stok_list_1` });
-      navRow.push({ text: '◀️ Prev', callback_data: `stok_list_${p-1}` });
-    }
-    if (p < pages) {
-      navRow.push({ text: 'Next ▶️', callback_data: `stok_list_${p+1}` });
-      navRow.push({ text: 'Akhir ⏩', callback_data: `stok_list_${pages}` });
-    }
-  }
-
-  const kb = [];
-  if (navRow.length) kb.push(navRow);
-  kb.push([{ text:'📦 Menu Stok', callback_data:'menu_stok' }, { text:'🏠 Menu', callback_data:'menu_utama' }]);
-
-  return { text: txt.trim(), kb };
+🟢 <14hr  🟡 14–30hr  🔴 >30hr
+<i>Ketuk nama barang untuk detail & aksi</i>`;
 }
 
-// ── FUNGSI UNTUK VIEW KELOLA STOK ────────────────────────────────────
-function getKelolaStokView(db, page=1) {
-  const LIMIT = 15;
-  const items = (db.items||[]).filter(i => i.status === 'stok').sort((a,b) => (a.id||0) - (b.id||0));
-  const total = items.length;
-  const pages = Math.ceil(total/LIMIT) || 1;
-  const p     = Math.min(Math.max(page,1), pages);
-  const slice = items.slice((p-1)*LIMIT, p*LIMIT);
+// Bubble detail satu item stok
+function txtItemDetail(item) {
+  const ageDays = item.id ? Math.floor((new Date() - new Date(Math.floor(item.id))) / 86400000) : 0;
+  const ageIcon = ageDays > 30 ? '🔴' : ageDays > 14 ? '🟡' : '🟢';
+  const brand   = getBrand(item.name);
+  const margin  = item.price - item.modal;
+  const pctMargin = item.price > 0 ? ((margin / item.price) * 100).toFixed(1) : '0';
+  const addedDate = item.addedAt ? new Date(item.addedAt).toLocaleDateString('id-ID') : '—';
 
-  let kb = slice.map((item, idx) => [{ text: `${(p-1)*LIMIT + idx + 1}. ${item.name}`, callback_data: `kelola_item_${item.id}` }]);
-  
-  let navRow = [];
-  if (pages > 1) {
-    if (p > 1) {
-      navRow.push({ text: '⏪ Awal', callback_data: 'kelola_page_1' });
-      navRow.push({ text: '◀️ Prev', callback_data: `kelola_page_${p-1}` });
-    }
-    if (p < pages) {
-      navRow.push({ text: 'Next ▶️', callback_data: `kelola_page_${p+1}` });
-      navRow.push({ text: 'Akhir ⏩', callback_data: `kelola_page_${pages}` });
-    }
-  }
-  if (navRow.length) kb.push(navRow);
-  
-  kb.push([{ text: '📦 Kembali ke Stok', callback_data: 'menu_stok' }]);
-
-  const txt = `⚙️ <b>KELOLA STOK</b> (Hal. ${p}/${pages})\n━━━━━━━━━━━━━━━━━━━━━━━━━\nPilih barang yang ingin <b>diedit</b> atau <b>dihapus</b>:`;
-  return { text: txt, kb: kb };
-}
-
-async function msgStokAging(db) {
-  const c     = compute(db);
-  const aging = c.agingStocks;
-
-  if (aging.length === 0) {
-    return {
-      text: `⏳ <b>STOK MENGENDAP</b>\n\nTidak ada stok yang mengendap. Perputaran barang lancar! ✅`,
-      kb: [[{ text:'📦 Stok', callback_data:'menu_stok' }, { text:'🏠 Menu', callback_data:'menu_utama' }]]
-    };
-  }
-
-  const rows = aging.slice(0,12).map((i,idx) => {
-    const icon = i.days > 30 ? '🔴' : i.days > 14 ? '🟡' : '🟢';
-    return `${idx+1}. ${icon} <b>${i.name}</b>\n    Modal: ${rpShort(i.modal)} | <b>${i.days} hari</b>`;
-  }).join('\n\n');
-
-  const over30 = aging.filter(i => i.days > 30).length;
-  const over14 = aging.filter(i => i.days > 14 && i.days <= 30).length;
-
-  return {
-    text: `
-⏳ <b>STOK MENGENDAP</b>
+  return `🗃️ <b>DETAIL BARANG</b>
 ━━━━━━━━━━━━━━━━━━━━━━━━━
-🔴 > 30 hari: ${over30} item
-🟡 14–30 hari: ${over14} item
-
-${rows}
-`.trim(),
-    kb: [
-      [{ text:'✅ Tandai Terjual', callback_data:'aksi_terjual' }],
-      [{ text:'📦 Stok', callback_data:'menu_stok' }, { text:'🏠 Menu', callback_data:'menu_utama' }]
-    ]
-  };
+📦 <b>${item.name}</b>
+${BRAND_ICONS[brand] || '📦'} Merek: ${brand}
+━━━━━━━━━━━━━━━━━━━━━━━━━
+💰 Modal: ${rp(item.modal)}
+💵 Harga Jual: ${rp(item.price)}
+💛 Potensi Laba: ${rp(margin)} (${pctMargin}%)
+🏷️ Tipe: ${item.type === 'new' ? '🆕 Baru' : '♻️ Konsinyasi'}
+📅 Masuk: ${addedDate}
+${ageIcon} Di gudang: <b>${ageDays} hari</b>`;
 }
 
-async function msgTransaksi(db) {
+async function txtTransaksi(db) {
   const c   = compute(db);
   const tx5 = c.allTx.slice(0, 5);
-
   const rows = tx5.map(tx => {
-    const icon  = tx.type==='sold' ? '📤' : tx.type==='buy' ? '📥' : '⭐';
-    const sign  = tx.type==='buy' ? '-' : '+';
+    const icon  = tx.type === 'sold' ? '📤' : tx.type === 'buy' ? '📥' : '⭐';
+    const sign  = tx.type === 'buy' ? '−' : '+';
     const d     = new Date(tx.id);
-    const ds    = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`;
-    const extra = tx.type==='sold' ? ` (laba: ${rpShort(tx.profit)})` : '';
+    const ds    = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const extra = tx.type === 'sold' ? ` <i>(laba: ${rpShort(tx.profit)})</i>` : '';
     return `${icon} ${ds} <b>${tx.name}</b>\n    ${sign}${rpShort(tx.amount)}${extra}`;
   }).join('\n\n');
 
-  return {
-    text: `
-💳 <b>MUTASI TRANSAKSI</b>
+  return `💳 <b>MUTASI TRANSAKSI</b>
 ━━━━━━━━━━━━━━━━━━━━━━━━━
-📤 Keluar (pembelian): ${rp(c.belanja)}
-📥 Masuk (penjualan): ${rp(c.income)}
+📥 Total Belanja: ${rp(c.belanja)}
+📤 Total Penjualan: ${rp(c.income)}
 ⭐ Laba Ekstra: ${rp(c.profitExtra)}
 
 <b>5 TRANSAKSI TERAKHIR</b>
-${rows || '—'}
-`.trim(),
-    kb: [
-      [{ text:'📊 Semua Tx (10 terakhir)', callback_data:'tx_list_10' }],
-      [{ text:'📅 Filter Bulan Ini', callback_data:'tx_bulan_ini' }],
-      [{ text:'💰 Arus Kas per Bulan', callback_data:'tx_cashflow' }],
-      [{ text:'➕ Catat Masuk', callback_data:'aksi_masuk' }, { text:'✅ Terjual', callback_data:'aksi_terjual' }],
-      [{ text:'⭐ Laba Jasa', callback_data:'aksi_ekstra' }],
-      [{ text:'🏠 Menu', callback_data:'menu_utama' }]
-    ]
-  };
+${rows || '—'}`;
 }
 
-async function msgTxList(db, limit=10) {
+async function txtTxList(db, limit = 10) {
   const c  = compute(db);
   const tx = c.allTx.slice(0, limit);
-
   const rows = tx.map((tx, idx) => {
-    const icon = tx.type==='sold' ? '📤' : tx.type==='buy' ? '📥' : '⭐';
-    const sign = tx.type==='buy' ? '−' : '+';
-    const d    = new Date(tx.id);
-    const ds   = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
-    const extra = tx.type==='sold' ? `\n    💛 Laba: ${rpShort(tx.profit)}` : '';
-    return `${idx+1}. ${icon} <b>${tx.name}</b>\n    📅 ${ds} | ${sign}${rp(tx.amount)}${extra}`;
+    const icon  = tx.type === 'sold' ? '📤' : tx.type === 'buy' ? '📥' : '⭐';
+    const sign  = tx.type === 'buy' ? '−' : '+';
+    const d     = new Date(tx.id);
+    const ds    = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+    const extra = tx.type === 'sold' ? `\n    💛 Laba: ${rpShort(tx.profit)}` : '';
+    return `${idx + 1}. ${icon} <b>${tx.name}</b>\n    📅 ${ds} | ${sign}${rp(tx.amount)}${extra}`;
   }).join('\n\n');
-
-  return {
-    text: `💳 <b>${limit} TRANSAKSI TERAKHIR</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n${rows || '—'}`,
-    kb: [[{ text:'💳 Menu Tx', callback_data:'menu_transaksi' }, { text:'🏠 Menu', callback_data:'menu_utama' }]]
-  };
+  return `💳 <b>${limit} TRANSAKSI TERAKHIR</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n${rows || '—'}`;
 }
 
-async function msgCashflow(db) {
+async function txtCashflow(db) {
   const c   = compute(db);
   const mks = Object.keys(c.monthly).sort().reverse().slice(0, 6);
-
   const rows = mks.map(mk => {
-    const m   = c.monthly[mk];
-    const net = m.income - m.expense;
-    const icon = net > 0 ? '✅' : '❌';
-    return `${icon} <b>${longMonth(mk)}</b>\n  💚 Omset: ${rpShort(m.income)} | ❤️ HPP: ${rpShort(m.expense)}\n  💛 Laba: ${rpShort(m.profit)} | 📦 ${m.units} unit`;
+    const m    = c.monthly[mk];
+    const icon = m.profit > 0 ? '✅' : '❌';
+    return `${icon} <b>${longMonth(mk)}</b>\n  💚 ${rpShort(m.income)} | ❤️ ${rpShort(m.expense)} | 💛 ${rpShort(m.profit)} | 📦 ${m.units}`;
   }).join('\n\n');
-
-  return {
-    text: `💰 <b>ARUS KAS PER BULAN</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n${rows || '—'}`,
-    kb: [[{ text:'💳 Menu Tx', callback_data:'menu_transaksi' }, { text:'🏠 Menu', callback_data:'menu_utama' }]]
-  };
+  return `💰 <b>ARUS KAS PER BULAN</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n${rows || '—'}`;
 }
 
-async function msgAnalitik(db) {
-  const c = compute(db);
-  const bArr = Object.entries(c.brands).sort((a,b) => b[1].profit - a[1].profit).slice(0,5);
-  const brandRows = bArr.map(([b,v], i) => {
-    const medal = ['🥇','🥈','🥉','4️⃣','5️⃣'][i];
-    const icon  = BRAND_ICONS[b]||'📦';
+async function txtAnalitik(db) {
+  const c    = compute(db);
+  const bArr = Object.entries(c.brands).sort((a, b) => b[1].profit - a[1].profit).slice(0, 5);
+  const brandRows = bArr.map(([b, v], i) => {
+    const medal = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'][i];
+    const icon  = BRAND_ICONS[b] || '📦';
     return `${medal} ${icon} <b>${b}</b>\n   Laba: ${rp(v.profit)} | ${v.count} unit`;
   }).join('\n\n');
 
   const sortedMks = Object.keys(c.monthly).sort().slice(-4);
+  const maxP      = Math.max(...sortedMks.map(k => c.monthly[k].profit || 0), 1);
   const trendRows = sortedMks.reverse().map(mk => {
-    const m   = c.monthly[mk];
-    const bLen = bar(m.profit, Math.max(...sortedMks.map(k => c.monthly[k].profit||0)), 8);
-    return `📅 <b>${monthLabel(mk)}</b>: ${rpShort(m.profit)}\n  <code>${bLen}</code> ${m.units}unit`;
+    const m    = c.monthly[mk];
+    const bLen = bar(m.profit, maxP, 8);
+    return `📅 <b>${monthLabel(mk)}</b>: ${rpShort(m.profit)}\n  <code>${bLen}</code> ${m.units} unit`;
   }).join('\n\n');
 
   const over30 = c.agingStocks.filter(i => i.days > 30).length;
   const over14 = c.agingStocks.filter(i => i.days > 14 && i.days <= 30).length;
 
-  return {
-    text: `
-📈 <b>ANALITIK LENGKAP</b>
+  return `📈 <b>ANALITIK LENGKAP</b>
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 
 🔥 <b>TOP MEREK (ALL TIME)</b>
@@ -546,73 +588,50 @@ ${brandRows || '—'}
 ${trendRows || '—'}
 
 ⚠️ <b>PERINGATAN STOK</b>
-🔴 Mengendap > 30hr: ${over30} item
-🟡 Mengendap 14-30hr: ${over14} item
-Total stok: ${c.stokCount} item
-`.trim(),
-    kb: [
-      [{ text:'🔥 Top Brand Detail', callback_data:'analitik_brand' }],
-      [{ text:'📊 Tren Bulanan', callback_data:'analitik_tren' }],
-      [{ text:'⏳ Stok Aging', callback_data:'stok_aging' }],
-      [{ text:'📋 Laporan Lengkap', callback_data:'laporan_full' }],
-      [{ text:'🏠 Menu', callback_data:'menu_utama' }]
-    ]
-  };
+🔴 Mengendap >30hr: ${over30} item
+🟡 Mengendap 14–30hr: ${over14} item
+Total stok: ${c.stokCount} item`;
 }
 
-async function msgBrandDetail(db) {
+async function txtBrandDetail(db) {
   const c    = compute(db);
-  const bArr = Object.entries(c.brands).sort((a,b) => b[1].profit - a[1].profit);
-
-  const rows = bArr.map(([b,v], i) => {
-    const icon   = BRAND_ICONS[b]||'📦';
-    const margin = v.count > 0 ? v.profit/v.count : 0;
-    const bLen   = bar(v.profit, bArr[0][1].profit, 10);
-    return `${icon} <b>${b}</b>\n<code>${bLen}</code>\nLaba: ${rp(v.profit)} | ${v.count} unit\nMargin/unit: ${rpShort(margin)} | Omset: ${rpShort(v.revenue)}`;
+  const bArr = Object.entries(c.brands).sort((a, b) => b[1].profit - a[1].profit);
+  const maxP = bArr[0]?.[1].profit || 1;
+  const rows = bArr.map(([b, v]) => {
+    const icon   = BRAND_ICONS[b] || '📦';
+    const margin = v.count > 0 ? v.profit / v.count : 0;
+    const bLen   = bar(v.profit, maxP, 10);
+    return `${icon} <b>${b}</b>\n<code>${bLen}</code>\nLaba: ${rp(v.profit)} | ${v.count} unit | Margin/unit: ${rpShort(margin)}`;
   }).join('\n\n');
-
-  return {
-    text: `🔥 <b>DETAIL TOP MEREK</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n${rows || '—'}`,
-    kb: [[{ text:'📈 Analitik', callback_data:'menu_analitik' }, { text:'🏠 Menu', callback_data:'menu_utama' }]]
-  };
+  return `🔥 <b>DETAIL TOP MEREK</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n${rows || '—'}`;
 }
 
-async function msgTren(db) {
+async function txtTren(db) {
   const c    = compute(db);
   const mks  = Object.keys(c.monthly).sort();
-  const maxP = Math.max(...mks.map(k => c.monthly[k].profit||0), 1);
-
+  const maxP = Math.max(...mks.map(k => c.monthly[k].profit || 0), 1);
   const rows = mks.reverse().map(mk => {
-    const m = c.monthly[mk];
-    const b = bar(m.profit, maxP, 10);
-    const netIcon = m.profit > 0 ? '✅' : '❌';
-    return `${netIcon} <b>${longMonth(mk)}</b>\n<code>${b}</code> ${rpShort(m.profit)}\n💚 ${rpShort(m.income)} | ❤️ ${rpShort(m.expense)} | 📦 ${m.units}unit`;
+    const m    = c.monthly[mk];
+    const b    = bar(m.profit, maxP, 10);
+    const icon = m.profit > 0 ? '✅' : '❌';
+    return `${icon} <b>${longMonth(mk)}</b>\n<code>${b}</code> ${rpShort(m.profit)}\n💚 ${rpShort(m.income)} | ❤️ ${rpShort(m.expense)} | 📦 ${m.units} unit`;
   }).join('\n\n');
-
-  return {
-    text: `📊 <b>TREN BULANAN (SEMUA)</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n${rows || '—'}`,
-    kb: [[{ text:'📈 Analitik', callback_data:'menu_analitik' }, { text:'🏠 Menu', callback_data:'menu_utama' }]]
-  };
+  return `📊 <b>TREN BULANAN (SEMUA)</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n${rows || '—'}`;
 }
 
-async function msgLaporanFull(db) {
-  const c   = compute(db);
-  const pctGoal = pct(c.totalAset, GOAL);
-  const bArr = Object.entries(c.brands).sort((a,b) => b[1].profit - a[1].profit).slice(0,3);
+async function txtLaporanFull(db) {
+  const c        = compute(db);
+  const pctGoal  = pct(c.totalAset, GOAL);
+  const bArr     = Object.entries(c.brands).sort((a, b) => b[1].profit - a[1].profit).slice(0, 3);
+  const tanggal  = new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
 
-  const nowDate = new Date();
-  const tanggal = `${String(nowDate.getDate()).padStart(2,'0')}/${String(nowDate.getMonth()+1).padStart(2,'0')}/${nowDate.getFullYear()}`;
-
-  return {
-    text: `
-📋 <b>LAPORAN LENGKAP FARID STORE</b>
+  return `📋 <b>LAPORAN LENGKAP FARID STORE</b>
 📅 Per ${tanggal}
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 
 🎯 <b>PROGRES TARGET 100 JT</b>
 Total Aset: ${rp(c.totalAset)}
-Progress: ${pctGoal}%
-<code>${bar(c.totalAset, GOAL, 14)}</code>
+<code>${bar(c.totalAset, GOAL, 14)}</code> ${pctGoal}%
 
 💰 <b>RINGKASAN FINANSIAL</b>
 ├ Modal Awal: ${rp(c.startBal)}
@@ -635,187 +654,165 @@ Progress: ${pctGoal}%
 └ Avg Margin: ${rp(c.avgMargin)}/unit
 
 🏆 <b>TOP 3 MEREK</b>
-${bArr.map(([b,v],i)=>`${['🥇','🥈','🥉'][i]} ${b}: ${rp(v.profit)} (${v.count}unit)`).join('\n')}
-`.trim(),
-    kb: [
-      [{ text:'📈 Analitik', callback_data:'menu_analitik' }, { text:'📊 Dashboard', callback_data:'menu_dashboard' }],
-      [{ text:'🏠 Menu', callback_data:'menu_utama' }]
-    ]
-  };
+${bArr.map(([b, v], i) => `${['🥇','🥈','🥉'][i]} ${b}: ${rp(v.profit)} (${v.count} unit)`).join('\n')}`;
 }
 
-async function msgTxBulanIni(db) {
-  const c  = compute(db);
-  const mk = c.nowMk;
-  const tx = c.allTx.filter(t => t.mk === mk || (t.id && mkStr(new Date(t.id)) === mk)).slice(0, 15);
-
+async function txtTxBulanIni(db) {
+  const c   = compute(db);
+  const mk  = c.nowMk;
+  const tx  = c.allTx.filter(t => t.mk === mk || (t.id && mkStr(new Date(t.id)) === mk)).slice(0, 15);
+  const cm  = c.curMonth;
   const rows = tx.map((t, i) => {
-    const icon  = t.type==='sold' ? '📤' : t.type==='buy' ? '📥' : '⭐';
-    const d     = new Date(t.id);
-    const ds    = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`;
-    return `${i+1}. ${icon} <b>${t.name}</b>\n    ${ds} | ${rpShort(t.amount)}`;
+    const icon = t.type === 'sold' ? '📤' : t.type === 'buy' ? '📥' : '⭐';
+    const d    = new Date(t.id);
+    const ds   = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+    return `${i + 1}. ${icon} <b>${t.name}</b>\n    ${ds} | ${rpShort(t.amount)}`;
   }).join('\n\n');
 
-  const cm = c.curMonth;
-  return {
-    text: `
-📅 <b>TRANSAKSI ${longMonth(mk).toUpperCase()}</b>
+  return `📅 <b>TRANSAKSI ${longMonth(mk).toUpperCase()}</b>
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 💚 Omset: ${rp(cm.income)}
-❤️ HPP: ${rp(cm.expense)}
+❤️  HPP: ${rp(cm.expense)}
 💛 Laba: ${rp(cm.profit)}
 📦 Terjual: ${cm.units} unit
 
-<b>DETAIL TRANSAKSI:</b>
-${rows || '—'}
-`.trim(),
-    kb: [[{ text:'💳 Menu Tx', callback_data:'menu_transaksi' }, { text:'🏠 Menu', callback_data:'menu_utama' }]]
-  };
+<b>DETAIL:</b>
+${rows || '—'}`;
 }
 
-function msgSettings(db) {
-  const startBal = Number(db.startBalance)||0;
-  return {
-    text: `
-⚙️ <b>PENGATURAN</b>
+async function txtStokAging(db) {
+  const c    = compute(db);
+  const aging = c.agingStocks;
+  if (aging.length === 0) return `⏳ <b>STOK MENGENDAP</b>\n\nTidak ada stok mengendap. Perputaran lancar! ✅`;
+  const rows  = aging.slice(0, 12).map((i, idx) => {
+    const icon = i.days > 30 ? '🔴' : i.days > 14 ? '🟡' : '🟢';
+    return `${idx + 1}. ${icon} <b>${i.name}</b>\n    Modal: ${rpShort(i.modal)} | <b>${i.days} hari</b>`;
+  }).join('\n\n');
+  const over30 = aging.filter(i => i.days > 30).length;
+  const over14 = aging.filter(i => i.days > 14 && i.days <= 30).length;
+  return `⏳ <b>STOK MENGENDAP</b>
 ━━━━━━━━━━━━━━━━━━━━━━━━━
-Modal Awal: ${rp(startBal)}
+🔴 >30 hari: ${over30} item
+🟡 14–30 hari: ${over14} item
 
-Kamu bisa mengubah konfigurasi data toko di sini.
-`.trim(),
-    kb: [
-      [{ text:'💼 Ubah Modal Awal', callback_data:'set_modal' }],
-      [{ text:'💰 Tambah Laba Jasa', callback_data:'aksi_ekstra' }],
-      [{ text:'🏠 Menu', callback_data:'menu_utama' }]
-    ]
-  };
+${rows}`;
+}
+
+function txtSettings(db) {
+  return `⚙️ <b>PENGATURAN</b>
+━━━━━━━━━━━━━━━━━━━━━━━━━
+💼 Modal Awal: ${rp(Number(db.startBalance) || 0)}
+
+Kamu bisa mengubah konfigurasi toko di sini.`;
 }
 
 // ══════════════════════════════════════════════════════════════════════
-//  AKSI — ALUR INPUT MULTI-STEP
+//  INPUT HANDLER — Multi-step flow
 // ══════════════════════════════════════════════════════════════════════
-
 async function handleInput(chat, uid, text, db) {
   const sess = getSession(db, uid);
 
   // ── CATAT BARANG MASUK ───────────────────────────────────────────
   if (sess.step === 'masuk_nama') {
-    sess.nama = text;
-    sess.step = 'masuk_modal';
+    sess.nama  = text;
+    sess.step  = 'masuk_modal';
     await putData(db);
-    await send(chat, `✏️ Nama: <b>${text}</b>\n\nKetik <b>harga modal</b> (angka saja, contoh: 1500000):`, { reply_markup:{ keyboard: [[{text:'❌ Batal'}]], resize_keyboard: true } });
+    await prompt(chat, `✏️ Nama: <b>${text}</b>\n\nKetik <b>harga modal</b> (angka saja, contoh: 1500000):`);
     return;
   }
   if (sess.step === 'masuk_modal') {
-    const val = parseInt(text.replace(/\D/g,''));
-    if (!val || val <= 0) { await send(chat, '❌ Harga tidak valid. Coba lagi:'); return; }
+    const val = parseInt(text.replace(/\D/g, ''));
+    if (!val || val <= 0) { await prompt(chat, '❌ Harga tidak valid. Coba lagi:'); return; }
     sess.modal = val;
     sess.step  = 'masuk_harga';
     await putData(db);
-    await send(chat, `✏️ Modal: <b>${rp(val)}</b>\n\nKetik <b>harga jual</b>:`, { reply_markup:{ keyboard: [[{text:'❌ Batal'}]], resize_keyboard: true } });
+    await prompt(chat, `✏️ Modal: <b>${rp(val)}</b>\n\nKetik <b>harga jual</b>:`);
     return;
   }
   if (sess.step === 'masuk_harga') {
-    const val = parseInt(text.replace(/\D/g,''));
-    if (!val || val <= 0) { await send(chat, '❌ Harga tidak valid. Coba lagi:'); return; }
+    const val = parseInt(text.replace(/\D/g, ''));
+    if (!val || val <= 0) { await prompt(chat, '❌ Harga tidak valid. Coba lagi:'); return; }
     sess.harga = val;
     sess.step  = 'masuk_tipe';
     await putData(db);
     const margin = val - sess.modal;
     const pctM   = pct(margin, val);
-    await send(chat, `
-✏️ Harga Jual: <b>${rp(val)}</b>
-Margin: <b>${rp(margin)}</b> (${pctM}%)
-
-Tipe barang:`, {
-      reply_markup: { inline_keyboard: [
-        [{ text:'🆕 Baru (modal keluar)', callback_data:'masuk_tipe_new' }],
-        [{ text:'♻️ Konsinyasi/Titipan', callback_data:'masuk_tipe_konsinyasi' }]
-      ]}
-    });
+    await send(chat, `✏️ Harga Jual: <b>${rp(val)}</b>\nMargin: <b>${rp(margin)}</b> (${pctM}%)\n\nPilih tipe barang:`, kbTipeMasuk());
     return;
   }
 
   // ── TANDAI TERJUAL ───────────────────────────────────────────────
   if (sess.step === 'terjual_cari') {
     const keyword = text.toLowerCase();
-    const items   = (db.items||[]).filter(i => i.status==='stok' && i.name.toLowerCase().includes(keyword));
+    const items   = (db.items || []).filter(i => i.status === 'stok' && i.name.toLowerCase().includes(keyword));
     if (items.length === 0) {
-      await send(chat, `❌ Tidak ada stok yang mengandung kata "<b>${text}</b>".\nCoba kata lain:`);
+      await prompt(chat, `❌ Tidak ada stok mengandung kata "<b>${text}</b>".\nCoba kata kunci lain:`);
       return;
     }
     sess.step        = 'terjual_pilih';
     sess.cariResults = items.slice(0, 8);
     await putData(db);
-    const kb = items.slice(0, 8).map((item, i) => [{ text:`${i+1}. ${item.name} (${rpShort(item.price)})`, callback_data:`terjual_item_${i}` }]);
-    kb.push([{ text:'❌ Batal', callback_data:'cancel' }]);
-    await send(chat, `🔍 Ditemukan <b>${items.length}</b> item:\nPilih barang yang terjual:`, { reply_markup:{ inline_keyboard:kb } });
+    await send(chat, `🔍 Ditemukan <b>${items.length}</b> item.\nPilih barang yang terjual:`, kbPilihBarangTerjual(items));
     return;
   }
 
   if (sess.step === 'terjual_harga') {
-    const val = parseInt(text.replace(/\D/g,''));
-    if (!val || val <= 0) { await send(chat, '❌ Harga tidak valid. Coba lagi:'); return; }
+    const val = parseInt(text.replace(/\D/g, ''));
+    if (!val || val <= 0) { await prompt(chat, '❌ Harga tidak valid. Coba lagi:'); return; }
     sess.hargaJual = val;
-    sess.step = 'terjual_konfirmasi';
+    sess.step      = 'terjual_konfirmasi';
     await putData(db);
     const item   = sess.selectedItem;
     const profit = val - item.modal;
-    await send(chat, `
-✅ <b>KONFIRMASI PENJUALAN</b>
+    await send(chat, `✅ <b>KONFIRMASI PENJUALAN</b>
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 📦 Barang: <b>${item.name}</b>
 💰 Modal: ${rp(item.modal)}
 💵 Harga Jual: ${rp(val)}
 💛 Laba: ${rp(profit)}
-📅 Tgl Jual: ${new Date().toLocaleDateString('id-ID')}
+📅 Tgl: ${new Date().toLocaleDateString('id-ID')}
 
-Konfirmasi penjualan ini?`, {
-      reply_markup: { inline_keyboard: [
-        [{ text:'✅ Ya, Konfirmasi', callback_data:'terjual_confirm' }, { text:'❌ Batal', callback_data:'cancel' }]
-      ]}
-    });
+Konfirmasi penjualan ini?`, kbKonfirmasiTerjual());
     return;
   }
 
-  // ── KELOLA STOK (EDIT NAMA / HARGA / HAPUS) ────────────────────────
+  // ── EDIT NAMA STOK ────────────────────────────────────────────────
   if (sess.step === 'edit_stok_nama') {
     const item = sess.selectedEditItem;
-    const idx = db.items.findIndex(i => i.id === item.id);
+    const idx  = (db.items || []).findIndex(i => i.id === item.id);
     if (idx > -1) {
+      const namaLama = db.items[idx].name;
       db.items[idx].name = text;
       clearSession(db, uid);
       await putData(db);
-      await send(chat, `✅ Nama barang berhasil diubah menjadi <b>${text}</b>!`, { reply_markup: MAIN_KEYBOARD });
-      const m = await msgStokMenu(db);
-      await send(chat, m.text, { reply_markup:{ inline_keyboard: m.kb } });
+      await send(chat, `✅ Nama berhasil diubah!\n\n<b>${namaLama}</b> → <b>${text}</b>`,
+        kbKembali(`item_detail_${item.id}`, '◀️ Kembali ke Detail Barang'));
     }
     return;
   }
 
+  // ── EDIT HARGA STOK ───────────────────────────────────────────────
   if (sess.step === 'edit_stok_modal') {
-    const val = parseInt(text.replace(/\D/g,''));
-    if (!val || val <= 0) { await send(chat, '❌ Harga tidak valid. Coba lagi:'); return; }
+    const val = parseInt(text.replace(/\D/g, ''));
+    if (!val || val <= 0) { await prompt(chat, '❌ Harga tidak valid. Coba lagi:'); return; }
     sess.newEditModal = val;
-    sess.step = 'edit_stok_harga';
+    sess.step         = 'edit_stok_harga';
     await putData(db);
-    await send(chat, `💰 Modal baru: <b>${rp(val)}</b>\n\nSekarang ketik <b>Harga Jual Baru</b>:`, { reply_markup:{ keyboard: [[{text:'❌ Batal'}]], resize_keyboard: true } });
+    await prompt(chat, `💰 Modal baru: <b>${rp(val)}</b>\n\nKetik <b>Harga Jual Baru</b> (angka saja):`);
     return;
   }
-
   if (sess.step === 'edit_stok_harga') {
-    const val = parseInt(text.replace(/\D/g,''));
-    if (!val || val <= 0) { await send(chat, '❌ Harga tidak valid. Coba lagi:'); return; }
+    const val  = parseInt(text.replace(/\D/g, ''));
+    if (!val || val <= 0) { await prompt(chat, '❌ Harga tidak valid. Coba lagi:'); return; }
     const item = sess.selectedEditItem;
-    const idx = db.items.findIndex(i => i.id === item.id);
+    const idx  = (db.items || []).findIndex(i => i.id === item.id);
     if (idx > -1) {
       db.items[idx].modal = sess.newEditModal;
       db.items[idx].price = val;
       clearSession(db, uid);
       await putData(db);
-      await send(chat, `✅ Harga barang berhasil diubah!\nModal: ${rp(sess.newEditModal)}\nJual: ${rp(val)}`, { reply_markup: MAIN_KEYBOARD });
-      const m = await msgStokMenu(db);
-      await send(chat, m.text, { reply_markup:{ inline_keyboard: m.kb } });
+      await send(chat, `✅ Harga berhasil diubah!\n💰 Modal: ${rp(sess.newEditModal)}\n💵 Jual: ${rp(val)}`,
+        kbKembali(`item_detail_${item.id}`, '◀️ Kembali ke Detail Barang'));
     }
     return;
   }
@@ -825,81 +822,70 @@ Konfirmasi penjualan ini?`, {
     sess.ekstraNama = text;
     sess.step       = 'ekstra_nominal';
     await putData(db);
-    await send(chat, `✏️ Keterangan: <b>${text}</b>\n\nKetik <b>nominal laba</b>:`, { reply_markup:{ keyboard: [[{text:'❌ Batal'}]], resize_keyboard: true } });
+    await prompt(chat, `✏️ Keterangan: <b>${text}</b>\n\nKetik <b>nominal laba</b> (angka saja):`);
     return;
   }
   if (sess.step === 'ekstra_nominal') {
-    const val = parseInt(text.replace(/\D/g,''));
-    if (!val || val <= 0) { await send(chat, '❌ Nominal tidak valid. Coba lagi:'); return; }
+    const val = parseInt(text.replace(/\D/g, ''));
+    if (!val || val <= 0) { await prompt(chat, '❌ Nominal tidak valid. Coba lagi:'); return; }
     sess.ekstraNominal = val;
-    sess.step = 'ekstra_konfirmasi';
+    sess.step          = 'ekstra_konfirmasi';
     await putData(db);
-    await send(chat, `
-⭐ <b>KONFIRMASI LABA JASA</b>
+    await send(chat, `⭐ <b>KONFIRMASI LABA JASA</b>
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 📋 Keterangan: <b>${sess.ekstraNama}</b>
 💰 Nominal: <b>${rp(val)}</b>
 
-Catat laba ini?`, {
-      reply_markup: { inline_keyboard: [
-        [{ text:'✅ Ya, Catat', callback_data:'ekstra_confirm' }, { text:'❌ Batal', callback_data:'cancel' }]
-      ]}
-    });
+Catat laba ini?`, kbKonfirmasiYaTidak('ekstra_confirm', 'cancel'));
     return;
   }
 
   // ── SET MODAL ────────────────────────────────────────────────────
   if (sess.step === 'set_modal') {
-    const val = parseInt(text.replace(/\D/g,''));
-    if (!val || val <= 0) { await send(chat, '❌ Nominal tidak valid. Coba lagi:'); return; }
+    const val = parseInt(text.replace(/\D/g, ''));
+    if (!val || val <= 0) { await prompt(chat, '❌ Nominal tidak valid. Coba lagi:'); return; }
     sess.newModal = val;
-    sess.step = 'set_modal_konfirmasi';
+    sess.step     = 'set_modal_konfirmasi';
     await putData(db);
-    await send(chat, `
-💼 <b>KONFIRMASI UBAH MODAL</b>
-Modal baru: <b>${rp(val)}</b>
-
-Lanjutkan perubahan ini?`, {
-      reply_markup: { inline_keyboard: [
-        [{ text:'✅ Ya', callback_data:'set_modal_confirm' }, { text:'❌ Batal', callback_data:'cancel' }]
-      ]}
-    });
+    await send(chat, `💼 <b>KONFIRMASI UBAH MODAL</b>\nModal baru: <b>${rp(val)}</b>\n\nLanjutkan?`,
+      kbKonfirmasiYaTidak('set_modal_confirm', 'cancel'));
     return;
   }
 
   // ── CARI STOK ────────────────────────────────────────────────────
   if (sess.step === 'stok_cari') {
     const keyword = text.toLowerCase();
-    const items   = (db.items||[]).filter(i => i.name.toLowerCase().includes(keyword));
-    const stok    = items.filter(i => i.status==='stok');
-    const sold    = items.filter(i => i.status==='sold');
+    const items   = (db.items || []).filter(i => i.name.toLowerCase().includes(keyword));
+    const stok    = items.filter(i => i.status === 'stok');
+    const sold    = items.filter(i => i.status === 'sold');
 
     if (items.length === 0) {
-      await send(chat, `🔍 Tidak ada barang "<b>${text}</b>"\n\nKetik keyword lain atau /menu untuk kembali.`);
+      await prompt(chat, `🔍 Tidak ada barang "<b>${text}</b>". Coba kata kunci lain:`);
       return;
     }
 
-    const rows = stok.slice(0,5).map((i,idx) => {
-      const d = i.id ? Math.floor((new Date()-new Date(Math.floor(i.id)))/86400000) : 0;
+    const rows = stok.slice(0, 5).map((i, idx) => {
+      const d = i.id ? Math.floor((new Date() - new Date(Math.floor(i.id))) / 86400000) : 0;
       return `📦 <b>${i.name}</b>\nModal: ${rpShort(i.modal)} | Jual: ${rpShort(i.price)} | ${d} hari`;
     }).join('\n\n');
 
-    await send(chat, `
-🔍 <b>HASIL PENCARIAN: "${text}"</b>
+    clearSession(db, uid);
+    await putData(db);
+
+    await send(chat, `🔍 <b>HASIL PENCARIAN: "${text}"</b>
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 📦 Di Stok: ${stok.length} item
 ✅ Sudah Terjual: ${sold.length} item
 
-${rows || '—'}
-`, { reply_markup:{ inline_keyboard:[[{ text:'📦 Menu Stok', callback_data:'menu_stok' }]] } });
-    
-    clearSession(db, uid);
-    await putData(db);
+${rows || '—'}`, [
+      [{ text: '📦 Kembali ke Menu Stok', callback_data: 'menu_stok' }],
+      [{ text: '🏠 Menu Utama', callback_data: 'menu_utama' }]
+    ]);
     return;
   }
 
-  // Fallback: tidak ada sesi aktif
-  await send(chat, `❓ Tidak ada aksi aktif. Ketik /menu untuk ke menu utama.`, { reply_markup: MAIN_KEYBOARD });
+  // Fallback
+  await send(chat, `❓ Tidak ada aksi aktif. Gunakan /menu untuk memulai.`, kbMenuUtama());
 }
 
 // ══════════════════════════════════════════════════════════════════════
@@ -917,152 +903,198 @@ async function handleCallback(cb) {
     return;
   }
 
+  // Tombol dummy (no-op)
+  if (data === 'noop') return;
+
   let db;
   try { db = await getData(); }
-  catch (e) { await send(chat, '❌ Gagal ambil data. Coba lagi.'); return; }
+  catch (e) { await edit(chat, mid, '❌ Gagal ambil data. Coba lagi.', kbKembali('menu_utama')); return; }
 
-  // ── NAVIGASI MENU ────────────────────────────────────────────────
-  if (data === 'menu_utama' || data === 'refresh') {
-    const m = menuUtama();
-    await edit(chat, mid, m.text, { reply_markup:{ inline_keyboard: m.kb } });
+  // ── MENU UTAMA ────────────────────────────────────────────────────
+  if (data === 'menu_utama') {
+    await edit(chat, mid, txtMenuUtama(), kbMenuUtama());
     return;
   }
-  if (data === 'menu_dashboard' || data === 'dash_refresh') {
-    const m = await msgDashboard(db);
-    await edit(chat, mid, m.text, { reply_markup:{ inline_keyboard: m.kb } });
+
+  // ── DASHBOARD ────────────────────────────────────────────────────
+  if (data === 'menu_dashboard') {
+    await edit(chat, mid, await txtDashboard(db), kbDashboard());
     return;
   }
+
+  // ── MENU STOK ────────────────────────────────────────────────────
   if (data === 'menu_stok') {
-    const m = await msgStokMenu(db);
-    await edit(chat, mid, m.text, { reply_markup:{ inline_keyboard: m.kb } });
+    await edit(chat, mid, await txtMenuStok(db), kbMenuStok());
     return;
   }
+
+  // ── DAFTAR STOK DENGAN TOMBOL ITEM ───────────────────────────────
   if (data.startsWith('stok_list_')) {
-    const page = parseInt(data.split('_')[2]) || 1;
-    const m    = await msgStokList(db, page);
-    await edit(chat, mid, m.text, { reply_markup:{ inline_keyboard: m.kb } });
-    return;
-  }
-  if (data === 'stok_aging') {
-    const m = await msgStokAging(db);
-    await edit(chat, mid, m.text, { reply_markup:{ inline_keyboard: m.kb } });
-    return;
-  }
-  
-  // ── FITUR KELOLA STOK (PAGINATION) ──────────────────────────────
-  if (data === 'aksi_kelola_stok' || data.startsWith('kelola_page_')) {
-    let page = 1;
-    if (data.startsWith('kelola_page_')) {
-      page = parseInt(data.split('_')[2]) || 1;
-    }
-    const view = getKelolaStokView(db, page);
-    await edit(chat, mid, view.text, { reply_markup: { inline_keyboard: view.kb } });
+    const LIMIT   = 10;
+    const page    = parseInt(data.split('_')[2]) || 1;
+    const items   = (db.items || []).filter(i => i.status === 'stok').sort((a, b) => (a.id || 0) - (b.id || 0));
+    const total   = items.length;
+    const pages   = Math.ceil(total / LIMIT) || 1;
+    const safePage = Math.min(Math.max(page, 1), pages);
+
+    await edit(chat, mid,
+      txtStokList(items, safePage, pages, LIMIT),
+      kbStokItems(items, safePage, pages, LIMIT)
+    );
     return;
   }
 
-  if (data.startsWith('kelola_item_')) {
+  // ── DETAIL ITEM STOK ─────────────────────────────────────────────
+  if (data.startsWith('item_detail_')) {
     const itemId = parseInt(data.split('_')[2]);
-    const item = (db.items||[]).find(i => i.id === itemId);
-    if (!item) { await answer(cb.id, '❌ Item tidak ditemukan', true); return; }
-    
-    getSession(db, uid).selectedEditItem = item;
+    const item   = (db.items || []).find(i => i.id === itemId);
+    if (!item) { await answer(cb.id, '❌ Item tidak ditemukan.', true); return; }
+
+    // Hitung item ini ada di halaman berapa
+    const LIMIT  = 10;
+    const items  = (db.items || []).filter(i => i.status === 'stok').sort((a, b) => (a.id || 0) - (b.id || 0));
+    const idxAll = items.findIndex(i => i.id === itemId);
+    const page   = idxAll >= 0 ? Math.floor(idxAll / LIMIT) + 1 : 1;
+
+    await edit(chat, mid, txtItemDetail(item), kbItemDetail(itemId, page));
+    return;
+  }
+
+  // ── LANGSUNG TANDAI TERJUAL DARI DETAIL ──────────────────────────
+  if (data.startsWith('item_jual_')) {
+    const itemId = parseInt(data.split('_')[2]);
+    const item   = (db.items || []).find(i => i.id === itemId && i.status === 'stok');
+    if (!item) { await answer(cb.id, '❌ Item tidak ditemukan.', true); return; }
+
+    const sess        = getSession(db, uid);
+    sess.selectedItem = item;
+    sess.step         = 'terjual_harga';
     await putData(db);
 
-    const txt = `⚙️ <b>KELOLA BARANG</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n📦 Nama: <b>${item.name}</b>\n💰 Modal: ${rp(item.modal)}\n💵 Jual: ${rp(item.price)}\n\nPilih aksi di bawah ini:`;
-    const kb = [
-      [{ text: '✏️ Edit Nama', callback_data: 'edit_stok_nama' }, { text: '💰 Edit Harga', callback_data: 'edit_stok_harga' }],
-      [{ text: '🗑️ Hapus Barang', callback_data: 'hapus_stok_konfirm' }],
-      [{ text: '📦 Kembali ke Daftar', callback_data: 'aksi_kelola_stok' }]
+    await edit(chat, mid, `✅ <b>${item.name}</b>
+━━━━━━━━━━━━━━━━━━━━━━━━━
+💰 Modal: ${rp(item.modal)}
+💵 Harga List: ${rp(item.price)}
+
+Pilih harga jual atau ketik manual:`, kbHargaJual(item.price));
+    return;
+  }
+
+  // ── EDIT NAMA DARI DETAIL ─────────────────────────────────────────
+  if (data.startsWith('item_edit_nama_')) {
+    const itemId = parseInt(data.split('_')[3]);
+    const item   = (db.items || []).find(i => i.id === itemId);
+    if (!item) { await answer(cb.id, '❌ Item tidak ditemukan.', true); return; }
+
+    const sess              = getSession(db, uid);
+    sess.selectedEditItem   = item;
+    sess.step               = 'edit_stok_nama';
+    await putData(db);
+    await prompt(chat, `✏️ Ketik <b>nama baru</b> untuk:\n<b>${item.name}</b>`);
+    return;
+  }
+
+  // ── EDIT HARGA DARI DETAIL ────────────────────────────────────────
+  if (data.startsWith('item_edit_harga_')) {
+    const itemId = parseInt(data.split('_')[3]);
+    const item   = (db.items || []).find(i => i.id === itemId);
+    if (!item) { await answer(cb.id, '❌ Item tidak ditemukan.', true); return; }
+
+    const sess              = getSession(db, uid);
+    sess.selectedEditItem   = item;
+    sess.step               = 'edit_stok_modal';
+    await putData(db);
+    await prompt(chat, `💰 Ketik <b>harga modal baru</b> untuk:\n<b>${item.name}</b>\nModal saat ini: ${rp(item.modal)}`);
+    return;
+  }
+
+  // ── KONFIRMASI HAPUS ITEM ─────────────────────────────────────────
+  if (data.startsWith('item_hapus_konfirm_')) {
+    const itemId = parseInt(data.split('_')[3]);
+    const item   = (db.items || []).find(i => i.id === itemId);
+    if (!item) { await answer(cb.id, '❌ Item tidak ditemukan.', true); return; }
+
+    const sess              = getSession(db, uid);
+    sess.selectedEditItem   = item;
+    await putData(db);
+
+    await edit(chat, mid, `⚠️ <b>YAKIN HAPUS BARANG INI?</b>
+━━━━━━━━━━━━━━━━━━━━━━━━━
+📦 <b>${item.name}</b>
+💰 Modal: ${rp(item.modal)} | 💵 Jual: ${rp(item.price)}
+
+⛔ Tindakan ini tidak bisa dibatalkan!`, kbHapusKonfirm(itemId));
+    return;
+  }
+
+  // ── EKSEKUSI HAPUS ────────────────────────────────────────────────
+  if (data.startsWith('item_hapus_eksekusi_')) {
+    const itemId = parseInt(data.split('_')[3]);
+    const idx    = (db.items || []).findIndex(i => i.id === itemId);
+    const item   = idx > -1 ? db.items[idx] : null;
+    if (idx === -1) { await answer(cb.id, '❌ Item tidak ditemukan.', true); return; }
+
+    db.items.splice(idx, 1);
+    clearSession(db, uid);
+    await putData(db);
+
+    await edit(chat, mid, `🗑️ <b>${item.name}</b> berhasil dihapus dari sistem.`,
+      kbKembali('stok_list_1', '📦 Kembali ke Daftar Stok'));
+    return;
+  }
+
+  // ── STOK AGING ───────────────────────────────────────────────────
+  if (data === 'stok_aging') {
+    const kbAging = [
+      [{ text: '✅ Tandai Terjual', callback_data: 'aksi_terjual' }],
+      [{ text: '📦 Menu Stok', callback_data: 'menu_stok' }, { text: '🏠 Menu Utama', callback_data: 'menu_utama' }]
     ];
-    await edit(chat, mid, txt, { reply_markup: { inline_keyboard: kb } });
+    await edit(chat, mid, await txtStokAging(db), kbAging);
     return;
   }
 
-  if (data === 'edit_stok_nama') {
-    getSession(db, uid).step = 'edit_stok_nama';
-    await putData(db);
-    await send(chat, `✏️ Masukkan <b>Nama Baru</b> untuk barang ini:`, { reply_markup:{ keyboard: [[{text:'❌ Batal'}]], resize_keyboard: true } });
-    return;
-  }
-
-  if (data === 'edit_stok_harga') {
-    getSession(db, uid).step = 'edit_stok_modal';
-    await putData(db);
-    await send(chat, `💰 Masukkan <b>Harga Modal Baru</b> (angka saja):`, { reply_markup:{ keyboard: [[{text:'❌ Batal'}]], resize_keyboard: true } });
-    return;
-  }
-
-  if (data === 'hapus_stok_konfirm') {
-    const item = getSession(db, uid).selectedEditItem;
-    if (!item) return;
-    const txt = `⚠️ <b>YAKIN HAPUS BARANG INI?</b>\n📦 ${item.name}\n\nTindakan ini tidak bisa dibatalkan!`;
-    const kb = [
-      [{ text: '✅ Ya, Hapus Permanen', callback_data: 'hapus_stok_eksekusi' }],
-      [{ text: '❌ Batal, Kembali', callback_data: 'aksi_kelola_stok' }]
-    ];
-    await edit(chat, mid, txt, { reply_markup: { inline_keyboard: kb } });
-    return;
-  }
-
-  if (data === 'hapus_stok_eksekusi') {
-    const item = getSession(db, uid).selectedEditItem;
-    if (!item) return;
-    const idx = (db.items||[]).findIndex(i => i.id === item.id);
-    if (idx > -1) {
-      db.items.splice(idx, 1);
-      clearSession(db, uid);
-      await putData(db);
-      await edit(chat, mid, `🗑️ Barang <b>${item.name}</b> berhasil dihapus dari sistem.`, { 
-        reply_markup: { inline_keyboard: [[{ text: '📦 Menu Stok', callback_data: 'menu_stok' }]] }
-      });
-    }
-    return;
-  }
-  // ─────────────────────────────────────────────────────────────────
-
+  // ── TRANSAKSI ────────────────────────────────────────────────────
   if (data === 'menu_transaksi') {
-    const m = await msgTransaksi(db);
-    await edit(chat, mid, m.text, { reply_markup:{ inline_keyboard: m.kb } });
+    await edit(chat, mid, await txtTransaksi(db), kbTransaksi());
     return;
   }
   if (data === 'tx_list_10') {
-    const m = await msgTxList(db, 10);
-    await edit(chat, mid, m.text, { reply_markup:{ inline_keyboard: m.kb } });
+    await edit(chat, mid, await txtTxList(db, 10), kbKembali('menu_transaksi', '◀️ Kembali ke Transaksi'));
     return;
   }
   if (data === 'tx_bulan_ini') {
-    const m = await msgTxBulanIni(db);
-    await edit(chat, mid, m.text, { reply_markup:{ inline_keyboard: m.kb } });
+    await edit(chat, mid, await txtTxBulanIni(db), kbKembali('menu_transaksi', '◀️ Kembali ke Transaksi'));
     return;
   }
   if (data === 'tx_cashflow') {
-    const m = await msgCashflow(db);
-    await edit(chat, mid, m.text, { reply_markup:{ inline_keyboard: m.kb } });
+    await edit(chat, mid, await txtCashflow(db), kbKembali('menu_transaksi', '◀️ Kembali ke Transaksi'));
     return;
   }
+
+  // ── ANALITIK ─────────────────────────────────────────────────────
   if (data === 'menu_analitik') {
-    const m = await msgAnalitik(db);
-    await edit(chat, mid, m.text, { reply_markup:{ inline_keyboard: m.kb } });
+    await edit(chat, mid, await txtAnalitik(db), kbAnalitik());
     return;
   }
   if (data === 'analitik_brand') {
-    const m = await msgBrandDetail(db);
-    await edit(chat, mid, m.text, { reply_markup:{ inline_keyboard: m.kb } });
+    await edit(chat, mid, await txtBrandDetail(db), kbKembali('menu_analitik', '◀️ Kembali ke Analitik'));
     return;
   }
   if (data === 'analitik_tren') {
-    const m = await msgTren(db);
-    await edit(chat, mid, m.text, { reply_markup:{ inline_keyboard: m.kb } });
+    await edit(chat, mid, await txtTren(db), kbKembali('menu_analitik', '◀️ Kembali ke Analitik'));
     return;
   }
   if (data === 'laporan_full') {
-    const m = await msgLaporanFull(db);
-    await edit(chat, mid, m.text, { reply_markup:{ inline_keyboard: m.kb } });
+    await edit(chat, mid, await txtLaporanFull(db), [
+      [{ text: '📊 Dashboard', callback_data: 'menu_dashboard' }, { text: '📈 Analitik', callback_data: 'menu_analitik' }],
+      [{ text: '🏠 Menu Utama', callback_data: 'menu_utama' }]
+    ]);
     return;
   }
+
+  // ── SETTINGS ─────────────────────────────────────────────────────
   if (data === 'menu_settings') {
-    const m = msgSettings(db);
-    await edit(chat, mid, m.text, { reply_markup:{ inline_keyboard: m.kb } });
+    await edit(chat, mid, txtSettings(db), kbSettings());
     return;
   }
 
@@ -1071,7 +1103,12 @@ async function handleCallback(cb) {
     clearSession(db, uid);
     getSession(db, uid).step = 'masuk_nama';
     await putData(db);
-    await send(chat, `➕ <b>CATAT BARANG MASUK</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n\nKetik <b>nama barang</b> lengkap:\n(contoh: iPhone 13 128GB Black)`, { reply_markup:{ keyboard: [[{text:'❌ Batal'}]], resize_keyboard: true } });
+    await edit(chat, mid, `➕ <b>CATAT BARANG MASUK</b>
+━━━━━━━━━━━━━━━━━━━━━━━━━
+Ketik <b>nama barang</b> lengkap:\n<i>Contoh: iPhone 13 128GB Black</i>
+
+Atau ketuk batal untuk membatalkan:`, [[{ text: '❌ Batal', callback_data: 'cancel' }]]);
+    await prompt(chat, '📝 Nama barang lengkap:');
     return;
   }
 
@@ -1091,34 +1128,32 @@ async function handleCallback(cb) {
       });
       clearSession(db, uid);
       await putData(db);
-      
       const margin = sess.harga - sess.modal;
-      await edit(chat, mid, `
-✅ <b>BARANG BERHASIL DICATAT!</b>
+      await edit(chat, mid, `✅ <b>BARANG BERHASIL DICATAT!</b>
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 📦 Nama: <b>${sess.nama}</b>
 💰 Modal: ${rp(sess.modal)}
 💵 Harga Jual: ${rp(sess.harga)}
 💛 Potensi Laba: ${rp(margin)}
 🏷️ Tipe: ${sess.tipe === 'new' ? '🆕 Baru' : '♻️ Konsinyasi'}
-📅 Dicatat: ${new Date().toLocaleDateString('id-ID')}
-`, { reply_markup:{ inline_keyboard:[
-        [{ text:'➕ Catat Lagi', callback_data:'aksi_masuk' }],
-        [{ text:'📦 Lihat Stok', callback_data:'menu_stok' }, { text:'🏠 Menu', callback_data:'menu_utama' }]
-      ]}});
-      await send(chat, "✅ Aksi selesai.", { reply_markup: MAIN_KEYBOARD });
+📅 Dicatat: ${new Date().toLocaleDateString('id-ID')}`,
+        kbAksiSukses({ tambahLagi: { text: '➕ Catat Barang Lagi', cb: 'aksi_masuk' } })
+      );
     } catch (e) {
-      await edit(chat, mid, '❌ Gagal menyimpan. Coba lagi.', { reply_markup:{ inline_keyboard:[[{ text:'🏠 Menu', callback_data:'menu_utama' }]] }});
+      await edit(chat, mid, '❌ Gagal menyimpan. Coba lagi.', kbKembali('menu_utama'));
     }
     return;
   }
 
-  // ── AKSI: TANDAI TERJUAL ──────────────────────────────────────────
+  // ── AKSI: TANDAI TERJUAL ─────────────────────────────────────────
   if (data === 'aksi_terjual') {
     clearSession(db, uid);
     getSession(db, uid).step = 'terjual_cari';
     await putData(db);
-    await send(chat, `✅ <b>TANDAI BARANG TERJUAL</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n\nKetik <b>nama barang</b> atau <b>kata kunci</b> untuk dicari:`, { reply_markup:{ keyboard: [[{text:'❌ Batal'}]], resize_keyboard: true } });
+    await edit(chat, mid, `✅ <b>TANDAI BARANG TERJUAL</b>
+━━━━━━━━━━━━━━━━━━━━━━━━━
+Ketik nama barang atau kata kunci untuk dicari:`, [[{ text: '❌ Batal', callback_data: 'cancel' }]]);
+    await prompt(chat, '🔍 Cari nama barang:');
     return;
   }
 
@@ -1126,75 +1161,61 @@ async function handleCallback(cb) {
     const idx  = parseInt(data.split('_')[2]);
     const sess = getSession(db, uid);
     const item = sess.cariResults?.[idx];
-    if (!item) { await send(chat, '❌ Item tidak ditemukan.'); return; }
+    if (!item) { await send(chat, '❌ Item tidak ditemukan.', kbKembali('aksi_terjual')); return; }
     sess.selectedItem = item;
-    sess.step = 'terjual_harga';
+    sess.step         = 'terjual_harga';
     await putData(db);
-    await edit(chat, mid, `
-✅ <b>KONFIRMASI BARANG</b>
+    await edit(chat, mid, `✅ <b>${item.name}</b>
 ━━━━━━━━━━━━━━━━━━━━━━━━━
-📦 Barang: <b>${item.name}</b>
 💰 Modal: ${rp(item.modal)}
 💵 Harga List: ${rp(item.price)}
 
-Ketik <b>harga jual aktual</b> (atau kosongkan untuk pakai harga list ${rp(item.price)}):
-`, { reply_markup:{ inline_keyboard:[
-      [{ text:`💵 Pakai harga list: ${rpShort(item.price)}`, callback_data:'terjual_harga_list' }],
-      [{ text:'❌ Batal', callback_data:'cancel' }]
-    ]}});
+Pilih harga jual atau ketik manual:`, kbHargaJual(item.price));
     return;
   }
 
   if (data === 'terjual_harga_list') {
     const sess = getSession(db, uid);
-    if (!sess.selectedItem) { await send(chat, '❌ Sesi tidak valid. Mulai lagi.'); return; }
+    if (!sess.selectedItem) { await send(chat, '❌ Sesi tidak valid. Mulai lagi.', kbKembali('aksi_terjual')); return; }
     sess.hargaJual = sess.selectedItem.price;
     sess.step      = 'terjual_konfirmasi';
     await putData(db);
     const profit   = sess.hargaJual - sess.selectedItem.modal;
-    await edit(chat, mid, `
-✅ <b>KONFIRMASI PENJUALAN</b>
+    await edit(chat, mid, `✅ <b>KONFIRMASI PENJUALAN</b>
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 📦 Barang: <b>${sess.selectedItem.name}</b>
 💰 Modal: ${rp(sess.selectedItem.modal)}
 💵 Harga Jual: ${rp(sess.hargaJual)}
 💛 Laba: ${rp(profit)}
+📅 Tgl: ${new Date().toLocaleDateString('id-ID')}
 
-Konfirmasi?`, { reply_markup:{ inline_keyboard:[
-      [{ text:'✅ Ya, Konfirmasi', callback_data:'terjual_confirm' }, { text:'❌ Batal', callback_data:'cancel' }]
-    ]}});
+Konfirmasi penjualan ini?`, kbKonfirmasiTerjual());
     return;
   }
 
   if (data === 'terjual_confirm') {
     const sess = getSession(db, uid);
     const item = sess.selectedItem;
-    if (!item) { await send(chat, '❌ Sesi tidak valid.'); return; }
+    if (!item) { await send(chat, '❌ Sesi tidak valid.', kbKembali('aksi_terjual')); return; }
     try {
-      const idx = (db.items||[]).findIndex(i => i.id === item.id);
+      const idx = (db.items || []).findIndex(i => i.id === item.id);
       if (idx === -1) throw new Error('Item not found');
       db.items[idx].status = 'sold';
       db.items[idx].price  = sess.hargaJual;
-      db.items[idx].soldAt = new Date().toISOString().slice(0,10);
-      
+      db.items[idx].soldAt = new Date().toISOString().slice(0, 10);
       clearSession(db, uid);
       await putData(db);
-
       const profit = sess.hargaJual - item.modal;
-      await edit(chat, mid, `
-🎉 <b>BARANG BERHASIL TERJUAL!</b>
+      await edit(chat, mid, `🎉 <b>BARANG BERHASIL TERJUAL!</b>
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 📦 Barang: <b>${item.name}</b>
 💵 Harga Jual: ${rp(sess.hargaJual)}
 💛 Laba: <b>${rp(profit)}</b>
-📅 Tgl: ${new Date().toLocaleDateString('id-ID')}
-`, { reply_markup:{ inline_keyboard:[
-        [{ text:'✅ Tandai Terjual Lagi', callback_data:'aksi_terjual' }],
-        [{ text:'📊 Dashboard', callback_data:'menu_dashboard' }, { text:'🏠 Menu', callback_data:'menu_utama' }]
-      ]}});
-      await send(chat, "✅ Aksi selesai.", { reply_markup: MAIN_KEYBOARD });
+📅 Tgl: ${new Date().toLocaleDateString('id-ID')}`,
+        kbAksiSukses({ tambahLagi: { text: '✅ Tandai Terjual Lagi', cb: 'aksi_terjual' } })
+      );
     } catch (e) {
-      await edit(chat, mid, '❌ Gagal update data. Coba lagi.', { reply_markup:{ inline_keyboard:[[{ text:'🏠 Menu', callback_data:'menu_utama' }]] }});
+      await edit(chat, mid, '❌ Gagal update data. Coba lagi.', kbKembali('menu_utama'));
     }
     return;
   }
@@ -1204,13 +1225,11 @@ Konfirmasi?`, { reply_markup:{ inline_keyboard:[
     clearSession(db, uid);
     getSession(db, uid).step = 'ekstra_nama';
     await putData(db);
-    await send(chat, `
-⭐ <b>CATAT LABA JASA / EKSTRA</b>
+    await edit(chat, mid, `⭐ <b>CATAT LABA JASA / EKSTRA</b>
 ━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Ketik <b>keterangan / nama transaksi</b>:
-(contoh: Servis HP, Joki Unlock, dll)
-`, { reply_markup:{ keyboard: [[{text:'❌ Batal'}]], resize_keyboard: true } });
+Ketik keterangan / nama transaksi:
+<i>Contoh: Servis HP, Joki Unlock, dll</i>`, [[{ text: '❌ Batal', callback_data: 'cancel' }]]);
+    await prompt(chat, '📝 Keterangan laba jasa:');
     return;
   }
 
@@ -1222,40 +1241,33 @@ Ketik <b>keterangan / nama transaksi</b>:
         id: Date.now(),
         name: sess.ekstraNama,
         profit: sess.ekstraNominal,
-        date: new Date().toISOString().slice(0,10)
+        date: new Date().toISOString().slice(0, 10)
       });
-      
       clearSession(db, uid);
       await putData(db);
-
-      await edit(chat, mid, `
-✅ <b>LABA JASA DICATAT!</b>
+      await edit(chat, mid, `✅ <b>LABA JASA DICATAT!</b>
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 📋 Keterangan: <b>${sess.ekstraNama}</b>
 💰 Nominal: <b>${rp(sess.ekstraNominal)}</b>
-📅 Tanggal: ${new Date().toLocaleDateString('id-ID')}
-`, { reply_markup:{ inline_keyboard:[
-        [{ text:'⭐ Catat Lagi', callback_data:'aksi_ekstra' }],
-        [{ text:'📊 Dashboard', callback_data:'menu_dashboard' }, { text:'🏠 Menu', callback_data:'menu_utama' }]
-      ]}});
-      await send(chat, "✅ Aksi selesai.", { reply_markup: MAIN_KEYBOARD });
+📅 Tanggal: ${new Date().toLocaleDateString('id-ID')}`,
+        kbAksiSukses({ tambahLagi: { text: '⭐ Catat Laba Jasa Lagi', cb: 'aksi_ekstra' } })
+      );
     } catch (e) {
-      await edit(chat, mid, '❌ Gagal menyimpan.', { reply_markup:{ inline_keyboard:[[{ text:'🏠 Menu', callback_data:'menu_utama' }]] }});
+      await edit(chat, mid, '❌ Gagal menyimpan.', kbKembali('menu_utama'));
     }
     return;
   }
 
-  // ── SETTINGS: SET MODAL ──────────────────────────────────────────
+  // ── SETTINGS: UBAH MODAL ─────────────────────────────────────────
   if (data === 'set_modal') {
     clearSession(db, uid);
     getSession(db, uid).step = 'set_modal';
     await putData(db);
-    await send(chat, `
-💼 <b>UBAH MODAL AWAL</b>
-Modal saat ini: ${rp(Number(db.startBalance)||0)}
+    await edit(chat, mid, `💼 <b>UBAH MODAL AWAL</b>
+Modal saat ini: ${rp(Number(db.startBalance) || 0)}
 
-Ketik <b>modal awal baru</b>:
-`, { reply_markup:{ keyboard: [[{text:'❌ Batal'}]], resize_keyboard: true } });
+Ketik nominal modal awal baru:`, [[{ text: '❌ Batal', callback_data: 'cancel' }]]);
+    await prompt(chat, '💼 Modal awal baru (angka saja):');
     return;
   }
 
@@ -1265,10 +1277,10 @@ Ketik <b>modal awal baru</b>:
       db.startBalance = sess.newModal;
       clearSession(db, uid);
       await putData(db);
-      await edit(chat, mid, `✅ Modal awal berhasil diubah ke <b>${rp(sess.newModal)}</b>`, { reply_markup:{ inline_keyboard:[[{ text:'🏠 Menu', callback_data:'menu_utama' }]] }});
-      await send(chat, "✅ Aksi selesai.", { reply_markup: MAIN_KEYBOARD });
+      await edit(chat, mid, `✅ Modal awal berhasil diubah ke <b>${rp(sess.newModal)}</b>`,
+        kbKembali('menu_settings', '◀️ Kembali ke Pengaturan'));
     } catch (e) {
-      await edit(chat, mid, '❌ Gagal menyimpan.', { reply_markup:{ inline_keyboard:[[{ text:'🏠 Menu', callback_data:'menu_utama' }]] }});
+      await edit(chat, mid, '❌ Gagal menyimpan.', kbKembali('menu_utama'));
     }
     return;
   }
@@ -1278,11 +1290,9 @@ Ketik <b>modal awal baru</b>:
     clearSession(db, uid);
     getSession(db, uid).step = 'stok_cari';
     await putData(db);
-    await send(chat, `
-🔍 <b>CARI STOK</b>
-
-Ketik <b>nama atau kata kunci</b> barang yang ingin dicari:
-`, { reply_markup:{ keyboard: [[{text:'❌ Batal'}]], resize_keyboard: true } });
+    await edit(chat, mid, `🔍 <b>CARI STOK</b>
+Ketik nama atau kata kunci barang:`, [[{ text: '❌ Batal', callback_data: 'cancel' }]]);
+    await prompt(chat, '🔍 Kata kunci pencarian:');
     return;
   }
 
@@ -1290,9 +1300,7 @@ Ketik <b>nama atau kata kunci</b> barang yang ingin dicari:
   if (data === 'cancel') {
     clearSession(db, uid);
     await putData(db);
-    const m = menuUtama();
-    await edit(chat, mid, m.text, { reply_markup:{ inline_keyboard: m.kb } });
-    await send(chat, "✅ Dibatalkan.", { reply_markup: MAIN_KEYBOARD });
+    await edit(chat, mid, `✅ Dibatalkan.\n\n${txtMenuUtama()}`, kbMenuUtama());
     return;
   }
 
@@ -1305,7 +1313,7 @@ Ketik <b>nama atau kata kunci</b> barang yang ingin dicari:
 async function handleCommand(msg) {
   const chat = msg.chat.id;
   const uid  = msg.from.id;
-  const text = (msg.text||'').trim();
+  const text = (msg.text || '').trim();
 
   if (!isAdmin(uid)) {
     await send(chat, '⛔ Kamu tidak punya akses ke bot ini.');
@@ -1313,118 +1321,69 @@ async function handleCommand(msg) {
   }
 
   let db;
-  try { db = await getData(); } 
+  try { db = await getData(); }
   catch (e) { await send(chat, '❌ Gagal ambil data.'); return; }
 
-  // ── MENCEGAT PERINTAH DARI TOMBOL BAWAH LAYAR ─────────
-  if (BOTTOM_COMMANDS.includes(text) || text === '❌ Batal') {
-    clearSession(db, uid);
-    await putData(db);
-  }
-
+  // Perintah utama
   if (text === '/start' || text === '/menu' || text === '/m') {
     clearSession(db, uid);
     await putData(db);
-    await send(chat, `🤖 <b>Keyboard Bawah Diaktifkan!</b>\nKamu bisa navigasi dengan tombol di bawah layar atau menu di bawah ini.`, { reply_markup: MAIN_KEYBOARD });
-    const m = menuUtama();
-    await send(chat, m.text, { reply_markup:{ inline_keyboard: m.kb } });
+    await send(chat, txtMenuUtama(), kbMenuUtama());
     return;
   }
 
-  if (text === '📊 Dashboard' || text === '/dashboard' || text === '/d') {
-    const m = await msgDashboard(db);
-    await send(chat, m.text, { reply_markup:{ inline_keyboard: m.kb } });
+  if (text === '/dashboard' || text === '/d') {
+    await send(chat, await txtDashboard(db), kbDashboard());
     return;
   }
 
-  if (text === '📦 Menu Stok' || text === '/stok' || text === '/s') {
-    const m = await msgStokMenu(db);
-    await send(chat, m.text, { reply_markup:{ inline_keyboard: m.kb } });
+  if (text === '/stok' || text === '/s') {
+    await send(chat, await txtMenuStok(db), kbMenuStok());
     return;
   }
 
-  if (text === '💳 Transaksi') {
-    const m = await msgTransaksi(db);
-    await send(chat, m.text, { reply_markup:{ inline_keyboard: m.kb } });
+  if (text === '/laporan' || text === '/l') {
+    await send(chat, await txtAnalitik(db), kbAnalitik());
     return;
   }
 
-  if (text === '📈 Analitik' || text === '/laporan' || text === '/l') {
-    const m = await msgAnalitik(db);
-    await send(chat, m.text, { reply_markup:{ inline_keyboard: m.kb } });
-    return;
-  }
-
-  if (text === '⚙️ Pengaturan') {
-    const m = msgSettings(db);
-    await send(chat, m.text, { reply_markup:{ inline_keyboard: m.kb } });
-    return;
-  }
-
-  if (text === '➕ Catat Masuk') {
-    getSession(db, uid).step = 'masuk_nama';
-    await putData(db);
-    await send(chat, `➕ <b>CATAT BARANG MASUK</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n\nKetik <b>nama barang</b> lengkap:\n(contoh: iPhone 13 128GB Black)`, { reply_markup:{ keyboard: [[{text:'❌ Batal'}]], resize_keyboard: true } });
-    return;
-  }
-
-  if (text === '✅ Tandai Terjual') {
-    getSession(db, uid).step = 'terjual_cari';
-    await putData(db);
-    await send(chat, `✅ <b>TANDAI BARANG TERJUAL</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n\nKetik <b>nama barang</b> atau <b>kata kunci</b> untuk dicari:`, { reply_markup:{ keyboard: [[{text:'❌ Batal'}]], resize_keyboard: true } });
-    return;
-  }
-
-  if (text === '⭐ Laba Jasa') {
-    getSession(db, uid).step = 'ekstra_nama';
-    await putData(db);
-    await send(chat, `⭐ <b>CATAT LABA JASA / EKSTRA</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n\nKetik <b>keterangan / nama transaksi</b>:\n(contoh: Servis HP, Joki Unlock, dll)`, { reply_markup:{ keyboard: [[{text:'❌ Batal'}]], resize_keyboard: true } });
-    return;
-  }
-
-  if (text === '❌ Batal') {
-    const m = menuUtama();
-    await send(chat, `✅ Aksi dibatalkan.`, { reply_markup: MAIN_KEYBOARD });
-    await send(chat, m.text, { reply_markup:{ inline_keyboard: m.kb } });
-    return;
-  }
-  // ──────────────────────────────────────────────────────
-
+  // Perintah cepat /masuk
   if (text.startsWith('/masuk ')) {
     const parts = text.slice(7).split(',').map(s => s.trim());
     if (parts.length < 3) { await send(chat, '❌ Format: /masuk Nama, Modal, HargaJual'); return; }
     const [nama, modalStr, hargaStr] = parts;
-    const modal = parseInt(modalStr.replace(/\D/g,''));
-    const harga = parseInt(hargaStr.replace(/\D/g,''));
+    const modal = parseInt(modalStr.replace(/\D/g, ''));
+    const harga = parseInt(hargaStr.replace(/\D/g, ''));
     if (!modal || !harga) { await send(chat, '❌ Format angka tidak valid.'); return; }
     try {
       db.items = db.items || [];
-      db.items.push({ id: Date.now(), name: nama, modal, price: harga, status:'stok', type:'new', addedAt: new Date().toISOString() });
+      db.items.push({ id: Date.now(), name: nama, modal, price: harga, status: 'stok', type: 'new', addedAt: new Date().toISOString() });
       await putData(db);
-      await send(chat, `✅ Barang dicatat!\n📦 ${nama}\n💰 Modal: ${rp(modal)}\n💵 Harga: ${rp(harga)}\n💛 Margin: ${rp(harga-modal)}`);
+      await send(chat, `✅ Barang dicatat!\n📦 ${nama}\n💰 Modal: ${rp(modal)}\n💵 Harga: ${rp(harga)}\n💛 Margin: ${rp(harga - modal)}`, [
+        [{ text: '📦 Lihat Stok', callback_data: 'stok_list_1' }, { text: '🏠 Menu', callback_data: 'menu_utama' }]
+      ]);
     } catch (e) { await send(chat, '❌ Gagal menyimpan.'); }
     return;
   }
 
   if (text === '/help' || text === '/h') {
-    await send(chat, `
-🤖 <b>FARID STORE BOT — BANTUAN</b>
+    await send(chat, `🤖 <b>FARID STORE BOT V11 — BANTUAN</b>
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 
-<b>PERINTAH CEPAT:</b>
+<b>PERINTAH:</b>
 /menu  — Menu utama
-/dashboard — Dashboard aset
-/stok — Manajemen stok
-/laporan — Laporan lengkap
-/help — Bantuan ini
+/d — Dashboard
+/s — Menu stok
+/l — Laporan & analitik
+/h — Bantuan ini
 
-<b>PERINTAH CEPAT MASUK:</b>
+<b>CEPAT MASUK:</b>
 <code>/masuk Nama, Modal, HargaJual</code>
 Contoh: <code>/masuk iPhone 13, 4500000, 5200000</code>
 
-<b>MENU INTERAKTIF:</b>
-Gunakan tombol-tombol di bawah pesan untuk navigasi dan aksi.
-`.trim());
+<b>CARA PAKAI:</b>
+Semua navigasi via tombol inline di bubble chat.
+Ketuk nama barang di daftar stok untuk detail, edit, hapus, atau tandai terjual.`, kbKembali('menu_utama', '🏠 Menu Utama'));
     return;
   }
 
@@ -1433,14 +1392,14 @@ Gunakan tombol-tombol di bawah pesan untuk navigasi dan aksi.
   if (sess.step) {
     try {
       await handleInput(chat, uid, text, db);
-    } catch (e) { await send(chat, '❌ Terjadi error. Coba lagi dengan /menu.'); }
+    } catch (e) {
+      await send(chat, '❌ Terjadi error. Coba lagi dengan /menu.', kbKembali('menu_utama'));
+    }
     return;
   }
 
-  // Teks biasa tapi tidak ada sesi → tunjukkan menu
-  const m = menuUtama();
-  await send(chat, `❓ Perintah tidak dikenali. Silakan gunakan tombol di bawah layar atau menu ini:`, { reply_markup: MAIN_KEYBOARD });
-  await send(chat, m.text, { reply_markup:{ inline_keyboard: m.kb } });
+  // Teks biasa tanpa sesi aktif
+  await send(chat, `❓ Perintah tidak dikenal.\n\nGunakan /menu untuk memulai.`, kbMenuUtama());
 }
 
 // ══════════════════════════════════════════════════════════════════════
@@ -1448,7 +1407,7 @@ Gunakan tombol-tombol di bawah pesan untuk navigasi dan aksi.
 // ══════════════════════════════════════════════════════════════════════
 export default async function handler(req, res) {
   if (req.method === 'GET') {
-    return res.status(200).send('Farid Store Bot V10 — Full Admin Edition');
+    return res.status(200).send('Farid Store Bot V11 — Full Dynamic Inline Keyboard Edition');
   }
   if (req.method !== 'POST') {
     return res.status(405).send('Method Not Allowed');
@@ -1456,17 +1415,12 @@ export default async function handler(req, res) {
 
   try {
     const body = req.body;
-
-    // Tunggu semua proses selesai sebelum merespons ke Vercel
     if (body.callback_query) {
       await handleCallback(body.callback_query);
     } else if (body.message?.text) {
       await handleCommand(body.message);
     }
-
-    // Response wajib ada di akhir agar function tidak terbunuh prematur
-    return res.status(200).json({ ok: true }); 
-
+    return res.status(200).json({ ok: true });
   } catch (e) {
     console.error('Handler error:', e);
     return res.status(200).json({ ok: true, error: e.message });
