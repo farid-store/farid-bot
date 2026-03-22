@@ -1,12 +1,13 @@
 // ═══════════════════════════════════════════════════════════════════
-//  FARID STORE BOT V11 — Full Dynamic Inline Keyboard Edition (FIXED)
+//  FARID STORE BOT V11.1 — Full Dynamic Inline + Reply Keyboard
 //  Vercel Serverless Webhook Handler
 //  
-//  PERBAIKAN:
+//  PERBAIKAN & FITUR BARU:
 //  - Fix bug Strict Type ID: String() casting untuk pencarian ID stok
 //  - Fix fallback item.id yang kosong (auto-generate saat load)
-//  - Keyboard daftar stok kini menggunakan tombol grid angka yang rapi
+//  - Keyboard daftar stok menggunakan tombol grid angka yang rapi
 //  - Penambahan escape HTML agar nama barang dengan simbol tidak error
+//  - Tambahan Reply Keyboard (tombol bawah) khusus saat /start
 // ═══════════════════════════════════════════════════════════════════
 
 // ── CONFIG ──────────────────────────────────────────────────────────
@@ -24,6 +25,16 @@ const MILESTONES = [10, 20, 30, 40, 50, 60, 75, 90].map(v => v * 1_000_000);
 const BRAND_ICONS = {
   Apple: '🍎', Samsung: '🌌', Xiaomi: '🟠', Oppo: '🟢', Vivo: '🔵',
   Realme: '🟡', Infinix: '⚡', Tecno: '🔷', iTel: '⬛', Other: '📦'
+};
+
+// Keyboard persisten di area mengetik bawah
+const kbBawah = {
+  keyboard: [
+    [{ text: '/menu' }, { text: '/dashboard' }],
+    [{ text: '/stok' }, { text: '/laporan' }]
+  ],
+  resize_keyboard: true,
+  is_persistent: true
 };
 
 // ── UTILS ────────────────────────────────────────────────────────────
@@ -231,12 +242,10 @@ function kbMenuUtama() {
   ];
 }
 
-// Fixed: Keyboard navigasi menggunakan Grid Nomor agar tidak kepanjangan
 function kbStokItems(items, page, totalPages, LIMIT) {
   const slice   = items.slice((page - 1) * LIMIT, page * LIMIT);
   const rows    = [];
 
-  // Tombol item: Grid angka (sampai 5 kolom per baris)
   let numRow = [];
   slice.forEach((item, idx) => {
     const no = (page - 1) * LIMIT + idx + 1;
@@ -245,7 +254,6 @@ function kbStokItems(items, page, totalPages, LIMIT) {
   });
   if (numRow.length > 0) rows.push(numRow);
 
-  // Navigasi halaman
   if (totalPages > 1) {
     const nav = [];
     if (page > 1) {
@@ -449,7 +457,6 @@ Potensi Laba: ${rp(c.floatPrice - c.floatModal)}
 ${brandRows || '— Stok kosong'}`;
 }
 
-// Fixed: Teks ringkasan menggunakan urutan nomor untuk dicocokkan dengan grid angka
 function txtStokList(items, page, totalPages, LIMIT) {
   const slice   = items.slice((page - 1) * LIMIT, page * LIMIT);
   const nowDate = new Date();
@@ -756,7 +763,6 @@ Konfirmasi penjualan ini?`, kbKonfirmasiTerjual());
   }
 
   // ── EDIT NAMA STOK ────────────────────────────────────────────────
-  // Fixed: Menggunakan perbandingan String() agar aman
   if (sess.step === 'edit_stok_nama') {
     const item = sess.selectedEditItem;
     const idx  = (db.items || []).findIndex(i => String(i.id) === String(item.id));
@@ -774,7 +780,6 @@ Konfirmasi penjualan ini?`, kbKonfirmasiTerjual());
   }
 
   // ── EDIT HARGA STOK ───────────────────────────────────────────────
-  // Fixed: Menggunakan perbandingan String() agar aman
   if (sess.step === 'edit_stok_modal') {
     const val = parseInt(text.replace(/\D/g, ''));
     if (!val || val <= 0) { await prompt(chat, '❌ Harga tidak valid. Coba lagi:'); return; }
@@ -888,32 +893,27 @@ async function handleCallback(cb) {
     return;
   }
 
-  // Tombol dummy (no-op)
   if (data === 'noop') return;
 
   let db;
   try { db = await getData(); }
   catch (e) { await edit(chat, mid, '❌ Gagal ambil data. Coba lagi.', kbKembali('menu_utama')); return; }
 
-  // ── MENU UTAMA ────────────────────────────────────────────────────
   if (data === 'menu_utama') {
     await edit(chat, mid, txtMenuUtama(), kbMenuUtama());
     return;
   }
 
-  // ── DASHBOARD ────────────────────────────────────────────────────
   if (data === 'menu_dashboard') {
     await edit(chat, mid, await txtDashboard(db), kbDashboard());
     return;
   }
 
-  // ── MENU STOK ────────────────────────────────────────────────────
   if (data === 'menu_stok') {
     await edit(chat, mid, await txtMenuStok(db), kbMenuStok());
     return;
   }
 
-  // ── DAFTAR STOK DENGAN TOMBOL ITEM ───────────────────────────────
   if (data.startsWith('stok_list_')) {
     const LIMIT   = 10;
     const page    = parseInt(data.split('_')[2]) || 1;
@@ -929,8 +929,6 @@ async function handleCallback(cb) {
     return;
   }
 
-  // ── DETAIL ITEM STOK ─────────────────────────────────────────────
-  // Fixed: Semua pencarian array menggunakan metode split('_').pop() + perbandingan String()
   if (data.startsWith('item_detail_')) {
     const itemId = data.split('_').pop();
     const item   = (db.items || []).find(i => String(i.id) === String(itemId));
@@ -945,7 +943,6 @@ async function handleCallback(cb) {
     return;
   }
 
-  // ── LANGSUNG TANDAI TERJUAL DARI DETAIL ──────────────────────────
   if (data.startsWith('item_jual_')) {
     const itemId = data.split('_').pop();
     const item   = (db.items || []).find(i => String(i.id) === String(itemId) && i.status === 'stok');
@@ -965,7 +962,6 @@ Pilih harga jual atau ketik manual:`, kbHargaJual(item.price));
     return;
   }
 
-  // ── EDIT NAMA DARI DETAIL ─────────────────────────────────────────
   if (data.startsWith('item_edit_nama_')) {
     const itemId = data.split('_').pop();
     const item   = (db.items || []).find(i => String(i.id) === String(itemId));
@@ -979,7 +975,6 @@ Pilih harga jual atau ketik manual:`, kbHargaJual(item.price));
     return;
   }
 
-  // ── EDIT HARGA DARI DETAIL ────────────────────────────────────────
   if (data.startsWith('item_edit_harga_')) {
     const itemId = data.split('_').pop();
     const item   = (db.items || []).find(i => String(i.id) === String(itemId));
@@ -993,7 +988,6 @@ Pilih harga jual atau ketik manual:`, kbHargaJual(item.price));
     return;
   }
 
-  // ── KONFIRMASI HAPUS ITEM ─────────────────────────────────────────
   if (data.startsWith('item_hapus_konfirm_')) {
     const itemId = data.split('_').pop();
     const item   = (db.items || []).find(i => String(i.id) === String(itemId));
@@ -1012,7 +1006,6 @@ Pilih harga jual atau ketik manual:`, kbHargaJual(item.price));
     return;
   }
 
-  // ── EKSEKUSI HAPUS ────────────────────────────────────────────────
   if (data.startsWith('item_hapus_eksekusi_')) {
     const itemId = data.split('_').pop();
     const idx    = (db.items || []).findIndex(i => String(i.id) === String(itemId));
@@ -1028,7 +1021,6 @@ Pilih harga jual atau ketik manual:`, kbHargaJual(item.price));
     return;
   }
 
-  // ── STOK AGING ───────────────────────────────────────────────────
   if (data === 'stok_aging') {
     const kbAging = [
       [{ text: '✅ Tandai Terjual', callback_data: 'aksi_terjual' }],
@@ -1038,7 +1030,6 @@ Pilih harga jual atau ketik manual:`, kbHargaJual(item.price));
     return;
   }
 
-  // ── TRANSAKSI ────────────────────────────────────────────────────
   if (data === 'menu_transaksi') {
     await edit(chat, mid, await txtTransaksi(db), kbTransaksi());
     return;
@@ -1056,7 +1047,6 @@ Pilih harga jual atau ketik manual:`, kbHargaJual(item.price));
     return;
   }
 
-  // ── ANALITIK ─────────────────────────────────────────────────────
   if (data === 'menu_analitik') {
     await edit(chat, mid, await txtAnalitik(db), kbAnalitik());
     return;
@@ -1077,13 +1067,11 @@ Pilih harga jual atau ketik manual:`, kbHargaJual(item.price));
     return;
   }
 
-  // ── SETTINGS ─────────────────────────────────────────────────────
   if (data === 'menu_settings') {
     await edit(chat, mid, txtSettings(db), kbSettings());
     return;
   }
 
-  // ── AKSI: CATAT MASUK ────────────────────────────────────────────
   if (data === 'aksi_masuk') {
     clearSession(db, uid);
     getSession(db, uid).step = 'masuk_nama';
@@ -1130,7 +1118,6 @@ Atau ketuk batal untuk membatalkan:`, [[{ text: '❌ Batal', callback_data: 'can
     return;
   }
 
-  // ── AKSI: TANDAI TERJUAL ─────────────────────────────────────────
   if (data === 'aksi_terjual') {
     clearSession(db, uid);
     getSession(db, uid).step = 'terjual_cari';
@@ -1142,7 +1129,6 @@ Ketik nama barang atau kata kunci untuk dicari:`, [[{ text: '❌ Batal', callbac
     return;
   }
 
-  // Note: Data terjual menggunakan index (session data search)
   if (data.startsWith('terjual_item_')) {
     const idx  = parseInt(data.split('_').pop());
     const sess = getSession(db, uid);
@@ -1206,7 +1192,6 @@ Konfirmasi penjualan ini?`, kbKonfirmasiTerjual());
     return;
   }
 
-  // ── AKSI: LABA JASA ──────────────────────────────────────────────
   if (data === 'aksi_ekstra') {
     clearSession(db, uid);
     getSession(db, uid).step = 'ekstra_nama';
@@ -1244,7 +1229,6 @@ Ketik keterangan / nama transaksi:
     return;
   }
 
-  // ── SETTINGS: UBAH MODAL ─────────────────────────────────────────
   if (data === 'set_modal') {
     clearSession(db, uid);
     getSession(db, uid).step = 'set_modal';
@@ -1271,7 +1255,6 @@ Ketik nominal modal awal baru:`, [[{ text: '❌ Batal', callback_data: 'cancel' 
     return;
   }
 
-  // ── CARI STOK ────────────────────────────────────────────────────
   if (data === 'stok_cari') {
     clearSession(db, uid);
     getSession(db, uid).step = 'stok_cari';
@@ -1282,7 +1265,6 @@ Ketik nama atau kata kunci barang:`, [[{ text: '❌ Batal', callback_data: 'canc
     return;
   }
 
-  // ── CANCEL ───────────────────────────────────────────────────────
   if (data === 'cancel') {
     clearSession(db, uid);
     await putData(db);
@@ -1310,9 +1292,20 @@ async function handleCommand(msg) {
   try { db = await getData(); }
   catch (e) { await send(chat, '❌ Gagal ambil data.'); return; }
 
+  // ── FIX: MEMUNCULKAN KEYBOARD BAWAH SAAT /START ──
   if (text === '/start' || text === '/menu' || text === '/m') {
     clearSession(db, uid);
     await putData(db);
+    
+    // Kirim pesan pancingan agar Telegram me-load keyboard bawah
+    if (text === '/start') {
+      await tg('sendMessage', {
+        chat_id: chat, 
+        text: '🔄 Memuat sistem Farid Store...', 
+        reply_markup: kbBawah 
+      });
+    }
+
     await send(chat, txtMenuUtama(), kbMenuUtama());
     return;
   }
@@ -1389,7 +1382,7 @@ Ketuk tombol nomor barang di daftar stok untuk detail, edit, hapus, atau tandai 
 // ══════════════════════════════════════════════════════════════════════
 export default async function handler(req, res) {
   if (req.method === 'GET') {
-    return res.status(200).send('Farid Store Bot V11 — Full Dynamic Inline Keyboard Edition');
+    return res.status(200).send('Farid Store Bot V11.1 — Full Dynamic Inline + Reply Keyboard');
   }
   if (req.method !== 'POST') {
     return res.status(405).send('Method Not Allowed');
