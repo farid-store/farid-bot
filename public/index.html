@@ -1,0 +1,1618 @@
+<!DOCTYPE html>
+<html lang="id" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Farid Store | Compact Premium Tracker</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.tailwindcss.com">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { 
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                        heading: ['Outfit', 'sans-serif']
+                    },
+                    colors: {
+                        dark: '#020202', 
+                        surface: '#0a0a0a', 
+                        brand: { 
+                            300: '#7dd3fc', 
+                            400: '#38bdf8', 
+                            500: '#0ea5e9', 
+                            600: '#0284c7' 
+                        },
+                        accent: { 
+                            400: '#818cf8', 
+                            500: '#6366f1' 
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        /* Fade In Body */
+        body {
+            opacity: 0;
+            animation: fadeInBody 0.4s ease-out forwards;
+        }
+        @keyframes fadeInBody {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* Base Setup */
+        html, body { 
+            background-color: #020202; 
+            color: #f8fafc; 
+            overflow-x: hidden; 
+            width: 100%; 
+            position: relative; 
+            padding-bottom: 80px; 
+            overscroll-behavior-y: contain;
+        }
+        
+        /* Modern Floating Glass - Compact */
+        .glass-pill { 
+            background: rgba(15, 15, 15, 0.65); 
+            backdrop-filter: blur(20px); 
+            -webkit-backdrop-filter: blur(20px); 
+            border: 1px solid rgba(255, 255, 255, 0.05); 
+        }
+        
+        .glass-panel { 
+            background: linear-gradient(145deg, rgba(30, 30, 30, 0.3) 0%, rgba(10, 10, 10, 0.8) 100%); 
+            backdrop-filter: blur(16px); 
+            border: 1px solid rgba(255, 255, 255, 0.06); 
+        }
+        
+        /* Ambient Backgrounds */
+        .ambient-glow-1 { 
+            position: fixed; 
+            top: -20%; 
+            left: -20%; 
+            width: 70vw; 
+            height: 70vw; 
+            background: radial-gradient(circle, rgba(14, 165, 233, 0.12) 0%, rgba(0, 0, 0, 0) 60%); 
+            filter: blur(70px); 
+            z-index: -1; 
+            pointer-events: none;
+        }
+        
+        .ambient-glow-2 { 
+            position: fixed; 
+            bottom: 10%; 
+            right: -20%; 
+            width: 60vw; 
+            height: 60vw; 
+            background: radial-gradient(circle, rgba(129, 140, 248, 0.08) 0%, rgba(0, 0, 0, 0) 60%); 
+            filter: blur(70px); 
+            z-index: -1; 
+            pointer-events: none;
+        }
+
+        /* Loader */
+        .spinner { 
+            width: 24px; 
+            height: 24px; 
+            border: 2px solid rgba(255, 255, 255, 0.1); 
+            border-radius: 50%; 
+            border-top-color: #0ea5e9; 
+            animation: spin 1s linear infinite; 
+        }
+        
+        @keyframes spin { 
+            to { transform: rotate(360deg); } 
+        }
+        
+        /* Hide Scrollbar */
+        .hide-scroll::-webkit-scrollbar { 
+            display: none; 
+        }
+        .hide-scroll { 
+            -ms-overflow-style: none; 
+            scrollbar-width: none; 
+        }
+        
+        /* Card Hover Effect */
+        .premium-hover { 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+        }
+        
+        .premium-hover:hover { 
+            transform: translateY(-2px); 
+            border-color: rgba(56, 189, 248, 0.2); 
+            box-shadow: 0 8px 30px -10px rgba(56, 189, 248, 0.1); 
+        }
+
+        /* Snappy Tab Animation */
+        .tab-content { 
+            display: none; 
+            animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); 
+        }
+        
+        .tab-content.active { 
+            display: block; 
+        }
+        
+        @keyframes popIn { 
+            from { opacity: 0; transform: scale(0.96) translateY(10px); } 
+            to { opacity: 1; transform: scale(1) translateY(0); } 
+        }
+
+        /* Progress Bars */
+        .bar-container { 
+            width: 100%; 
+            background: rgba(255, 255, 255, 0.06); 
+            overflow: hidden; 
+            position: relative;
+        }
+        
+        .bar-fill { 
+            height: 100%; 
+            transition: width 1s cubic-bezier(0.34, 1.56, 0.64, 1); 
+            position: relative;
+        }
+
+        /* Toggle Switch Minimalist */
+        .switch-container { 
+            display: flex; 
+            align-items: center; 
+            gap: 6px; 
+        }
+        
+        .switch { 
+            position: relative; 
+            display: inline-block; 
+            width: 36px; 
+            height: 20px; 
+        }
+        
+        .switch input { 
+            opacity: 0; 
+            width: 0; 
+            height: 0; 
+        }
+        
+        .slider { 
+            position: absolute; 
+            cursor: pointer; 
+            top: 0; 
+            left: 0; 
+            right: 0; 
+            bottom: 0; 
+            background-color: rgba(255, 255, 255, 0.1); 
+            border-radius: 20px; 
+            transition: .3s; 
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .slider:before { 
+            position: absolute; 
+            content: ""; 
+            height: 14px; 
+            width: 14px; 
+            left: 2px; 
+            bottom: 2px; 
+            background-color: #94a3b8; 
+            border-radius: 50%; 
+            transition: .3s cubic-bezier(0.34, 1.56, 0.64, 1); 
+        }
+        
+        input:checked + .slider { 
+            background-color: rgba(14, 165, 233, 0.2); 
+            border-color: rgba(14, 165, 233, 0.4); 
+        }
+        
+        input:checked + .slider:before { 
+            transform: translateX(16px); 
+            background-color: #38bdf8; 
+            box-shadow: 0 0 8px rgba(56, 189, 248, 0.6); 
+        }
+
+        /* Pull To Refresh Indicator */
+        #ptr-indicator { 
+            text-align: center; 
+            color: #94a3b8; 
+            font-size: 11px; 
+            font-weight: 600; 
+            height: 0; 
+            overflow: hidden; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            gap: 6px; 
+            transition: height 0.2s ease; 
+        }
+
+        /* Nav Item Active States */
+        .nav-item.active { 
+            color: white; 
+            background: rgba(255, 255, 255, 0.08); 
+        }
+        
+        .nav-item.active i { 
+            transform: translateY(-1px); 
+            color: #38bdf8;
+        }
+        
+        .nav-item.active span { 
+            height: auto; 
+            opacity: 1; 
+            margin-top: 2px;
+        }
+        
+        /* Select Styling Override */
+        select option {
+            background-color: #0a0a0a;
+            color: #fff;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <div class="ambient-glow-1"></div>
+    <div class="ambient-glow-2"></div>
+
+    <div id="ptr-indicator">
+        <i class="fas fa-arrow-down" id="ptr-icon"></i> 
+        <span id="ptr-text">Tarik untuk Memperbarui...</span>
+    </div>
+
+    <div class="max-w-xl mx-auto px-4 pt-6 relative z-10">
+        
+        <header class="flex justify-between items-center mb-6">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-full bg-white flex items-center justify-center text-black font-bold text-sm font-heading">FS</div>
+                <div>
+                    <h1 class="font-heading text-lg font-bold tracking-tight text-white leading-none">Farid<span class="text-gray-400">Store</span></h1>
+                    <p class="text-[10px] text-brand-400 font-bold tracking-widest uppercase mt-0.5">Neo Tracker</p>
+                </div>
+            </div>
+            <div id="syncStatus" class="flex items-center justify-center w-7 h-7 rounded-full bg-white/5 border border-white/10 text-gray-400 text-xs">
+                <i class="fas fa-cloud-arrow-down"></i>
+            </div>
+        </header>
+
+        <div id="tab-dashboard" class="tab-content active">
+            
+            <div class="glass-panel rounded-2xl p-5 mb-4 relative overflow-hidden group premium-hover">
+                <div class="absolute -right-10 -top-10 w-32 h-32 bg-brand-500/10 rounded-full blur-2xl pointer-events-none"></div>
+                
+                <div class="flex justify-between items-start mb-4 relative z-10">
+                    <div>
+                        <span class="text-brand-400 font-bold text-[9px] uppercase tracking-widest block mb-0.5">Target Utama</span>
+                        <h2 class="font-heading text-xl font-black text-white">100 Juta <span class="text-gray-500 font-medium text-sm">Rupiah</span></h2>
+                    </div>
+                    <div id="uiEtaBadge" class="bg-warning/10 border border-warning/20 text-warning px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-wide flex items-center gap-1.5">
+                        <i class="fas fa-clock"></i> Menghitung...
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-5 relative z-10">
+                    <div class="relative w-16 h-16 shrink-0">
+                        <canvas id="goalChart"></canvas>
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <span id="uiGoalPct" class="font-heading text-sm font-black text-white mt-0.5">0%</span>
+                        </div>
+                    </div>
+                    <div class="flex-grow">
+                        <p class="text-[9px] text-gray-400 uppercase tracking-widest font-bold mb-0.5">Total Aset</p>
+                        <h3 id="uiTotalAsset" class="font-heading text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-300 tracking-tighter">Rp 0</h3>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-panel rounded-2xl p-4 mb-4 premium-hover flex flex-col justify-center">
+                <div class="flex justify-between items-center mb-2.5">
+                    <div class="flex items-center gap-1.5">
+                        <i class="fa-solid fa-flag-checkered text-brand-400 text-xs"></i>
+                        <span class="text-[10px] font-bold text-gray-300 uppercase tracking-widest">Milestone Selanjutnya</span>
+                    </div>
+                    <span id="uiNextMilestone" class="font-heading text-xs font-bold text-white">Rp 0</span>
+                </div>
+                <div class="bar-container h-1.5 rounded-full">
+                    <div id="milestoneBar" class="bar-fill bg-gradient-to-r from-brand-600 to-brand-400 rounded-full" style="width: 0%;"></div>
+                </div>
+            </div>
+
+            <div class="glass-panel rounded-2xl p-4 mb-4 premium-hover">
+                <div class="flex items-center gap-1.5 mb-3">
+                    <i class="fa-solid fa-wallet text-accent-400 text-xs"></i>
+                    <span class="text-[10px] font-bold text-gray-300 uppercase tracking-widest">Alokasi Aset</span>
+                </div>
+                
+                <div class="bar-container h-2 rounded-full mb-3 flex">
+                    <div id="barCash" class="bar-fill bg-accent-500" style="width: 0%;"></div>
+                    <div id="barStock" class="bar-fill bg-brand-500" style="width: 0%;"></div>
+                </div>
+                
+                <div class="flex justify-between">
+                    <div>
+                        <div class="flex items-center gap-1.5 mb-0.5">
+                            <span class="w-1.5 h-1.5 rounded-full bg-accent-500"></span>
+                            <span class="text-[9px] text-gray-500 font-bold uppercase tracking-wider">Kas Laci</span>
+                        </div>
+                        <div id="uiValCash" class="font-heading text-sm font-bold text-white">Rp 0</div>
+                    </div>
+                    <div class="text-right">
+                        <div class="flex items-center justify-end gap-1.5 mb-0.5">
+                            <span class="w-1.5 h-1.5 rounded-full bg-brand-500"></span>
+                            <span class="text-[9px] text-gray-500 font-bold uppercase tracking-wider">Stok Gudang</span>
+                        </div>
+                        <div id="uiValStock" class="font-heading text-sm font-bold text-white">Rp 0</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-panel rounded-2xl p-5 mb-4 premium-hover relative overflow-hidden">
+                <div class="absolute right-[-10px] bottom-[-10px] opacity-5 text-6xl text-white pointer-events-none">
+                    <i class="fa-solid fa-chart-line"></i>
+                </div>
+                <div class="flex justify-between items-center mb-2 relative z-10">
+                    <span class="text-[10px] font-bold text-gray-300 uppercase tracking-widest">Akumulasi Laba</span>
+                    <div class="switch-container">
+                        <span id="labelNetto" class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Kotor</span>
+                        <label class="switch">
+                            <input type="checkbox" id="netProfitToggle" onchange="toggleNetProfit()">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+                <div class="relative z-10">
+                    <h3 id="uiTotalProfit" class="font-heading text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-500 tracking-tighter mb-1">Rp 0</h3>
+                    <p class="text-[10px] text-gray-500 font-medium flex items-center gap-1.5">
+                        <i class="fa-solid fa-box-open text-gray-600"></i> Terjual <span id="uiTotalUnits" class="font-bold text-white">0 Unit</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-analytics" class="tab-content">
+            
+            <div class="glass-panel rounded-2xl p-5 mb-4">
+                <div class="flex items-center gap-1.5 mb-4">
+                    <i class="fa-solid fa-fire text-orange-500 text-sm"></i>
+                    <span class="text-[10px] font-bold text-gray-300 uppercase tracking-widest">Top Performa Merek</span>
+                </div>
+                <div id="topBrandsUI" class="space-y-2.5">
+                    </div>
+            </div>
+
+            <div class="glass-panel rounded-2xl p-5 mb-4">
+                <div class="flex items-center gap-1.5 mb-2">
+                    <i class="fa-solid fa-chart-pie text-brand-400 text-sm"></i>
+                    <span class="text-[10px] font-bold text-gray-300 uppercase tracking-widest">Alokasi Laba</span>
+                </div>
+                <div class="relative h-40 w-full flex justify-center mt-2">
+                    <canvas id="doughnutChart"></canvas>
+                </div>
+            </div>
+
+            <div class="glass-panel rounded-2xl p-5 mb-4">
+                <div class="flex items-center gap-1.5 mb-4">
+                    <i class="fa-solid fa-boxes-stacked text-gray-400 text-sm"></i>
+                    <span class="text-[10px] font-bold text-gray-300 uppercase tracking-widest">Stok Gudang Mengendap</span>
+                </div>
+                <div id="agingListUI" class="space-y-2">
+                    </div>
+            </div>
+        </div>
+
+        <div id="tab-performance" class="tab-content">
+            
+            <div class="glass-panel rounded-2xl p-5 mb-5">
+                <div class="flex items-center gap-1.5 mb-4">
+                    <i class="fa-solid fa-chart-area text-brand-400 text-sm"></i>
+                    <span class="text-[10px] font-bold text-gray-300 uppercase tracking-widest">Kinerja Dua Belas Bulan</span>
+                </div>
+                <div class="w-full overflow-x-auto hide-scroll">
+                    <div style="min-width: 450px; height: 180px;">
+                        <canvas id="salesChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 mb-4 px-1">
+                <div class="w-4 h-px bg-brand-500"></div>
+                <h3 class="font-heading text-[11px] font-bold text-gray-400 tracking-widest uppercase">Target Pendapatan Bulanan</h3>
+                <div class="flex-grow h-px bg-white/5"></div>
+            </div>
+
+            <div id="trackerBody" class="space-y-3">
+                </div>
+        </div>
+
+        <div id="tab-cashflow" class="tab-content">
+            <div id="cashflowCard" class="glass-panel rounded-2xl p-5 mb-4 premium-hover relative overflow-hidden transition-all duration-300">
+                <div class="absolute -right-6 -bottom-6 opacity-5 text-7xl text-white pointer-events-none" id="bgIconCashflow">
+                    <i class="fa-solid fa-money-bill-transfer"></i>
+                </div>
+                
+                <div class="flex items-center justify-between mb-5 relative z-10">
+                    <div class="flex items-center gap-1.5">
+                        <i class="fa-solid fa-calendar-day text-brand-400 text-sm"></i>
+                        <span class="text-[10px] font-bold text-gray-300 uppercase tracking-widest">Periode</span>
+                    </div>
+                    <div class="relative flex items-center gap-2">
+                        <button id="btnExport" onclick="downloadReport()" class="bg-white/5 hover:bg-brand-500/20 text-brand-400 border border-white/10 rounded-lg px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest transition-colors flex items-center gap-1">
+                            <i class="fa-solid fa-download"></i> Save
+                        </button>
+
+                        <div class="relative">
+                            <select id="monthSelector" onchange="changeCashflowMonth()" class="bg-white/5 border border-white/10 text-brand-300 text-[10px] font-bold uppercase tracking-widest rounded-lg pl-3 pr-8 py-1.5 outline-none appearance-none cursor-pointer backdrop-blur-md">
+                                </select>
+                            <div class="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-brand-400 text-[10px]">
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-center mb-4 relative z-10">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-8 h-8 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                            <i class="fa-solid fa-arrow-down"></i>
+                        </div>
+                        <div>
+                            <span class="block text-[9px] font-bold text-gray-400 uppercase tracking-widest">Pemasukan (Omset)</span>
+                            <span class="font-heading text-lg font-bold text-emerald-400" id="uiTotalIncome">Rp 0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-center mb-5 relative z-10">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-8 h-8 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center">
+                            <i class="fa-solid fa-arrow-up"></i>
+                        </div>
+                        <div>
+                            <span class="block text-[9px] font-bold text-gray-400 uppercase tracking-widest">Pengeluaran (HPP)</span>
+                            <span class="font-heading text-lg font-bold text-rose-400" id="uiTotalExpense">Rp 0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-4 relative z-10"></div>
+
+                <div class="flex justify-between items-center relative z-10">
+                    <span class="text-[11px] font-bold text-gray-300 uppercase tracking-widest">Laba Bulan Ini</span>
+                    <span class="font-heading text-2xl font-black text-white" id="uiNetCashFlow">Rp 0</span>
+                </div>
+                
+                <div id="exportWatermark" class="hidden absolute bottom-2 left-1/2 -translate-x-1/2 text-[8px] text-gray-500 font-bold tracking-widest uppercase">
+                    Generated by Farid Store App
+                </div>
+            </div>
+
+            <div class="glass-panel rounded-2xl p-5 mb-4 premium-hover">
+                <div class="flex items-center gap-1.5 mb-4">
+                    <i class="fa-solid fa-clock-rotate-left text-brand-400 text-sm"></i>
+                    <span class="text-[10px] font-bold text-gray-300 uppercase tracking-widest">Mutasi Terakhir</span>
+                </div>
+                <div id="recentTransactionsUI" class="space-y-3">
+                    </div>
+            </div>
+            
+        </div>
+
+    </div>
+
+    <nav class="fixed bottom-4 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[400px] glass-pill rounded-full p-1.5 flex justify-between items-center z-50 shadow-[0_10px_30px_rgba(0,0,0,0.8)]">
+        <button onclick="switchTab('dashboard', this)" class="nav-item active flex-1 py-2.5 rounded-full text-gray-500 hover:text-gray-300 transition-all flex flex-col items-center gap-0.5">
+            <i class="fa-solid fa-layer-group text-base transition-transform duration-300"></i>
+            <span class="text-[8px] font-bold uppercase tracking-widest transition-all duration-300 h-0 overflow-hidden opacity-0">Dashboard</span>
+        </button>
+        <button onclick="switchTab('analytics', this)" class="nav-item flex-1 py-2.5 rounded-full text-gray-500 hover:text-gray-300 transition-all flex flex-col items-center gap-0.5">
+            <i class="fa-solid fa-compass text-base transition-transform duration-300"></i>
+            <span class="text-[8px] font-bold uppercase tracking-widest transition-all duration-300 h-0 overflow-hidden opacity-0">Analitik</span>
+        </button>
+        <button onclick="switchTab('performance', this)" class="nav-item flex-1 py-2.5 rounded-full text-gray-500 hover:text-gray-300 transition-all flex flex-col items-center gap-0.5">
+            <i class="fa-solid fa-chart-bar text-base transition-transform duration-300"></i>
+            <span class="text-[8px] font-bold uppercase tracking-widest transition-all duration-300 h-0 overflow-hidden opacity-0">Performa</span>
+        </button>
+        <button onclick="switchTab('cashflow', this)" class="nav-item flex-1 py-2.5 rounded-full text-gray-500 hover:text-gray-300 transition-all flex flex-col items-center gap-0.5">
+            <i class="fa-solid fa-wallet text-base transition-transform duration-300"></i>
+            <span class="text-[8px] font-bold uppercase tracking-widest transition-all duration-300 h-0 overflow-hidden opacity-0">Arus Kas</span>
+        </button>
+    </nav>
+
+    <script>
+        // ==========================================
+        // KONFIGURASI & KREDENSIAL JSONBIN
+        // ==========================================
+        const BIN_ID = '699644fdae596e708f3582af'; 
+        const API_KEY = '$2a$10$tcKHEWwuz2sqRoMCKJfga.1xxTFW0RxpXUPnP.NI4YbivtlK1xxau'; 
+        
+        const MILESTONES = [
+            10000000, 
+            20000000, 
+            30000000, 
+            40000000, 
+            50000000, 
+            60000000, 
+            75000000, 
+            90000000, 
+            100000000
+        ];
+
+        function formatRp(num) {
+            if (num >= 1000000) {
+                return (num / 1000000).toFixed(1).replace(/\.0$/, '') + ' Juta';
+            } else {
+                return new Intl.NumberFormat('id-ID', { 
+                    style: 'currency', 
+                    currency: 'IDR', 
+                    minimumFractionDigits: 0 
+                }).format(num);
+            }
+        }
+
+        function formatRpFull(num) {
+            return new Intl.NumberFormat('id-ID', { 
+                style: 'currency', 
+                currency: 'IDR', 
+                minimumFractionDigits: 0 
+            }).format(num);
+        }
+
+        const roadmapTargets = [
+            { month: 1, profit: 4500000 }, 
+            { month: 2, profit: 5400000 },
+            { month: 3, profit: 6075000 }, 
+            { month: 4, profit: 6750000 },
+            { month: 5, profit: 6750000 }, 
+            { month: 6, profit: 7200000 },
+            { month: 7, profit: 7200000 }, 
+            { month: 8, profit: 7650000 },
+            { month: 9, profit: 7650000 }, 
+            { month: 10, profit: 7875000 },
+            { month: 11, profit: 7875000 }, 
+            { month: 12, profit: 6750000 }
+        ];
+
+        // Variabel Global
+        let salesChartInstance = null;
+        let doughnutChartInstance = null;
+        let goalChartInstance = null;
+        let globalRawData = null;
+        let isNetProfitMode = false;
+
+        // Penampung Data Global untuk Re-render Animasi Chart
+        let cacheGoal = { cur: 0, rem: 100000000 };
+        let cacheAlloc = { owner: 0, emp: 0, retained: 0 };
+        let cacheTrend = { labels: [], profit: [], unit: [] };
+
+        // Konfigurasi Default Chart.js
+        if (typeof Chart !== 'undefined') {
+            Chart.defaults.font.family = "'Plus Jakarta Sans', sans-serif";
+            Chart.defaults.color = "#64748b";
+        }
+
+        // ==========================================
+        // FUNGSI EXPORT GAMBAR (html2canvas)
+        // ==========================================
+        async function downloadReport() {
+            const btn = document.getElementById('btnExport');
+            const originalBtnHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ...';
+            
+            const card = document.getElementById('cashflowCard');
+            const watermark = document.getElementById('exportWatermark');
+            const selectBox = document.getElementById('monthSelector');
+            
+            // Trik khusus agar html2canvas bisa merender efek transparan dengan rapi
+            const originalBg = card.style.background;
+            const originalBorder = card.style.border;
+            
+            // Ubah sementara menjadi background solid gelap + sembunyikan tombol
+            card.style.background = '#0d0d0d'; 
+            card.style.border = '1px solid rgba(255,255,255,0.1)';
+            btn.style.display = 'none';
+            selectBox.style.appearance = 'none'; // Sembunyikan ikon panah sementara
+            watermark.classList.remove('hidden'); // Munculkan watermark
+
+            try {
+                const canvas = await html2canvas(card, {
+                    scale: 3, // Resolusi tinggi agar jernih
+                    backgroundColor: '#020202',
+                    useCORS: true,
+                    logging: false
+                });
+                
+                const link = document.createElement('a');
+                link.download = `Laporan_FaridStore_${selectBox.value}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            } catch (e) {
+                console.error("Gagal export gambar", e);
+                alert("Gagal menyimpan gambar. Pastikan memori cukup.");
+            } finally {
+                // Kembalikan ke desain original
+                card.style.background = originalBg;
+                card.style.border = originalBorder;
+                btn.style.display = 'flex';
+                btn.innerHTML = originalBtnHtml;
+                selectBox.style.appearance = '';
+                watermark.classList.add('hidden');
+            }
+        }
+
+        // ==========================================
+        // FUNGSI GANTI TAB & ANIMASI
+        // ==========================================
+        function switchTab(tabId, el) {
+            document.querySelectorAll('.tab-content').forEach(function(t) {
+                t.classList.remove('active');
+            });
+            document.querySelectorAll('.nav-item').forEach(function(n) {
+                n.classList.remove('active');
+            });
+            
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+            el.classList.add('active');
+
+            if (typeof Chart !== 'undefined') {
+                if (tabId === 'dashboard') {
+                    renderGoalChart(cacheGoal.cur, cacheGoal.rem);
+                } else if (tabId === 'analytics') {
+                    renderDoughnutChart(cacheAlloc.owner, cacheAlloc.emp, cacheAlloc.retained);
+                } else if (tabId === 'performance') {
+                    renderLineChart(cacheTrend.labels, cacheTrend.profit, cacheTrend.unit);
+                }
+            }
+            
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function toggleNetProfit() {
+            isNetProfitMode = document.getElementById('netProfitToggle').checked;
+            
+            if (isNetProfitMode) {
+                document.getElementById('labelNetto').innerText = 'Bersih';
+            } else {
+                document.getElementById('labelNetto').innerText = 'Kotor';
+            }
+            
+            if (globalRawData) {
+                processData(globalRawData); 
+            }
+        }
+        
+        function changeCashflowMonth() {
+            if (globalRawData) {
+                processData(globalRawData);
+            }
+        }
+
+        function animateValue(id, start, end, duration, isCurrency = true) {
+            if (start === end) return;
+            const obj = document.getElementById(id);
+            if (!obj) return;
+            
+            let startTimestamp = null;
+            
+            const step = function(timestamp) {
+                if (!startTimestamp) {
+                    startTimestamp = timestamp;
+                }
+                
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                const easeProgress = 1 - Math.pow(1 - progress, 3); 
+                const currentVal = Math.floor(easeProgress * (end - start) + start);
+                
+                if (isCurrency) {
+                    obj.innerHTML = `Rp ${currentVal.toLocaleString('id-ID')}`;
+                } else {
+                    obj.innerHTML = currentVal;
+                }
+                
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                } else {
+                    if (isCurrency) {
+                        obj.innerHTML = `Rp ${end.toLocaleString('id-ID')}`;
+                    } else {
+                        obj.innerHTML = end;
+                    }
+                }
+            };
+            
+            window.requestAnimationFrame(step);
+        }
+
+        // ==========================================
+        // FETCH DATA DAN PARSING
+        // ==========================================
+        async function fetchDatabase() {
+            const syncIcon = document.querySelector('#syncStatus i');
+            syncIcon.className = 'fas fa-spinner fa-spin text-brand-400';
+            
+            try {
+                const response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
+                    method: 'GET', 
+                    headers: { 
+                        'X-Master-Key': API_KEY, 
+                        'X-Access-Key': API_KEY 
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP Error Status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                syncIcon.className = 'fas fa-check text-green-400';
+                setTimeout(function() { 
+                    syncIcon.className = 'fas fa-cloud-arrow-down text-gray-400'; 
+                }, 2000);
+                
+                return data.record;
+                
+            } catch (error) {
+                console.error("Gagal terhubung ke database:", error);
+                syncIcon.className = 'fas fa-triangle-exclamation text-red-500';
+                return null;
+            }
+        }
+
+        function parseDateString(dateString) { 
+            if (!dateString || dateString === 'Imported' || dateString === 'Bulan Lalu') {
+                return new Date();
+            }
+            const parts = dateString.split(' ');
+            if (parts[0].includes('-')) {
+                return new Date(parts[0]);
+            }
+            const d = parts[0].split('/');
+            return new Date(d[2], d[1] - 1, d[0]); 
+        }
+
+        function getBrand(name) {
+            const n = name.toUpperCase();
+            
+            if (n.includes('IPHONE') || n.includes('APPLE') || n.includes('IPAD')) return 'Apple';
+            if (n.includes('SAMSUNG') || n.includes('GALAXY') || n.startsWith('SAM ')) return 'Samsung';
+            if (n.includes('XIAOMI') || n.includes('NOTE') || n.includes('REDMI') || n.includes('POCO') || n.includes('MI ')) return 'Xiaomi';
+            if (n.includes('OPPO') || n.includes('RENO')) return 'Oppo';
+            if (n.includes('VIVO') || n.includes('IQOO')) return 'Vivo';
+            if (n.includes('REALME') || n.includes('NARZO')) return 'Realme';
+            if (n.includes('INFINIX')) return 'Infinix';
+            if (n.includes('TECNO')) return 'Tecno';
+            if (n.includes('ITEL')) return 'iTel';
+            
+            return n.split(' ')[0]; 
+        }
+
+        // ==========================================
+        // PROSES DATA UTAMA (TERMASUK LOG TRANSAKSI)
+        // ==========================================
+        function processData(db) {
+            let monthlyActuals = {};
+            let brandStats = {};
+            
+            let startBalance = Number(db.startBalance) || 0;
+            let belanjaBaru = 0;
+            let uangMasuk = 0;
+            let profitMain = 0;
+            let profitEkstra = 0;
+            let floatModal = 0;
+            let floatPrice = 0;
+            let totalUnit = 0;
+            let agingStocks = [];
+            
+            let allTransactions = []; // Array untuk Log Transaksi
+
+            // --- EKSTRAKSI SEMUA BULAN UNTUK DROPDOWN ---
+            let uniqueMonths = new Set();
+            let currDateObj = new Date();
+            let realCurrentMonth = `${currDateObj.getFullYear()}-${String(currDateObj.getMonth() + 1).padStart(2, '0')}`;
+            uniqueMonths.add(realCurrentMonth); 
+            
+            if (db.items) {
+                db.items.forEach(i => {
+                    let itemDate = i.id ? new Date(Math.floor(i.id)) : currDateObj;
+                    let m = `${itemDate.getFullYear()}-${String(itemDate.getMonth() + 1).padStart(2, '0')}`;
+                    uniqueMonths.add(m);
+                    if(i.soldAt) {
+                        let d = parseDateString(i.soldAt);
+                        let sm = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                        uniqueMonths.add(sm);
+                    }
+                });
+            }
+            if (db.extraProfits) {
+                db.extraProfits.forEach(p => {
+                    let d = new Date(Math.floor(p.id));
+                    let m = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                    uniqueMonths.add(m);
+                });
+            }
+
+            let sortedMonths = Array.from(uniqueMonths).sort();
+            let selector = document.getElementById('monthSelector');
+            
+            let currentOptionsString = Array.from(selector.options).map(o => o.value).join(',');
+            let newOptionsString = sortedMonths.join(',');
+            
+            if (currentOptionsString !== newOptionsString) {
+                let prevSelection = selector.value || realCurrentMonth;
+                selector.innerHTML = '';
+                const monthNamesFull = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+                
+                sortedMonths.forEach(m => {
+                    let parts = m.split('-'); 
+                    let opt = document.createElement('option');
+                    opt.value = m;
+                    opt.text = `${monthNamesFull[parseInt(parts[1])-1]} ${parts[0]}`;
+                    selector.appendChild(opt);
+                });
+                
+                if (sortedMonths.includes(prevSelection)) {
+                    selector.value = prevSelection;
+                } else {
+                    selector.value = realCurrentMonth;
+                }
+            }
+
+            let targetMonthStr = selector.value; 
+
+            // Variabel Laba/Rugi Khusus
+            let omsetBulanIni = 0; 
+            let hppBulanIni = 0;   
+
+            if (db.items) {
+                db.items.forEach(function(i) {
+                    let ts = i.id ? Math.floor(i.id) : currDateObj.getTime();
+                    
+                    if (i.status === 'sold') {
+                        totalUnit++;
+                        
+                        if (i.type === 'new') {
+                            belanjaBaru += i.modal;
+                            // Catat log pembelian
+                            allTransactions.push({ id: ts, name: i.name, type: 'buy', amount: i.modal });
+                        }
+                        
+                        uangMasuk += i.price;
+                        let p = i.price - i.modal; 
+                        profitMain += p;
+
+                        let b = getBrand(i.name);
+                        if (!brandStats[b]) {
+                            brandStats[b] = { profit: 0, count: 0 };
+                        }
+                        brandStats[b].profit += p; 
+                        brandStats[b].count += 1;
+                        
+                        let soldDateStr = i.soldAt || realCurrentMonth;
+                        let dSold = parseDateString(soldDateStr);
+                        let soldMk = `${dSold.getFullYear()}-${String(dSold.getMonth() + 1).padStart(2, '0')}`;
+                        
+                        // Catat log penjualan (berdasarkan tanggal terjual)
+                        allTransactions.push({ id: dSold.getTime(), name: i.name, type: 'sold', amount: i.price, profit: p });
+                        
+                        if (soldMk === targetMonthStr) {
+                            omsetBulanIni += i.price; 
+                            hppBulanIni += i.modal;   
+                        }
+
+                        if (i.soldAt) {
+                            let d = parseDateString(i.soldAt);
+                            let mk = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                            
+                            if (!monthlyActuals[mk]) {
+                                monthlyActuals[mk] = { units: 0, profit: 0 };
+                            }
+                            
+                            monthlyActuals[mk].units += 1; 
+                            monthlyActuals[mk].profit += p;
+                        }
+                        
+                    } else if (i.status === 'stok') {
+                        
+                        if (i.type === 'new') {
+                            belanjaBaru += i.modal;
+                            // Catat log pembelian
+                            allTransactions.push({ id: ts, name: i.name, type: 'buy', amount: i.modal });
+                        }
+                        
+                        floatPrice += i.price;
+                        floatModal += i.modal;
+                        
+                        let ad = 0;
+                        if (i.id) { 
+                            ad = Math.floor(Math.abs(new Date() - new Date(Math.floor(i.id))) / 86400000); 
+                        }
+                        agingStocks.push({ name: i.name, days: ad });
+                    }
+                });
+            }
+
+            if (db.extraProfits) {
+                db.extraProfits.forEach(function(p) {
+                    profitEkstra += p.profit; 
+                    totalUnit++; 
+                    
+                    let d = new Date(Math.floor(p.id)); 
+                    let mk = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                    
+                    // Catat log profit ekstra
+                    allTransactions.push({ id: Math.floor(p.id), name: p.name || 'Laba Jasa / Ekstra', type: 'extra', amount: p.profit });
+                    
+                    if (!monthlyActuals[mk]) {
+                        monthlyActuals[mk] = { units: 0, profit: 0 };
+                    }
+                    
+                    monthlyActuals[mk].profit += p.profit; 
+                    monthlyActuals[mk].units += 1;
+
+                    if (mk === targetMonthStr) {
+                        omsetBulanIni += p.profit;
+                    }
+                });
+            }
+            
+            // Urutkan transaksi dari yang terbaru ke terlama
+            allTransactions.sort((a, b) => b.id - a.id);
+            let recent5Transactions = allTransactions.slice(0, 5); // Ambil 5 teratas
+
+            let totalGaji = 0; 
+            const GAJI = 2500000; 
+            
+            for (let k in monthlyActuals) {
+                monthlyActuals[k].kotor = monthlyActuals[k].profit; 
+                if (isNetProfitMode) { 
+                    monthlyActuals[k].profit -= GAJI; 
+                    totalGaji += GAJI; 
+                }
+            }
+
+            if (isNetProfitMode) {
+                hppBulanIni += GAJI;
+            }
+
+            let totalBersih = profitMain + profitEkstra;
+            if (isNetProfitMode) {
+                totalBersih -= totalGaji;
+            }
+
+            const cashSisa = startBalance - belanjaBaru + uangMasuk;
+            const totalAsetReal = cashSisa + floatPrice; 
+            
+            agingStocks.sort(function(a, b) {
+                return b.days - a.days;
+            });
+
+            updateUI(monthlyActuals, totalAsetReal, totalBersih, totalUnit, cashSisa, floatPrice, agingStocks, brandStats, omsetBulanIni, hppBulanIni, recent5Transactions);
+        }
+
+        // ==========================================
+        // FUNGSI RENDER CHART DENGAN ANIMASI
+        // ==========================================
+        function renderGoalChart(current, remaining) {
+            if (typeof Chart === 'undefined') return;
+
+            const ctx = document.getElementById('goalChart').getContext('2d');
+            if (goalChartInstance) {
+                goalChartInstance.destroy();
+            }
+            
+            goalChartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Tercapai', 'Sisa Target'],
+                    datasets: [{
+                        data: [current, remaining],
+                        backgroundColor: ['#0ea5e9', 'rgba(255,255,255,0.04)'],
+                        borderWidth: 0, 
+                        borderRadius: 20
+                    }]
+                },
+                options: {
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    cutout: '80%',
+                    plugins: { 
+                        legend: { display: false }, 
+                        tooltip: { enabled: false } 
+                    },
+                    animation: { 
+                        animateScale: false, 
+                        animateRotate: true, 
+                        duration: 1500, 
+                        easing: 'easeOutQuart' 
+                    }
+                }
+            });
+        }
+
+        function renderDoughnutChart(pOwner, pKaryawan, pSisa) {
+            if (typeof Chart === 'undefined') return;
+
+            const ctx = document.getElementById('doughnutChart').getContext('2d');
+            if (doughnutChartInstance) {
+                doughnutChartInstance.destroy();
+            }
+
+            doughnutChartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Gaji Owner', 'Gaji Karyawan', 'Laba Ditahan'],
+                    datasets: [{
+                        data: [pOwner, pKaryawan, pSisa],
+                        backgroundColor: ['#38bdf8', '#818cf8', '#10b981'],
+                        borderWidth: 0, 
+                        hoverOffset: 3
+                    }]
+                },
+                options: {
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    cutout: '75%',
+                    plugins: { 
+                        legend: { 
+                            position: 'right', 
+                            labels: { 
+                                boxWidth: 8, 
+                                color: '#f8fafc', 
+                                font: { size: 10 } 
+                            } 
+                        } 
+                    },
+                    animation: { 
+                        animateScale: true, 
+                        animateRotate: true, 
+                        duration: 1200, 
+                        easing: 'easeOutBack' 
+                    }
+                }
+            });
+        }
+
+        function renderLineChart(labels, profitData, actualData) {
+            if (typeof Chart === 'undefined') return;
+
+            const ctx = document.getElementById('salesChart').getContext('2d');
+            if (salesChartInstance) {
+                salesChartInstance.destroy(); 
+            }
+
+            salesChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { 
+                            label: isNetProfitMode ? 'Laba Bersih' : 'Laba Kotor', 
+                            data: profitData, 
+                            type: 'line', 
+                            backgroundColor: 'rgba(56, 189, 248, 0.1)', 
+                            borderColor: '#38bdf8', 
+                            borderWidth: 2, 
+                            pointBackgroundColor: '#38bdf8', 
+                            pointBorderColor: '#0a0a0a', 
+                            pointRadius: 3, 
+                            fill: true, 
+                            tension: 0.4, 
+                            yAxisID: 'y' 
+                        },
+                        { 
+                            label: 'Volume Penjualan', 
+                            data: actualData, 
+                            type: 'bar', 
+                            backgroundColor: 'rgba(129, 140, 248, 0.8)', 
+                            borderRadius: 4, 
+                            barThickness: 8, 
+                            yAxisID: 'y1' 
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: { 
+                        legend: { 
+                            position: 'top', 
+                            labels: { 
+                                boxWidth: 6, 
+                                usePointStyle: true, 
+                                color: '#e2e8f0', 
+                                font: { size: 10 } 
+                            } 
+                        } 
+                    },
+                    scales: {
+                        x: { 
+                            grid: { display: false }, 
+                            ticks: { font: { size: 9 } } 
+                        },
+                        y: { 
+                            type: 'linear', 
+                            display: true, 
+                            position: 'left', 
+                            grid: { color: 'rgba(255,255,255,0.03)' }, 
+                            ticks: { 
+                                callback: function(value) { 
+                                    return (value / 1000000) + ' Juta'; 
+                                }, 
+                                font: { size: 9 } 
+                            } 
+                        },
+                        y1: { 
+                            type: 'linear', 
+                            display: true, 
+                            position: 'right', 
+                            grid: { drawOnChartArea: false }, 
+                            ticks: { 
+                                font: { size: 9 }, 
+                                stepSize: 5 
+                            } 
+                        }
+                    },
+                    animation: {
+                        duration: 1500,
+                        easing: 'easeOutQuart'
+                    }
+                }
+            });
+        }
+
+        // ==========================================
+        // UPDATE ANTARMUKA UI
+        // ==========================================
+        function updateUI(actuals, totalAset, globalGross, globalUnits, cash, stock, aging, brands, cashInBulanIni, cashOutBulanIni, recent5) {
+            
+            // 1. UPDATE TAB DASHBOARD
+            let sisaTarget = 100000000 - totalAset;
+            cacheGoal.cur = totalAset; 
+            cacheGoal.rem = sisaTarget > 0 ? sisaTarget : 0;
+            
+            let percentageGoal = Math.min((totalAset / 100000000) * 100, 100).toFixed(1);
+            document.getElementById('uiGoalPct').innerText = `${percentageGoal}%`;
+            
+            let mKeys = Object.keys(actuals).sort();
+            let recentProfitsSum = 0;
+            let lastThreeMonths = mKeys.slice(-3);
+            
+            lastThreeMonths.forEach(function(k) {
+                recentProfitsSum += actuals[k].profit;
+            });
+            
+            let avgRecentProfit = recentProfitsSum / (Math.min(mKeys.length, 3) || 1);
+            let etaText = "Menunggu Data";
+            
+            const monthNamesFull = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+
+            if (sisaTarget <= 0) {
+                document.getElementById('uiEtaBadge').className = "bg-green-500/10 border border-green-500/20 text-green-400 px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-wide flex items-center gap-1.5";
+                document.getElementById('uiEtaBadge').innerHTML = `<i class="fas fa-check"></i> Target Tercapai!`;
+            } else if (avgRecentProfit > 0) {
+                let d = new Date(); 
+                let monthsLeft = Math.ceil(sisaTarget / avgRecentProfit);
+                d.setMonth(d.getMonth() + monthsLeft);
+                
+                etaText = `Estimasi: ${monthNamesFull[d.getMonth()]} ${d.getFullYear()}`;
+                document.getElementById('uiEtaBadge').innerHTML = `<i class="fas fa-clock"></i> ${etaText}`;
+            }
+
+            if (document.getElementById('tab-dashboard').classList.contains('active')) {
+                renderGoalChart(cacheGoal.cur, cacheGoal.rem);
+            }
+
+            const prevAset = parseInt(document.getElementById('uiTotalAsset').innerText.replace(/\D/g,'')) || 0;
+            const prevProfit = parseInt(document.getElementById('uiTotalProfit').innerText.replace(/\D/g,'')) || 0;
+            
+            animateValue('uiTotalAsset', prevAset, totalAset, 1000);
+            animateValue('uiTotalProfit', prevProfit, globalGross, 1000);
+            document.getElementById('uiTotalUnits').innerText = `${globalUnits} Unit`;
+
+            let nextMil = MILESTONES.find(function(m) {
+                return m > totalAset;
+            }) || 100000000;
+            
+            let milestonePct = Math.min((totalAset / nextMil) * 100, 100);
+            document.getElementById('uiNextMilestone').innerText = formatRpFull(nextMil);
+            document.getElementById('milestoneBar').style.width = `${milestonePct}%`;
+            
+            let cashPct = totalAset > 0 ? (cash / totalAset) * 100 : 0;
+            let stockPct = totalAset > 0 ? (stock / totalAset) * 100 : 0;
+            
+            document.getElementById('barCash').style.width = `${cashPct}%`;
+            document.getElementById('barStock').style.width = `${stockPct}%`;
+            document.getElementById('uiValCash').innerText = formatRpFull(cash);
+            document.getElementById('uiValStock').innerText = formatRpFull(stock);
+
+
+            // 2. UPDATE TAB ANALYTICS
+            let currDate = new Date();
+            let currMk = `${currDate.getFullYear()}-${String(currDate.getMonth() + 1).padStart(2, '0')}`;
+            
+            let cp = 0;
+            if (actuals[currMk]) {
+                if (actuals[currMk].kotor !== undefined) {
+                    cp = actuals[currMk].kotor;
+                } else {
+                    cp = actuals[currMk].profit;
+                }
+            }
+            
+            let bArr = Object.keys(brands).map(function(k) {
+                return { n: k, p: brands[k].profit, c: brands[k].count };
+            });
+            
+            bArr.sort(function(a, b) {
+                return b.p - a.p;
+            });
+            
+            bArr = bArr.slice(0, 4);
+            
+            const tbUI = document.getElementById('topBrandsUI'); 
+            tbUI.innerHTML = '';
+            
+            if (bArr.length === 0) {
+                tbUI.innerHTML = '<div class="text-center text-gray-500 text-xs py-4">Belum ada data penjualan.</div>';
+            }
+
+            bArr.forEach(function(b, i) {
+                let s = '';
+                if (i === 0) {
+                    s = 'text-orange-400 bg-orange-400/10';
+                } else if (i === 1) {
+                    s = 'text-gray-300 bg-gray-400/10';
+                } else if (i === 2) {
+                    s = 'text-amber-600 bg-amber-600/10';
+                } else {
+                    s = 'text-gray-500 bg-white/5';
+                }
+
+                tbUI.innerHTML += `
+                    <div class="flex justify-between p-2.5 rounded-xl bg-white/[0.02] border border-white/5">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black ${s}">
+                                ${i + 1}
+                            </div>
+                            <span class="font-heading text-sm font-bold text-white">${b.n}</span>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-xs font-bold text-green-400">${formatRpFull(b.p)}</div>
+                            <div class="text-[8px] text-gray-500 uppercase tracking-wider">${b.c} Unit</div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            cacheAlloc.owner = Math.min(1500000, Math.max(cp, 0));
+            cacheAlloc.emp = Math.max(0, Math.min(1000000, cp - 1500000));
+            cacheAlloc.retained = Math.max(0, cp - 2500000);
+            
+            if (document.getElementById('tab-analytics').classList.contains('active')) {
+                renderDoughnutChart(cacheAlloc.owner, cacheAlloc.emp, cacheAlloc.retained);
+            }
+
+            const alUI = document.getElementById('agingListUI'); 
+            alUI.innerHTML = '';
+            
+            if (aging.length === 0) {
+                alUI.innerHTML = `<div class="text-center text-gray-500 text-xs py-4">Gudang Kosong / Perputaran Lancar</div>`;
+            }
+
+            aging.slice(0, 5).forEach(function(item) {
+                let dClass = '';
+                if (item.days > 30) {
+                    dClass = 'text-red-400 bg-red-400/10';
+                } else if (item.days > 14) {
+                    dClass = 'text-warning bg-warning/10';
+                } else {
+                    dClass = 'text-gray-400 bg-white/5';
+                }
+                
+                alUI.innerHTML += `
+                    <div class="flex justify-between items-center pb-2.5 border-b border-white/5 last:border-0 last:pb-0">
+                        <span class="text-[11px] font-medium text-gray-300 pr-2 line-clamp-1">${item.name}</span>
+                        <span class="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest shrink-0 ${dClass}">${item.days} Hari</span>
+                    </div>
+                `;
+            });
+
+            // 3. UPDATE TAB PERFORMANCE
+            cacheTrend.labels = []; 
+            cacheTrend.profit = []; 
+            cacheTrend.unit = [];
+            
+            const tb = document.getElementById('trackerBody'); 
+            tb.innerHTML = '';
+            
+            let globalAverageMargin = 150000;
+            if (globalUnits > 0) {
+                globalAverageMargin = globalGross / globalUnits;
+            }
+            
+            let deficitLaba = 0;
+
+            roadmapTargets.forEach(function(t, i) {
+                let y = 2026 + Math.floor((1 + i) / 12);
+                let m = ((1 + i) % 12) + 1;
+                let mk = `${y}-${String(m).padStart(2, '0')}`;
+                
+                let totalUnitBulanIni = 0;
+                let totalLabaBulanIni = 0;
+                
+                if (actuals[mk]) {
+                    totalUnitBulanIni = actuals[mk].units;
+                    totalLabaBulanIni = actuals[mk].profit;
+                }
+
+                cacheTrend.labels.push(`${monthNamesFull[m-1]} ${y}`);
+                cacheTrend.profit.push(totalLabaBulanIni); 
+                cacheTrend.unit.push(totalUnitBulanIni);
+
+                let targetLabaBulanIni = t.profit + deficitLaba; 
+                if (targetLabaBulanIni < 0) {
+                    targetLabaBulanIni = t.profit; 
+                }
+
+                let rataRataMarginAktual = 0;
+                if (totalUnitBulanIni > 0) {
+                    rataRataMarginAktual = totalLabaBulanIni / totalUnitBulanIni;
+                }
+                let teksRataRataMargin = rataRataMarginAktual > 0 ? `${formatRp(rataRataMarginAktual)} / Unit` : '-';
+
+                let targetUnitBulanIni = Math.ceil(targetLabaBulanIni / globalAverageMargin); 
+                if (totalLabaBulanIni >= targetLabaBulanIni) {
+                    targetUnitBulanIni = totalUnitBulanIni; 
+                }
+                
+                if (mk <= currMk) {
+                    deficitLaba += (t.profit - totalLabaBulanIni);
+                }
+
+                let sisaLabaBulanIni = targetLabaBulanIni - totalLabaBulanIni;
+                let sisaUnitBulanIni = targetUnitBulanIni - totalUnitBulanIni;
+                let targetMarginSisa = 0;
+
+                if (sisaLabaBulanIni > 0) {
+                    if (sisaUnitBulanIni > 0) {
+                        targetMarginSisa = sisaLabaBulanIni / sisaUnitBulanIni;
+                    } else {
+                        targetMarginSisa = sisaLabaBulanIni;
+                        targetUnitBulanIni = totalUnitBulanIni + 1;
+                    }
+                }
+
+                let htmlKejarMargin = '';
+                if (sisaLabaBulanIni <= 0) {
+                    htmlKejarMargin = '<span class="text-green-400 font-bold">Target Selesai</span>';
+                } else {
+                    htmlKejarMargin = `<span class="text-brand-400 font-bold">${formatRp(targetMarginSisa)} / Unit</span>`;
+                }
+
+                let persentaseLaba = Math.min((totalLabaBulanIni / targetLabaBulanIni) * 100, 100) || 0;
+                let persentaseUnit = Math.min((totalUnitBulanIni / targetUnitBulanIni) * 100, 100) || 0;
+                let isBulanBerjalan = mk === currMk;
+
+                let statusBadgeHTML = '';
+                if (totalLabaBulanIni >= targetLabaBulanIni) {
+                    statusBadgeHTML = '<span class="bg-green-500/10 text-green-400 px-1.5 py-0.5 rounded text-[8px] font-bold uppercase"><i class="fas fa-check"></i> Tercapai</span>';
+                } else if (totalLabaBulanIni > 0) {
+                    statusBadgeHTML = '<span class="bg-warning/10 text-warning px-1.5 py-0.5 rounded text-[8px] font-bold uppercase">Proses</span>';
+                } else {
+                    statusBadgeHTML = '<span class="bg-white/5 text-gray-500 px-1.5 py-0.5 rounded text-[8px] font-bold uppercase">Menunggu</span>';
+                }
+
+                let currentCardClass = isBulanBerjalan ? 'border-brand-500/40 bg-brand-500/5' : '';
+                let currentIndicator = isBulanBerjalan ? '<span class="w-1.5 h-1.5 rounded-full bg-brand-400 inline-block animate-pulse"></span>' : '';
+
+                tb.innerHTML += `
+                    <div class="glass-panel rounded-2xl p-4 relative ${currentCardClass}">
+                        <div class="flex justify-between items-center mb-3">
+                            <h4 class="font-heading text-sm font-bold text-white">
+                                Bulan ${t.month} ${currentIndicator}
+                            </h4>
+                            ${statusBadgeHTML}
+                        </div>
+                        <div class="flex justify-between text-[10px] font-bold mb-1">
+                            <span class="text-gray-400">Laba Keuntungan</span>
+                            <span class="text-white">${formatRp(totalLabaBulanIni)} <span class="text-gray-500 font-normal">/ ${formatRp(targetLabaBulanIni)}</span></span>
+                        </div>
+                        <div class="bar-container h-1 rounded-full mb-2.5">
+                            <div class="bar-fill bg-green-500" style="width: ${persentaseLaba}%"></div>
+                        </div>
+                        <div class="flex justify-between text-[10px] font-bold mb-1">
+                            <span class="text-gray-400">Volume Penjualan</span>
+                            <span class="text-white">${totalUnitBulanIni} <span class="text-gray-500 font-normal">/ ${targetUnitBulanIni} Unit</span></span>
+                        </div>
+                        <div class="bar-container h-1 rounded-full mb-3">
+                            <div class="bar-fill bg-brand-500" style="width: ${persentaseUnit}%"></div>
+                        </div>
+                        
+                        <div class="mt-3 pt-3 border-t border-white/5 grid grid-cols-2 gap-2 text-[9px] text-gray-400 font-medium">
+                            <div>
+                                <span class="block text-gray-500 mb-0.5">Rata-rata Margin Aktual</span>
+                                <span class="text-white font-bold">${teksRataRataMargin}</span>
+                            </div>
+                            <div class="text-right">
+                                <span class="block text-gray-500 mb-0.5">Sisa Kejar Margin</span>
+                                ${htmlKejarMargin}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            if (document.getElementById('tab-performance').classList.contains('active')) {
+                renderLineChart(cacheTrend.labels, cacheTrend.profit, cacheTrend.unit);
+            }
+
+            // 4. UPDATE TAB CASHFLOW DENGAN ANIMASI
+            const prevIncome = parseInt(document.getElementById('uiTotalIncome').innerText.replace(/\D/g,'')) || 0;
+            const prevExpense = parseInt(document.getElementById('uiTotalExpense').innerText.replace(/\D/g,'')) || 0;
+            
+            animateValue('uiTotalIncome', prevIncome, cashInBulanIni, 800);
+            animateValue('uiTotalExpense', prevExpense, cashOutBulanIni, 800);
+            
+            let netCash = cashInBulanIni - cashOutBulanIni;
+            let netEl = document.getElementById('uiNetCashFlow');
+            
+            if (netCash > 0) {
+                netEl.innerText = `+ ${formatRpFull(netCash)}`;
+                netEl.className = "font-heading text-2xl font-black text-emerald-400";
+            } else if (netCash < 0) {
+                netEl.innerText = `- ${formatRpFull(Math.abs(netCash))}`;
+                netEl.className = "font-heading text-2xl font-black text-rose-400";
+            } else {
+                netEl.innerText = formatRpFull(0);
+                netEl.className = "font-heading text-2xl font-black text-white";
+            }
+
+            // --- UPDATE UI LOG TRANSAKSI DI TAB ARUS KAS ---
+            const rtUI = document.getElementById('recentTransactionsUI');
+            rtUI.innerHTML = '';
+            if (recent5.length === 0) {
+                rtUI.innerHTML = `<div class="text-center text-gray-500 text-xs py-4">Belum ada transaksi.</div>`;
+            } else {
+                recent5.forEach(tx => {
+                    let icon = '';
+                    let colorClass = '';
+                    let amountText = '';
+                    let subtitle = '';
+                    let dateObj = new Date(tx.id);
+                    let dateStr = `${String(dateObj.getDate()).padStart(2, '0')}/${String(dateObj.getMonth() + 1).padStart(2, '0')}`;
+
+                    if(tx.type === 'sold') {
+                        icon = '<i class="fa-solid fa-arrow-turn-up"></i>';
+                        colorClass = 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20';
+                        amountText = `+ ${formatRpFull(tx.amount)}`;
+                        subtitle = `Laba: ${formatRpFull(tx.profit)}`;
+                    } else if (tx.type === 'buy') {
+                        icon = '<i class="fa-solid fa-cart-shopping"></i>';
+                        colorClass = 'text-rose-400 bg-rose-400/10 border-rose-400/20';
+                        amountText = `- ${formatRpFull(tx.amount)}`;
+                        subtitle = 'Stok Masuk';
+                    } else if (tx.type === 'extra') {
+                        icon = '<i class="fa-solid fa-star"></i>';
+                        colorClass = 'text-brand-400 bg-brand-400/10 border-brand-400/20';
+                        amountText = `+ ${formatRpFull(tx.amount)}`;
+                        subtitle = 'Laba Jasa';
+                    }
+                    
+                    rtUI.innerHTML += `
+                        <div class="flex justify-between items-center pb-3 border-b border-white/5 last:border-0 last:pb-0">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-full border flex items-center justify-center shrink-0 ${colorClass}">
+                                    ${icon}
+                                </div>
+                                <div>
+                                    <h5 class="text-[11px] font-bold text-white line-clamp-1">${tx.name}</h5>
+                                    <span class="text-[9px] font-medium text-gray-500">${dateStr} • ${subtitle}</span>
+                                </div>
+                            </div>
+                            <div class="text-right shrink-0">
+                                <span class="font-heading text-[11px] font-black ${tx.type === 'buy' ? 'text-rose-400' : 'text-emerald-400'}">${amountText}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+        }
+
+        // ==========================================
+        // INISIALISASI DAN EVENT LISTENER
+        // ==========================================
+        
+        async function initDashboard() {
+            const cachedDataString = localStorage.getItem('fsCacheV10');
+            
+            if (cachedDataString) { 
+                globalRawData = JSON.parse(cachedDataString); 
+                processData(globalRawData); 
+            }
+            
+            const databaseResponse = await fetchDatabase();
+            
+            if (databaseResponse) { 
+                localStorage.setItem('fsCacheV10', JSON.stringify(databaseResponse)); 
+                globalRawData = databaseResponse; 
+                processData(databaseResponse); 
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', initDashboard);
+
+        // ==========================================
+        // LOGIKA TARIK UNTUK MEMPERBARUI
+        // ==========================================
+        let startY = 0;
+        let isPulling = false; 
+        
+        const ptrIndicator = document.getElementById('ptr-indicator');
+        const ptrIcon = document.getElementById('ptr-icon');
+        const ptrText = document.getElementById('ptr-text');
+        
+        document.addEventListener('touchstart', function(eventTouch) { 
+            if (window.scrollY === 0) { 
+                startY = eventTouch.touches[0].pageY; 
+                isPulling = true; 
+            } 
+        }, { passive: true });
+        
+        document.addEventListener('touchmove', function(eventTouch) { 
+            if (!isPulling) return; 
+            
+            let diffY = eventTouch.touches[0].pageY - startY; 
+            
+            if (diffY > 0 && window.scrollY === 0) { 
+                let heightIndicator = Math.min(diffY * 0.5, 80); 
+                ptrIndicator.style.height = heightIndicator + 'px'; 
+                
+                if (heightIndicator > 60) { 
+                    ptrIcon.style.transform = 'rotate(180deg)'; 
+                    ptrText.innerText = 'Lepaskan untuk Memperbarui'; 
+                } else { 
+                    ptrIcon.style.transform = 'rotate(0deg)'; 
+                    ptrText.innerText = 'Tarik untuk Memperbarui...'; 
+                } 
+            } 
+        }, { passive: true });
+        
+        document.addEventListener('touchend', function() { 
+            if (!isPulling) return; 
+            isPulling = false; 
+            
+            if (parseInt(ptrIndicator.style.height || 0) > 60) { 
+                ptrIcon.className = 'fas fa-circle-notch fa-spin'; 
+                ptrText.innerText = 'Menyinkronkan Data...'; 
+                
+                initDashboard().then(function() {
+                    setTimeout(function() {
+                        ptrIndicator.style.height = '0px';
+                    }, 500);
+                }); 
+            } else {
+                ptrIndicator.style.height = '0px';
+            }
+        });
+
+    </script>
+</body>
+</html>
