@@ -1,5 +1,5 @@
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(200).send('Farid Store Digital Ledger Bot - PRO Version');
+  if (req.method !== 'POST') return res.status(200).send('Farid Store Digital Ledger Bot - PRO Interactive V5');
 
   const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN;
   const BIN_ID = process.env.BIN_ID;
@@ -54,7 +54,7 @@ export default async function handler(req, res) {
   };
 
   // ---------------------------------------------------------
-  // 1. HANDLE CALLBACK QUERY (TOMBOL INLINE / KONFIRMASI)
+  // 1. HANDLE CALLBACK QUERY (TOMBOL INLINE KLIK)
   // ---------------------------------------------------------
   if (req.body.callback_query) {
     const cb = req.body.callback_query;
@@ -62,25 +62,20 @@ export default async function handler(req, res) {
     const chatId = cb.message.chat.id;
     const messageId = cb.message.message_id;
 
-    if (data === 'cancel_undo') {
-      await callTelegramAPI('editMessageText', {
-        chat_id: chatId, message_id: messageId,
-        text: `✅ *Proses Dibatalkan.*\nData Anda aman dan tidak ada yang dihapus.`,
-        parse_mode: 'Markdown'
-      });
-      return res.status(200).send('OK');
-    }
+    try {
+      const getResponse = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: { 'X-Master-Key': API_KEY } });
+      const parsedData = await getResponse.json();
+      let dbData = parsedData.record;
 
-    if (data.startsWith('undo_')) {
-      try {
-        const parts = data.split('_'); // undo_item_123456789
-        const type = parts[1];
-        const idToDelete = parseInt(parts[2]);
+      // Fitur Batal Aksi Hapus
+      if (data === 'cancel_undo') {
+        await callTelegramAPI('editMessageText', { chat_id: chatId, message_id: messageId, text: `✅ *Proses Dibatalkan.*\nData Anda aman.`, parse_mode: 'Markdown' });
+        return res.status(200).send('OK');
+      }
 
-        const getResponse = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: { 'X-Master-Key': API_KEY } });
-        const parsedData = await getResponse.json();
-        let dbData = parsedData.record;
-
+      // Fitur Hapus Permanen (Undo Terakhir)
+      if (data.startsWith('undo_')) {
+        const parts = data.split('_'); const type = parts[1]; const idToDelete = parseInt(parts[2]);
         let deletedName = '';
         if (type === 'item') {
           const idx = dbData.items.findIndex(i => i.id === idToDelete);
@@ -91,22 +86,36 @@ export default async function handler(req, res) {
         }
 
         if (deletedName !== '') {
-          await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json', 'X-Master-Key': API_KEY },
-            body: JSON.stringify(dbData)
-          });
-          await callTelegramAPI('editMessageText', {
-            chat_id: chatId, message_id: messageId,
-            text: `🗑️ *TRANSAKSI BERHASIL DIHAPUS*\n\nData *${deletedName}* telah dihapus permanen dari sistem Digital Ledger. Kas dan Stok telah disesuaikan kembali.`,
-            parse_mode: 'Markdown'
-          });
+          await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-Master-Key': API_KEY }, body: JSON.stringify(dbData) });
+          await callTelegramAPI('editMessageText', { chat_id: chatId, message_id: messageId, text: `🗑️ *TRANSAKSI DIHAPUS*\nData *${deletedName}* telah dihapus.`, parse_mode: 'Markdown' });
         } else {
-          await callTelegramAPI('editMessageText', { chat_id: chatId, message_id: messageId, text: `⚠️ *Gagal:* Data sudah tidak ditemukan di database.`, parse_mode: 'Markdown' });
+          await callTelegramAPI('editMessageText', { chat_id: chatId, message_id: messageId, text: `⚠️ Data tidak ditemukan.`, parse_mode: 'Markdown' });
         }
-      } catch (e) {
-        await callTelegramAPI('editMessageText', { chat_id: chatId, message_id: messageId, text: `❌ *Error:* Gagal menghubungi database.`, parse_mode: 'Markdown' });
       }
+
+      // Fitur Tombol "✏️ Edit" dari List Stok
+      if (data.startsWith('edit_req_')) {
+        const id = parseInt(data.split('_')[2]);
+        const item = dbData.items.find(i => i.id === id);
+        if (item) {
+          const safeName = item.name.replace(/ /g, '_');
+          const msg = `✏️ *MINTA EDIT BARANG*\n\nAnda akan mengedit: *${item.name}*\n\n👇 *Copy teks di bawah ini*, ubah data yang salah, lalu kirim kembali ke bot:\n\n\`/edit ${item.id} ${safeName} ${item.modal} ${item.price}\``;
+          await callTelegramAPI('sendMessage', { chat_id: chatId, text: msg, parse_mode: 'Markdown' });
+        }
+      }
+
+      // Fitur Tombol "💸 Laku" dari List Stok
+      if (data.startsWith('laku_req_')) {
+        const id = parseInt(data.split('_')[2]);
+        const item = dbData.items.find(i => i.id === id);
+        if (item) {
+          const msg = `💸 *PROSES LAKU GUDANG*\n\nBarang: *${item.name}*\nTarget Harga: Rp ${item.price.toLocaleString('id-ID')}\n\n👇 *Copy teks di bawah*, ubah angka ujungnya sesuai harga deal asli, lalu kirim:\n\n\`/lakuid ${item.id} ${item.price}\``;
+          await callTelegramAPI('sendMessage', { chat_id: chatId, text: msg, parse_mode: 'Markdown' });
+        }
+      }
+
+    } catch (e) {
+      console.error(e);
     }
     return res.status(200).send('OK');
   }
@@ -186,18 +195,16 @@ export default async function handler(req, res) {
     const totalProfitReal = profitMain + extraProfitTotal;
     const cash = startBal - belanjaBaru + uangMasuk;
     const totalAsetReal = cash + floatPrice;
-
-    // Sorting Brands untuk Top 3
     const sortedBrands = Object.keys(brands).sort((a,b) => brands[b] - brands[a]).slice(0, 3);
 
     // ==========================================
-    // ROUTING PERINTAH
+    // ROUTING PERINTAH TEKS
     // ==========================================
     const parts = text.split(' ');
     const command = parts[0].toLowerCase();
 
     // 1. DASHBOARD UTAMA
-    if (command === '/start' || text === '📊 Dashboard') {
+    if (command === '/start' || text.includes('Dashboard')) {
       replyMsg = `📊 *DIGITAL LEDGER - FARID STORE*\n` +
                  `------------------------------\n` +
                  `💵 *Kas Tunai:* Rp ${cash.toLocaleString('id-ID')}\n` +
@@ -206,17 +213,15 @@ export default async function handler(req, res) {
                  `📈 *Akumulasi Laba:* Rp ${totalProfitReal.toLocaleString('id-ID')}\n` +
                  `------------------------------\n` +
                  `💎 *TOTAL ASET:* Rp ${totalAsetReal.toLocaleString('id-ID')}\n\n` +
-                 `_Pilih menu di bawah 👇 atau input transaksi._`;
+                 `_Pilih menu di bawah 👇 atau ketik perintah._`;
       await callTelegramAPI('sendMessage', { chat_id: chatId, text: replyMsg, parse_mode: 'Markdown', reply_markup: menuKeyboard });
       return res.status(200).send('OK');
     }
 
-    // 2. ANALISA BISNIS (SINKRON WEB)
-    else if (text === '📈 Analisa Bisnis') {
-      const pPengelola = profitBulanIni * 0.50;
-      const pInvestor = profitBulanIni * 0.40;
-      const pOps = profitBulanIni * 0.07;
-      const pZakat = profitBulanIni * 0.03;
+    // 2. ANALISA BISNIS
+    else if (text.includes('Analisa Bisnis')) {
+      const pPengelola = profitBulanIni * 0.50; const pInvestor = profitBulanIni * 0.40;
+      const pOps = profitBulanIni * 0.07; const pZakat = profitBulanIni * 0.03;
 
       let topBrandsText = '';
       sortedBrands.forEach((b, i) => { topBrandsText += `  ${i+1}. ${b} (${brands[b]} Unit)\n`; });
@@ -229,8 +234,8 @@ export default async function handler(req, res) {
                  `▫️ Terjual Bulan Lalu   : *${unitBulanLalu}*\n` +
                  `▫️ Total Unit All Time  : *${soldCount}*\n\n` +
                  `🏆 *TOP 3 MEREK DOMINAN*\n${topBrandsText}\n` +
-                 `🤝 *BAGI HASIL (KHUSUS BULAN INI)*\n` +
-                 `_Laba Kotor Bulan Ini: Rp ${profitBulanIni.toLocaleString('id-ID')}_\n` +
+                 `🤝 *BAGI HASIL (BULAN INI)*\n` +
+                 `_Laba Kotor Bln Ini: Rp ${profitBulanIni.toLocaleString('id-ID')}_\n` +
                  `👨‍💼 Pengelola (50%) : Rp ${pPengelola.toLocaleString('id-ID')}\n` +
                  `📈 Investor (40%)  : Rp ${pInvestor.toLocaleString('id-ID')}\n` +
                  `⚙️ Operasional (7%): Rp ${pOps.toLocaleString('id-ID')}\n` +
@@ -240,8 +245,37 @@ export default async function handler(req, res) {
       return res.status(200).send('OK');
     }
 
-    // 3. BATAL TERAKHIR DENGAN KONFIRMASI INLINE KEYBOARD (Aman!)
-    else if (text === '↩️ Batal Terakhir') {
+    // 3. CEK STOK & TOMBOL EDIT/LAKU PER NOMOR
+    else if (command === '/cekstok' || text.includes('Cek Stok')) {
+      const stokBarang = dbData.items.filter(item => item.status === 'stok');
+      if (stokBarang.length === 0) {
+        await callTelegramAPI('sendMessage', { chat_id: chatId, text: "📦 *GUDANG KOSONG*\nPutaran kas mantap! Tidak ada unit mengendap.", parse_mode: 'Markdown', reply_markup: menuKeyboard });
+      } else {
+        let listText = "";
+        let inlineButtons = [];
+
+        stokBarang.forEach((item, index) => {
+          const itemDate = parseDateToWIB(item.entryDate);
+          const selisihHari = Math.floor((wibNow - itemDate) / (1000 * 60 * 60 * 24));
+          const warning = selisihHari > 14 ? " ⚠️" : "";
+          
+          listText += `\n*${index + 1}. ${item.name}*${warning}\n└ M: ${item.modal/1000}k | J: ${item.price/1000}k | ⏳ ${selisihHari} Hari\n`;
+          
+          // Membuat sepasang tombol (Edit & Laku) untuk setiap barang
+          inlineButtons.push([
+            { text: `✏️ Edit ${index + 1}`, callback_data: `edit_req_${item.id}` },
+            { text: `💸 Laku ${index + 1}`, callback_data: `laku_req_${item.id}` }
+          ]);
+        });
+
+        replyMsg = `📋 *DAFTAR STOK GUDANG*\nTotal Unit: *${stokBarang.length} HP*\nModal Mengendap: *Rp ${floatModal.toLocaleString('id-ID')}*\n──────────────${listText}\n\n👇 *Pilih Aksi Cepat:*`;
+        await callTelegramAPI('sendMessage', { chat_id: chatId, text: replyMsg, parse_mode: 'Markdown', reply_markup: { inline_keyboard: inlineButtons } });
+      }
+      return res.status(200).send('OK');
+    }
+
+    // 4. BATAL TERAKHIR DENGAN KONFIRMASI INLINE
+    else if (text.includes('Batal Terakhir')) {
       let allEntries = [];
       dbData.items.forEach((item, index) => allEntries.push({ type: 'item', index: index, id: item.id, name: item.name, price: item.price }));
       dbData.extraProfits.forEach((item, index) => allEntries.push({ type: 'extra', index: index, id: item.id, name: item.name, price: item.profit }));
@@ -252,25 +286,65 @@ export default async function handler(req, res) {
         allEntries.sort((a, b) => b.id - a.id);
         const newestEntry = allEntries[0];
         
-        const confirmationMsg = `⚠️ *PERINGATAN KONFIRMASI*\n\nApakah Anda yakin ingin membatalkan transaksi terakhir ini?\n\n` +
-                                `📝 *Item:* ${newestEntry.name}\n` +
-                                `💵 *Nilai:* Rp ${Math.abs(newestEntry.price).toLocaleString('id-ID')}\n\n` +
-                                `_Data yang dihapus akan mengembalikan saldo kas dan stok seperti semula._`;
-
-        const inlineKeyboard = {
-          inline_keyboard: [
-            [{ text: '❌ BATALKAN', callback_data: 'cancel_undo' }],
-            [{ text: '🗑️ YA, HAPUS PERMANEN', callback_data: `undo_${newestEntry.type}_${newestEntry.id}` }]
-          ]
-        };
-
+        const confirmationMsg = `⚠️ *KONFIRMASI PEMBATALAN*\n\nApakah Anda yakin membatalkan transaksi terakhir?\n\n📝 *Item:* ${newestEntry.name}\n💵 *Nilai:* Rp ${Math.abs(newestEntry.price).toLocaleString('id-ID')}\n\n_Saldo Kas dan Laba akan disesuaikan kembali._`;
+        const inlineKeyboard = { inline_keyboard: [ [{ text: '❌ BATALKAN', callback_data: 'cancel_undo' }], [{ text: '🗑️ YA, HAPUS PERMANEN', callback_data: `undo_${newestEntry.type}_${newestEntry.id}` }] ] };
         await callTelegramAPI('sendMessage', { chat_id: chatId, text: confirmationMsg, parse_mode: 'Markdown', reply_markup: inlineKeyboard });
       }
       return res.status(200).send('OK');
     }
 
-    // 4. LAPORAN WA
-    else if (text === '📑 Laporan WA') {
+    // 5. UPDATE HASIL EDIT (Merespon copy-paste dari callback edit)
+    else if (command === '/edit') {
+      const idToEdit = parseInt(parts[1]);
+      const newName = parts[2] ? parts[2].replace(/_/g, ' ') : '';
+      const newModal = parseInt(parts[3]);
+      const newPrice = parseInt(parts[4]);
+
+      const idx = dbData.items.findIndex(i => i.id === idToEdit);
+      if (idx !== -1 && newName && !isNaN(newModal) && !isNaN(newPrice)) {
+        dbData.items[idx].name = newName;
+        dbData.items[idx].modal = newModal;
+        dbData.items[idx].price = newPrice;
+        isUpdated = true;
+        replyMsg = `✅ *PERUBAHAN DISIMPAN!*\n\nData telah diubah menjadi:\n📱 ${newName}\n💸 M: Rp ${newModal.toLocaleString('id-ID')}\n🎯 J: Rp ${newPrice.toLocaleString('id-ID')}`;
+      } else {
+        await callTelegramAPI('sendMessage', { chat_id: chatId, text: `❌ *Gagal Edit:* Format salah atau ID tidak ditemukan.`, parse_mode: 'Markdown', reply_markup: menuKeyboard });
+        return res.status(200).send('OK');
+      }
+    }
+
+    // 6. UPDATE LAKU PER ID (Merespon copy-paste dari callback laku)
+    else if (command === '/lakuid') {
+      const idToLaku = parseInt(parts[1]);
+      const finalPrice = parseInt(parts[2]);
+
+      const idx = dbData.items.findIndex(i => i.id === idToLaku);
+      if (idx !== -1 && !isNaN(finalPrice)) {
+        let item = dbData.items[idx];
+        item.status = 'sold'; item.price = finalPrice; item.soldAt = nowStr;
+        const profit = finalPrice - item.modal;
+        isUpdated = true;
+        replyMsg = `🎉 *UNIT GUDANG CAIR!*\n📱 ${item.name}\n💰 Harga Deal: Rp ${finalPrice.toLocaleString('id-ID')}\n📈 Laba Bersih: Rp ${profit.toLocaleString('id-ID')}`;
+      } else {
+        await callTelegramAPI('sendMessage', { chat_id: chatId, text: `❌ *Gagal Proses:* ID tidak ditemukan.`, parse_mode: 'Markdown', reply_markup: menuKeyboard });
+        return res.status(200).send('OK');
+      }
+    }
+
+    // 7. BANTUAN FORMAT (FIXED)
+    else if (command === '/help' || text.includes('Bantuan Format')) {
+      replyMsg = `🛠️ *FORMAT TRANSAKSI MANUAL:*\n_Pisahkan dg spasi, ganti spasi nama barang dg garis bawah (_)_\n\n` +
+                 `1. Beli Stok: \`/stok Poco_M3 500000 700000\`\n` +
+                 `2. Jual Cepat (Tanpa Gudang): \`/jual Vivo_Y20 1000000 1300000\`\n` +
+                 `3. Jasa Servis: \`/jasa Ganti_LCD_Oppo 250000\`\n` +
+                 `4. Biaya Toko: \`/out Token_Listrik 100000\`\n\n` +
+                 `💡 _Tips: Untuk Stok Laku atau Edit Data, gunakan saja tombol di menu 📦 Cek Stok agar lebih mudah._`;
+      await callTelegramAPI('sendMessage', { chat_id: chatId, text: replyMsg, parse_mode: 'Markdown', reply_markup: menuKeyboard });
+      return res.status(200).send('OK');
+    }
+
+    // 8. LAPORAN WA
+    else if (text.includes('Laporan WA')) {
       const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
       const currentMonthString = `${monthNames[currM]} ${currY}`;
 
@@ -290,52 +364,27 @@ export default async function handler(req, res) {
       return res.status(200).send('OK');
     }
 
-    // 5. CEK STOK GUDANG
-    else if (command === '/cekstok' || text === '📦 Cek Stok') {
-      const stokBarang = dbData.items.filter(item => item.status === 'stok');
-      if (stokBarang.length === 0) {
-        replyMsg = "📦 *GUDANG KOSONG*\nPutaran kas lancar! Tidak ada unit mengendap.";
-      } else {
-        let listText = "";
-        stokBarang.forEach((item, index) => {
-          const itemDate = parseDateToWIB(item.entryDate);
-          const selisihHari = Math.floor((wibNow - itemDate) / (1000 * 60 * 60 * 24));
-          const warning = selisihHari > 14 ? " ⚠️" : "";
-          listText += `\n*${index + 1}. ${item.name}*${warning}\n└ M: ${item.modal/1000}k | J: ${item.price/1000}k | ⏳ ${selisihHari} Hari\n`;
-        });
-        replyMsg = `📋 *DAFTAR STOK GUDANG*\nTotal Unit: *${stokBarang.length} HP*\nModal Mengendap: *Rp ${floatModal.toLocaleString('id-ID')}*\n──────────────${listText}`;
-      }
-      await callTelegramAPI('sendMessage', { chat_id: chatId, text: replyMsg, parse_mode: 'Markdown', reply_markup: menuKeyboard });
-      return res.status(200).send('OK');
-    }
-
-    // 6. STOK LAKU
+    // 9. LAKU PENCARIAN KATA KUNCI (Masih dipertahankan buat jaga-jaga)
     else if (command === '/laku') {
       const searchKeyword = parts[1] ? parts[1].replace(/_/g, ' ').toLowerCase() : '';
       const finalPrice = parseInt(parts[2]) || 0;
       let foundIndex = dbData.items.findIndex(i => i.status === 'stok' && i.name.toLowerCase().includes(searchKeyword));
-      
       if (foundIndex !== -1) {
         let item = dbData.items[foundIndex];
         item.status = 'sold'; item.price = finalPrice; item.soldAt = nowStr;
-        replyMsg = `🎉 *UNIT GUDANG CAIR!*\n📱 ${item.name}\n💰 Harga Deal: Rp ${finalPrice.toLocaleString('id-ID')}\n📈 Laba Bersih: Rp ${(finalPrice - item.modal).toLocaleString('id-ID')}`;
         isUpdated = true;
-      } else {
-        await callTelegramAPI('sendMessage', { chat_id: chatId, text: `❌ *GAGAL:* HP "${searchKeyword}" tidak ditemukan di gudang.`, parse_mode: 'Markdown', reply_markup: menuKeyboard });
-        return res.status(200).send('OK');
+        replyMsg = `🎉 *UNIT GUDANG CAIR!*\n📱 ${item.name}\n💰 Harga Deal: Rp ${finalPrice.toLocaleString('id-ID')}\n📈 Laba: Rp ${(finalPrice - item.modal).toLocaleString('id-ID')}`;
       }
     }
 
-    // 7. JUAL CEPAT
+    // 10. JUAL CEPAT, STOK, JASA, OUT
     else if (command === '/jual') {
       const name = parts[1] ? parts[1].replace(/_/g, ' ') : 'Item Terjual';
       const modal = parseInt(parts[2]) || 0; const price = parseInt(parts[3]) || 0;
       dbData.items.push({ id: timestampId, name: name, status: "sold", type: "new", modal: modal, price: price, entryDate: nowStr, soldAt: nowStr });
       isUpdated = true;
-      replyMsg = `⚡ *JUAL CEPAT BERHASIL!*\n📱 ${name}\n💰 Deal: Rp ${price.toLocaleString('id-ID')}\n📈 Laba Bersih: Rp ${(price - modal).toLocaleString('id-ID')}`;
+      replyMsg = `⚡ *JUAL CEPAT BERHASIL!*\n📱 ${name}\n💰 Deal: Rp ${price.toLocaleString('id-ID')}\n📈 Laba: Rp ${(price - modal).toLocaleString('id-ID')}`;
     }
-
-    // 8. MASUK STOK
     else if (command === '/stok') {
       const name = parts[1] ? parts[1].replace(/_/g, ' ') : 'Stok Baru';
       const modal = parseInt(parts[2]) || 0; const price = parseInt(parts[3]) || 0;
@@ -343,8 +392,6 @@ export default async function handler(req, res) {
       isUpdated = true;
       replyMsg = `📦 *MASUK GUDANG*\n📱 ${name}\n💸 Keluar: Rp ${modal.toLocaleString('id-ID')}\n🎯 Target: Rp ${price.toLocaleString('id-ID')}`;
     }
-
-    // 9. LABA JASA
     else if (command === '/jasa' || command === '/servis') {
       const name = parts[1] ? parts[1].replace(/_/g, ' ') : 'Laba Jasa';
       const profit = parseInt(parts[2]) || 0;
@@ -352,8 +399,6 @@ export default async function handler(req, res) {
       isUpdated = true;
       replyMsg = `🛠️ *SERVIS SELESAI!*\n📝 ${name}\n💵 Pemasukan: Rp ${profit.toLocaleString('id-ID')}`;
     }
-
-    // 10. PENGELUARAN
     else if (command === '/out' || command === '/pengeluaran') {
       const name = parts[1] ? parts[1].replace(/_/g, ' ') : 'Pengeluaran';
       const nominal = parseInt(parts[2]) || 0;
@@ -361,20 +406,8 @@ export default async function handler(req, res) {
       isUpdated = true;
       replyMsg = `🔻 *PENGELUARAN TERCATAT*\n📝 ${name}\n💸 Kas Keluar: Rp ${nominal.toLocaleString('id-ID')}`;
     }
-    
-    // 11. BANTUAN
-    else if (text === '❓ Bantuan Format') {
-      replyMsg = `🛠️ *FORMAT TRANSAKSI:*\n_Pisahkan dg spasi, ganti spasi nama barang dg garis bawah (_)_\n\n` +
-                 `1. Beli Stok: \`/stok Poco_M3 500000 700000\`\n` +
-                 `2. Stok Laku: \`/laku Poco_M3 650000\`\n` +
-                 `3. Jual Cepat: \`/jual Vivo_Y20 1000000 1300000\`\n` +
-                 `4. Jasa Servis: \`/jasa Ganti_LCD_Oppo 250000\`\n` +
-                 `5. Biaya Toko: \`/out Token_Listrik 100000\``;
-      await callTelegramAPI('sendMessage', { chat_id: chatId, text: replyMsg, parse_mode: 'Markdown', reply_markup: menuKeyboard });
-      return res.status(200).send('OK');
-    }
     else {
-      await callTelegramAPI('sendMessage', { chat_id: chatId, text: `🤔 *Perintah tidak dipahami.*\nGunakan menu di bawah ini.👇`, parse_mode: 'Markdown', reply_markup: menuKeyboard });
+      await callTelegramAPI('sendMessage', { chat_id: chatId, text: `🤔 *Perintah tidak dikenali.*\nSilakan klik tombol Bantuan Format.`, parse_mode: 'Markdown', reply_markup: menuKeyboard });
       return res.status(200).send('OK');
     }
 
@@ -387,7 +420,7 @@ export default async function handler(req, res) {
         headers: { 'Content-Type': 'application/json', 'X-Master-Key': API_KEY },
         body: JSON.stringify(dbData)
       });
-      await callTelegramAPI('sendMessage', { chat_id: chatId, text: replyMsg + '\n\n🔄 _Database berhasil diupdate._', parse_mode: 'Markdown', reply_markup: menuKeyboard });
+      await callTelegramAPI('sendMessage', { chat_id: chatId, text: replyMsg + '\n\n🔄 _Data Web Ledger diupdate._', parse_mode: 'Markdown', reply_markup: menuKeyboard });
     }
 
   } catch (error) {
