@@ -1,7 +1,7 @@
 export default async function handler(req, res) {
   // Hanya proses metode POST dari Telegram
   if (req.method !== 'POST') {
-    return res.status(200).send('Farid Store Bot API Active V2');
+    return res.status(200).send('Farid Store Bot API Active V3');
   }
 
   const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN;
@@ -14,11 +14,17 @@ export default async function handler(req, res) {
   const text = message.text.trim();
   const chatId = message.chat.id;
 
+  // Fungsi Kirim Pesan Telegram dengan Markdown
   const sendTelegram = async (msgText) => {
     await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text: msgText, parse_mode: 'Markdown' })
+      body: JSON.stringify({ 
+        chat_id: chatId, 
+        text: msgText, 
+        parse_mode: 'Markdown',
+        disable_web_page_preview: true
+      })
     });
   };
 
@@ -39,7 +45,6 @@ export default async function handler(req, res) {
     const timestampId = wibDate.getTime();
     const todayStr = `${wibDate.getUTCFullYear()}-${String(wibDate.getUTCMonth() + 1).padStart(2, '0')}-${String(wibDate.getUTCDate()).padStart(2, '0')} 12:00:00`;
 
-    // Pastikan array tersedia
     if (!dbData.items) dbData.items = [];
     if (!dbData.extraProfits) dbData.extraProfits = [];
 
@@ -50,12 +55,63 @@ export default async function handler(req, res) {
     const parts = text.split(' ');
     const command = parts[0].toLowerCase();
 
+    // 0. MENU UTAMA & DASHBOARD (/start atau /help)
+    if (command === '/start' || command === '/help') {
+      let totalStockValue = 0;
+      let stockCount = 0;
+      let totalSold = 0;
+      let totalProfit = 0;
+
+      // Kalkulasi Mini Dashboard
+      dbData.items.forEach(i => {
+        if (i.status === 'stok') {
+          totalStockValue += i.modal;
+          stockCount++;
+        } else if (i.status === 'sold') {
+          totalSold++;
+          totalProfit += (i.price - i.modal);
+        }
+      });
+      dbData.extraProfits.forEach(p => {
+        totalProfit += p.profit;
+      });
+
+      replyMsg = `🤖 *PUSAT KENDALI FARID STORE* 📱\n` +
+                 `Sistem Digital Ledger Aktif.\n\n` +
+                 `📊 *MINI DASHBOARD*\n` +
+                 `├ 📦 Stok Gudang: *${stockCount} Unit*\n` +
+                 `├ 💸 Modal Mengendap: *Rp ${totalStockValue.toLocaleString('id-ID')}*\n` +
+                 `├ 🤝 Total Terjual: *${totalSold} Unit*\n` +
+                 `└ 📈 Akumulasi Laba: *Rp ${totalProfit.toLocaleString('id-ID')}*\n\n` +
+                 `🛠️ *PANDUAN PERINTAH BOT:*\n\n` +
+                 `*1. Masuk Stok (Kulakan)*\n` +
+                 `👉 \`/stok [Nama] [Modal] [Target_Jual]\`\n` +
+                 `_Cth: /stok iPhone_11 3500000 4500000_\n\n` +
+                 `*2. Stok Gudang Laku*\n` +
+                 `👉 \`/laku [Nama] [Harga_Deal]\`\n` +
+                 `_Cth: /laku iPhone_11 4200000_\n\n` +
+                 `*3. Jual Cepat (Tanpa Masuk Gudang)*\n` +
+                 `👉 \`/jual [Nama] [Modal] [Harga_Deal]\`\n` +
+                 `_Cth: /jual Vivo_Y20 1000000 1350000_\n\n` +
+                 `*4. Pemasukan Servis/Jasa*\n` +
+                 `👉 \`/jasa [Nama_Servis] [Laba_Bersih]\`\n` +
+                 `_Cth: /jasa Ganti_LCD_Oppo 250000_\n\n` +
+                 `*5. Pengeluaran Operasional*\n` +
+                 `👉 \`/out [Keterangan] [Nominal]\`\n` +
+                 `_Cth: /out Token_Listrik 100000_\n\n` +
+                 `*6. Cek Isi Gudang Lengkap*\n` +
+                 `👉 \`/cekstok\``;
+      
+      await sendTelegram(replyMsg);
+      return res.status(200).send('OK');
+    }
+
     // 1. CEK STOK GUDANG
-    if (command === '/cekstok') {
+    else if (command === '/cekstok') {
       const stokBarang = dbData.items.filter(item => item.status === 'stok');
       
       if (stokBarang.length === 0) {
-        replyMsg = "📦 *Gudang Kosong*\nTidak ada HP yang mengendap. Putaran kas lancar!";
+        replyMsg = "📦 *GUDANG KOSONG*\nTidak ada barang mengendap. Putaran kas sangat lancar!";
       } else {
         let totalModal = 0;
         let listText = "";
@@ -64,14 +120,19 @@ export default async function handler(req, res) {
           totalModal += item.modal;
           const itemDate = new Date(item.id);
           const selisihHari = Math.floor((wibDate - itemDate) / (1000 * 60 * 60 * 24));
-          const warning = selisihHari > 14 ? " ⚠️" : "";
-          listText += `\n${index + 1}. *${item.name}*\n   └ Modal: Rp${(item.modal/1000)}k | Jual: Rp${(item.price/1000)}k (${selisihHari} Hari)${warning}`;
+          const warning = selisihHari > 14 ? " ⚠️ _(Warning)_" : "";
+          
+          listText += `\n*${index + 1}. ${item.name}*${warning}\n` +
+                      `└ Modal: Rp${(item.modal/1000)}k | Jual: Rp${(item.price/1000)}k | ⏳ ${selisihHari} Hari\n`;
         });
 
-        replyMsg = `📦 *STOK GUDANG FARID STORE*\nTotal Unit: ${stokBarang.length} HP\nModal Mengendap: Rp ${totalModal.toLocaleString('id-ID')}\n${listText}`;
+        replyMsg = `📋 *DAFTAR STOK GUDANG*\n` +
+                   `Total Unit: *${stokBarang.length} HP*\n` +
+                   `Modal Mengendap: *Rp ${totalModal.toLocaleString('id-ID')}*\n` +
+                   `──────────────${listText}`;
       }
       await sendTelegram(replyMsg);
-      return res.status(200).send('OK'); // Berhenti di sini, tidak perlu update DB
+      return res.status(200).send('OK');
     }
 
     // 2. STOK GUDANG LAKU TERJUAL
@@ -79,20 +140,22 @@ export default async function handler(req, res) {
       const searchKeyword = parts[1] ? parts[1].replace(/_/g, ' ').toLowerCase() : '';
       const finalPrice = parseInt(parts[2]) || 0;
 
-      // Cari barang di gudang yang namanya mirip
       let foundIndex = dbData.items.findIndex(i => i.status === 'stok' && i.name.toLowerCase().includes(searchKeyword));
       
       if (foundIndex !== -1) {
         let item = dbData.items[foundIndex];
         item.status = 'sold';
-        item.price = finalPrice; // Update harga deal akhir
+        item.price = finalPrice; 
         item.soldAt = todayStr;
         
         const profit = finalPrice - item.modal;
-        replyMsg = `🎉 *Barang Gudang Cair!*\n📱 ${item.name}\n💰 Deal Akhir: Rp ${finalPrice.toLocaleString('id-ID')}\n📈 Profit: Rp ${profit.toLocaleString('id-ID')}`;
+        replyMsg = `🎉 *BARANG LAKU TERJUAL!*\n\n` +
+                   `📱 *Item:* ${item.name}\n` +
+                   `💰 *Harga Deal:* Rp ${finalPrice.toLocaleString('id-ID')}\n` +
+                   `📈 *Profit Bersih:* Rp ${profit.toLocaleString('id-ID')}`;
         isUpdated = true;
       } else {
-        replyMsg = `❌ *Gagal:* Barang dengan kata kunci "${searchKeyword}" tidak ditemukan di gudang. Cek lagi pakai perintah /cekstok.`;
+        replyMsg = `❌ *GAGAL:* \nHP dengan nama *"${searchKeyword}"* tidak ditemukan di gudang. Silakan ketik /cekstok untuk melihat nama yang tepat.`;
         await sendTelegram(replyMsg);
         return res.status(200).send('OK');
       }
@@ -106,7 +169,10 @@ export default async function handler(req, res) {
 
       dbData.items.push({ id: timestampId, name: name, status: "sold", type: "new", modal: modal, price: price, soldAt: todayStr });
       isUpdated = true;
-      replyMsg = `✅ *Laku Cepat!*\n📱 ${name}\n💰 Jual: Rp ${price.toLocaleString('id-ID')}\n📈 Profit: Rp ${(price - modal).toLocaleString('id-ID')}`;
+      replyMsg = `⚡ *JUAL CEPAT BERHASIL!*\n\n` +
+                 `📱 *Item:* ${name}\n` +
+                 `💰 *Harga Deal:* Rp ${price.toLocaleString('id-ID')}\n` +
+                 `📈 *Profit Bersih:* Rp ${(price - modal).toLocaleString('id-ID')}`;
     }
 
     // 4. MASUK STOK GUDANG
@@ -117,7 +183,10 @@ export default async function handler(req, res) {
 
       dbData.items.push({ id: timestampId, name: name, status: "stok", type: "new", modal: modal, price: price, soldAt: null });
       isUpdated = true;
-      replyMsg = `📦 *Masuk Gudang*\n📱 ${name}\n💸 Modal: Rp ${modal.toLocaleString('id-ID')}`;
+      replyMsg = `📦 *MASUK GUDANG*\n\n` +
+                 `📱 *Item:* ${name}\n` +
+                 `💸 *Modal Kas Keluar:* Rp ${modal.toLocaleString('id-ID')}\n` +
+                 `🎯 *Target Jual:* Rp ${price.toLocaleString('id-ID')}`;
     }
 
     // 5. LABA JASA & SERVIS
@@ -127,7 +196,9 @@ export default async function handler(req, res) {
 
       dbData.extraProfits.push({ id: timestampId, name: name, profit: profit });
       isUpdated = true;
-      replyMsg = `🛠️ *Servis Selesai!*\n📝 ${name}\n💵 Profit Bersih: Rp ${profit.toLocaleString('id-ID')}`;
+      replyMsg = `🛠️ *SERVIS SELESAI!*\n\n` +
+                 `📝 *Keterangan:* ${name}\n` +
+                 `💵 *Pemasukan Kas:* Rp ${profit.toLocaleString('id-ID')}`;
     }
 
     // 6. PENGELUARAN TOKO
@@ -135,10 +206,18 @@ export default async function handler(req, res) {
       const name = parts[1] ? parts[1].replace(/_/g, ' ') : 'Pengeluaran';
       const nominal = parseInt(parts[2]) || 0;
 
-      // Disimpan sebagai profit negatif agar memotong laba di web Tracker
       dbData.extraProfits.push({ id: timestampId, name: `[OUT] ${name}`, profit: -Math.abs(nominal) });
       isUpdated = true;
-      replyMsg = `💸 *Pengeluaran Tercatat*\n📝 ${name}\n🔻 Nominal: Rp ${nominal.toLocaleString('id-ID')}`;
+      replyMsg = `🔻 *PENGELUARAN TERCATAT*\n\n` +
+                 `📝 *Keterangan:* ${name}\n` +
+                 `💸 *Kas Keluar:* Rp ${nominal.toLocaleString('id-ID')}`;
+    }
+    
+    // Jika ada ketikan yang tidak dikenali
+    else {
+      replyMsg = `🤔 *Perintah tidak dikenali.*\nKetik /start untuk melihat daftar perintah yang tersedia.`;
+      await sendTelegram(replyMsg);
+      return res.status(200).send('OK');
     }
 
     // ==========================================
@@ -153,12 +232,13 @@ export default async function handler(req, res) {
         },
         body: JSON.stringify(dbData)
       });
-      await sendTelegram(replyMsg + '\n\n🔄 _Buka Web Neo Tracker untuk melihat update._');
+      // Beri notifikasi sukses ke Telegram
+      await sendTelegram(replyMsg + '\n\n✅ _Data tersimpan di Web Tracker._');
     }
 
   } catch (error) {
     console.error("System Error:", error);
-    await sendTelegram(`❌ *Error Sistem:* Gagal merespon permintaan.`);
+    await sendTelegram(`❌ *Error Sistem:* Gagal memproses perintah. Coba lagi.`);
   }
 
   return res.status(200).send('OK');
