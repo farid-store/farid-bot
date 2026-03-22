@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════
-//  FARID STORE BOT V10 — Full Admin Edition
+//  FARID STORE BOT V10 — Full Admin Edition (Serverless Fixed)
 //  Vercel Serverless Webhook Handler
 // ═══════════════════════════════════════════════════════════════════
 
@@ -22,8 +22,18 @@ const BRAND_ICONS = {
   Realme:'🟡', Infinix:'⚡', Tecno:'🔷', iTel:'⬛', Other:'📦'
 };
 
-// Session state per user (in-memory, reset on cold start)
-const sessions = {};
+// ── SESSION MANAGEMENT (VIA JSONBIN) ─────────────────────────────────
+// Menyimpan sesi di database agar tidak hilang saat Vercel cold-start
+function getSession(db, uid) {
+  if (!db.sessions) db.sessions = {};
+  if (!db.sessions[uid]) db.sessions[uid] = {};
+  return db.sessions[uid];
+}
+
+function clearSession(db, uid) {
+  if (!db.sessions) db.sessions = {};
+  db.sessions[uid] = {};
+}
 
 // ── UTILS ────────────────────────────────────────────────────────────
 const rp = n => new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',minimumFractionDigits:0}).format(n||0);
@@ -179,7 +189,6 @@ function compute(db) {
 
   const curMonth = monthly[nowMk] || {units:0,profit:0,income:0,expense:0};
 
-  // Milestone
   const prevMil = MILESTONES.filter(m => m <= totalAset).at(-1) || 0;
   const nextMil = MILESTONES.find(m => m > totalAset) || GOAL;
 
@@ -197,7 +206,6 @@ function compute(db) {
 //  MESSAGES
 // ══════════════════════════════════════════════════════════════════════
 
-// ── MENU UTAMA ────────────────────────────────────────────────────────
 function menuUtama() {
   return {
     text: `🏪 <b>FARID STORE</b> — Admin Panel\n━━━━━━━━━━━━━━━━━━━━━\nPilih menu yang ingin kamu akses:`,
@@ -211,7 +219,6 @@ function menuUtama() {
   };
 }
 
-// ── DASHBOARD ─────────────────────────────────────────────────────────
 async function msgDashboard(db) {
   const c = compute(db);
   const pctGoal  = pct(c.totalAset, GOAL);
@@ -219,7 +226,6 @@ async function msgDashboard(db) {
   const pctMil   = pct(c.totalAset - c.prevMil, c.nextMil - c.prevMil, 12);
   const barMil   = bar(c.totalAset - c.prevMil, c.nextMil - c.prevMil, 12);
 
-  // ETA estimate
   const sortedMks = Object.keys(c.monthly).sort().slice(-3);
   const avg3 = sortedMks.reduce((s,k) => s + c.monthly[k].profit, 0) / (sortedMks.length || 1);
   let etaStr = '—';
@@ -273,7 +279,6 @@ ${c.stokCount} item • Modal: ${rp(c.floatModal)} • Harga: ${rp(c.floatPrice)
   };
 }
 
-// ── STOK MENU ────────────────────────────────────────────────────────
 async function msgStokMenu(db) {
   const c = compute(db);
   const items = (db.items||[]).filter(i => i.status==='stok');
@@ -307,7 +312,6 @@ ${brandRows || '—'}
   };
 }
 
-// ── DAFTAR STOK (PAGINATED) ──────────────────────────────────────────
 async function msgStokList(db, page=1) {
   const LIMIT = 8;
   const items = (db.items||[]).filter(i => i.status==='stok');
@@ -345,7 +349,6 @@ Total: ${total} item
   return { text: txt.trim(), kb };
 }
 
-// ── STOK AGING ───────────────────────────────────────────────────────
 async function msgStokAging(db) {
   const c     = compute(db);
   const aging = c.agingStocks;
@@ -381,7 +384,6 @@ ${rows}
   };
 }
 
-// ── TRANSAKSI MENU ───────────────────────────────────────────────────
 async function msgTransaksi(db) {
   const c   = compute(db);
   const tx5 = c.allTx.slice(0, 5);
@@ -417,7 +419,6 @@ ${rows || '—'}
   };
 }
 
-// ── TX LIST ──────────────────────────────────────────────────────────
 async function msgTxList(db, limit=10) {
   const c  = compute(db);
   const tx = c.allTx.slice(0, limit);
@@ -433,13 +434,10 @@ async function msgTxList(db, limit=10) {
 
   return {
     text: `💳 <b>${limit} TRANSAKSI TERAKHIR</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n${rows || '—'}`,
-    kb: [
-      [{ text:'💳 Menu Tx', callback_data:'menu_transaksi' }, { text:'🏠 Menu', callback_data:'menu_utama' }]
-    ]
+    kb: [[{ text:'💳 Menu Tx', callback_data:'menu_transaksi' }, { text:'🏠 Menu', callback_data:'menu_utama' }]]
   };
 }
 
-// ── CASHFLOW PER BULAN ────────────────────────────────────────────────
 async function msgCashflow(db) {
   const c   = compute(db);
   const mks = Object.keys(c.monthly).sort().reverse().slice(0, 6);
@@ -453,17 +451,12 @@ async function msgCashflow(db) {
 
   return {
     text: `💰 <b>ARUS KAS PER BULAN</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n${rows || '—'}`,
-    kb: [
-      [{ text:'💳 Menu Tx', callback_data:'menu_transaksi' }, { text:'🏠 Menu', callback_data:'menu_utama' }]
-    ]
+    kb: [[{ text:'💳 Menu Tx', callback_data:'menu_transaksi' }, { text:'🏠 Menu', callback_data:'menu_utama' }]]
   };
 }
 
-// ── ANALITIK ──────────────────────────────────────────────────────────
 async function msgAnalitik(db) {
   const c = compute(db);
-
-  // Top brands
   const bArr = Object.entries(c.brands).sort((a,b) => b[1].profit - a[1].profit).slice(0,5);
   const brandRows = bArr.map(([b,v], i) => {
     const medal = ['🥇','🥈','🥉','4️⃣','5️⃣'][i];
@@ -471,7 +464,6 @@ async function msgAnalitik(db) {
     return `${medal} ${icon} <b>${b}</b>\n   Laba: ${rp(v.profit)} | ${v.count} unit`;
   }).join('\n\n');
 
-  // Monthly trend (last 4)
   const sortedMks = Object.keys(c.monthly).sort().slice(-4);
   const trendRows = sortedMks.reverse().map(mk => {
     const m   = c.monthly[mk];
@@ -479,7 +471,6 @@ async function msgAnalitik(db) {
     return `📅 <b>${monthLabel(mk)}</b>: ${rpShort(m.profit)}\n  <code>${bLen}</code> ${m.units}unit`;
   }).join('\n\n');
 
-  // Aging summary
   const over30 = c.agingStocks.filter(i => i.days > 30).length;
   const over14 = c.agingStocks.filter(i => i.days > 14 && i.days <= 30).length;
 
@@ -509,7 +500,6 @@ Total stok: ${c.stokCount} item
   };
 }
 
-// ── TOP BRAND DETAIL ─────────────────────────────────────────────────
 async function msgBrandDetail(db) {
   const c    = compute(db);
   const bArr = Object.entries(c.brands).sort((a,b) => b[1].profit - a[1].profit);
@@ -527,7 +517,6 @@ async function msgBrandDetail(db) {
   };
 }
 
-// ── TREN BULANAN ─────────────────────────────────────────────────────
 async function msgTren(db) {
   const c    = compute(db);
   const mks  = Object.keys(c.monthly).sort();
@@ -546,7 +535,6 @@ async function msgTren(db) {
   };
 }
 
-// ── LAPORAN LENGKAP ───────────────────────────────────────────────────
 async function msgLaporanFull(db) {
   const c   = compute(db);
   const pctGoal = pct(c.totalAset, GOAL);
@@ -596,7 +584,6 @@ ${bArr.map(([b,v],i)=>`${['🥇','🥈','🥉'][i]} ${b}: ${rp(v.profit)} (${v.c
   };
 }
 
-// ── TX BULAN INI ──────────────────────────────────────────────────────
 async function msgTxBulanIni(db) {
   const c  = compute(db);
   const mk = c.nowMk;
@@ -626,7 +613,6 @@ ${rows || '—'}
   };
 }
 
-// ── SETTINGS ─────────────────────────────────────────────────────────
 function msgSettings(db) {
   const startBal = Number(db.startBalance)||0;
   return {
@@ -649,17 +635,14 @@ Kamu bisa mengubah konfigurasi data toko di sini.
 //  AKSI — ALUR INPUT MULTI-STEP
 // ══════════════════════════════════════════════════════════════════════
 
-// Sesi state machine
-function getSession(uid) { if (!sessions[uid]) sessions[uid] = {}; return sessions[uid]; }
-function clearSession(uid) { sessions[uid] = {}; }
-
 async function handleInput(chat, uid, text, db) {
-  const sess = getSession(uid);
+  const sess = getSession(db, uid);
 
   // ── CATAT BARANG MASUK ───────────────────────────────────────────
   if (sess.step === 'masuk_nama') {
     sess.nama = text;
     sess.step = 'masuk_modal';
+    await putData(db);
     await send(chat, `✏️ Nama: <b>${text}</b>\n\nKetik <b>harga modal</b> (angka saja, contoh: 1500000):`);
     return;
   }
@@ -668,6 +651,7 @@ async function handleInput(chat, uid, text, db) {
     if (!val || val <= 0) { await send(chat, '❌ Harga tidak valid. Coba lagi:'); return; }
     sess.modal = val;
     sess.step  = 'masuk_harga';
+    await putData(db);
     await send(chat, `✏️ Modal: <b>${rp(val)}</b>\n\nKetik <b>harga jual</b>:`);
     return;
   }
@@ -676,6 +660,7 @@ async function handleInput(chat, uid, text, db) {
     if (!val || val <= 0) { await send(chat, '❌ Harga tidak valid. Coba lagi:'); return; }
     sess.harga = val;
     sess.step  = 'masuk_tipe';
+    await putData(db);
     const margin = val - sess.modal;
     const pctM   = pct(margin, val);
     await send(chat, `
@@ -693,15 +678,15 @@ Tipe barang:`, {
 
   // ── TANDAI TERJUAL ───────────────────────────────────────────────
   if (sess.step === 'terjual_cari') {
-    // Filter stok by keyword
     const keyword = text.toLowerCase();
     const items   = (db.items||[]).filter(i => i.status==='stok' && i.name.toLowerCase().includes(keyword));
     if (items.length === 0) {
       await send(chat, `❌ Tidak ada stok yang mengandung kata "<b>${text}</b>".\nCoba kata lain:`);
       return;
     }
-    sess.step         = 'terjual_pilih';
-    sess.cariResults  = items.slice(0, 8);
+    sess.step        = 'terjual_pilih';
+    sess.cariResults = items.slice(0, 8);
+    await putData(db);
     const kb = items.slice(0, 8).map((item, i) => [{ text:`${i+1}. ${item.name} (${rpShort(item.price)})`, callback_data:`terjual_item_${i}` }]);
     kb.push([{ text:'❌ Batal', callback_data:'cancel' }]);
     await send(chat, `🔍 Ditemukan <b>${items.length}</b> item:\nPilih barang yang terjual:`, { reply_markup:{ inline_keyboard:kb } });
@@ -713,6 +698,7 @@ Tipe barang:`, {
     if (!val || val <= 0) { await send(chat, '❌ Harga tidak valid. Coba lagi:'); return; }
     sess.hargaJual = val;
     sess.step = 'terjual_konfirmasi';
+    await putData(db);
     const item   = sess.selectedItem;
     const profit = val - item.modal;
     await send(chat, `
@@ -736,6 +722,7 @@ Konfirmasi penjualan ini?`, {
   if (sess.step === 'ekstra_nama') {
     sess.ekstraNama = text;
     sess.step       = 'ekstra_nominal';
+    await putData(db);
     await send(chat, `✏️ Keterangan: <b>${text}</b>\n\nKetik <b>nominal laba</b>:`);
     return;
   }
@@ -744,6 +731,7 @@ Konfirmasi penjualan ini?`, {
     if (!val || val <= 0) { await send(chat, '❌ Nominal tidak valid. Coba lagi:'); return; }
     sess.ekstraNominal = val;
     sess.step = 'ekstra_konfirmasi';
+    await putData(db);
     await send(chat, `
 ⭐ <b>KONFIRMASI LABA JASA</b>
 ━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -764,6 +752,7 @@ Catat laba ini?`, {
     if (!val || val <= 0) { await send(chat, '❌ Nominal tidak valid. Coba lagi:'); return; }
     sess.newModal = val;
     sess.step = 'set_modal_konfirmasi';
+    await putData(db);
     await send(chat, `
 💼 <b>KONFIRMASI UBAH MODAL</b>
 Modal baru: <b>${rp(val)}</b>
@@ -801,7 +790,9 @@ Lanjutkan perubahan ini?`, {
 
 ${rows || '—'}
 `, { reply_markup:{ inline_keyboard:[[{ text:'📦 Menu Stok', callback_data:'menu_stok' }]] } });
-    clearSession(uid);
+    
+    clearSession(db, uid);
+    await putData(db);
     return;
   }
 
@@ -834,80 +825,67 @@ async function handleCallback(cb) {
     await edit(chat, mid, m.text, { reply_markup:{ inline_keyboard: m.kb } });
     return;
   }
-
   if (data === 'menu_dashboard' || data === 'dash_refresh') {
     const m = await msgDashboard(db);
     await edit(chat, mid, m.text, { reply_markup:{ inline_keyboard: m.kb } });
     return;
   }
-
   if (data === 'menu_stok') {
     const m = await msgStokMenu(db);
     await edit(chat, mid, m.text, { reply_markup:{ inline_keyboard: m.kb } });
     return;
   }
-
   if (data.startsWith('stok_list_')) {
     const page = parseInt(data.split('_')[2]) || 1;
     const m    = await msgStokList(db, page);
     await edit(chat, mid, m.text, { reply_markup:{ inline_keyboard: m.kb } });
     return;
   }
-
   if (data === 'stok_aging') {
     const m = await msgStokAging(db);
     await edit(chat, mid, m.text, { reply_markup:{ inline_keyboard: m.kb } });
     return;
   }
-
   if (data === 'menu_transaksi') {
     const m = await msgTransaksi(db);
     await edit(chat, mid, m.text, { reply_markup:{ inline_keyboard: m.kb } });
     return;
   }
-
   if (data === 'tx_list_10') {
     const m = await msgTxList(db, 10);
     await edit(chat, mid, m.text, { reply_markup:{ inline_keyboard: m.kb } });
     return;
   }
-
   if (data === 'tx_bulan_ini') {
     const m = await msgTxBulanIni(db);
     await edit(chat, mid, m.text, { reply_markup:{ inline_keyboard: m.kb } });
     return;
   }
-
   if (data === 'tx_cashflow') {
     const m = await msgCashflow(db);
     await edit(chat, mid, m.text, { reply_markup:{ inline_keyboard: m.kb } });
     return;
   }
-
   if (data === 'menu_analitik') {
     const m = await msgAnalitik(db);
     await edit(chat, mid, m.text, { reply_markup:{ inline_keyboard: m.kb } });
     return;
   }
-
   if (data === 'analitik_brand') {
     const m = await msgBrandDetail(db);
     await edit(chat, mid, m.text, { reply_markup:{ inline_keyboard: m.kb } });
     return;
   }
-
   if (data === 'analitik_tren') {
     const m = await msgTren(db);
     await edit(chat, mid, m.text, { reply_markup:{ inline_keyboard: m.kb } });
     return;
   }
-
   if (data === 'laporan_full') {
     const m = await msgLaporanFull(db);
     await edit(chat, mid, m.text, { reply_markup:{ inline_keyboard: m.kb } });
     return;
   }
-
   if (data === 'menu_settings') {
     const m = msgSettings(db);
     await edit(chat, mid, m.text, { reply_markup:{ inline_keyboard: m.kb } });
@@ -916,8 +894,9 @@ async function handleCallback(cb) {
 
   // ── AKSI: CATAT MASUK ────────────────────────────────────────────
   if (data === 'aksi_masuk') {
-    clearSession(uid);
-    getSession(uid).step = 'masuk_nama';
+    clearSession(db, uid);
+    getSession(db, uid).step = 'masuk_nama';
+    await putData(db);
     await edit(chat, mid, `
 ➕ <b>CATAT BARANG MASUK</b>
 ━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -929,9 +908,8 @@ Ketik <b>nama barang</b> lengkap:
   }
 
   if (data === 'masuk_tipe_new' || data === 'masuk_tipe_konsinyasi') {
-    const sess = getSession(uid);
+    const sess = getSession(db, uid);
     sess.tipe  = data === 'masuk_tipe_new' ? 'new' : 'konsinyasi';
-    // Simpan ke DB
     try {
       db.items = db.items || [];
       db.items.push({
@@ -943,8 +921,9 @@ Ketik <b>nama barang</b> lengkap:
         type: sess.tipe,
         addedAt: new Date().toISOString()
       });
+      clearSession(db, uid);
       await putData(db);
-      clearSession(uid);
+      
       const margin = sess.harga - sess.modal;
       await edit(chat, mid, `
 ✅ <b>BARANG BERHASIL DICATAT!</b>
@@ -967,8 +946,9 @@ Ketik <b>nama barang</b> lengkap:
 
   // ── AKSI: TANDAI TERJUAL ──────────────────────────────────────────
   if (data === 'aksi_terjual') {
-    clearSession(uid);
-    getSession(uid).step = 'terjual_cari';
+    clearSession(db, uid);
+    getSession(db, uid).step = 'terjual_cari';
+    await putData(db);
     await edit(chat, mid, `
 ✅ <b>TANDAI BARANG TERJUAL</b>
 ━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -980,11 +960,12 @@ Ketik <b>nama barang</b> atau <b>kata kunci</b> untuk dicari:
 
   if (data.startsWith('terjual_item_')) {
     const idx  = parseInt(data.split('_')[2]);
-    const sess = getSession(uid);
+    const sess = getSession(db, uid);
     const item = sess.cariResults?.[idx];
     if (!item) { await send(chat, '❌ Item tidak ditemukan.'); return; }
     sess.selectedItem = item;
     sess.step = 'terjual_harga';
+    await putData(db);
     await edit(chat, mid, `
 ✅ <b>KONFIRMASI BARANG</b>
 ━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1001,10 +982,11 @@ Ketik <b>harga jual aktual</b> (atau kosongkan untuk pakai harga list ${rp(item.
   }
 
   if (data === 'terjual_harga_list') {
-    const sess = getSession(uid);
+    const sess = getSession(db, uid);
     if (!sess.selectedItem) { await send(chat, '❌ Sesi tidak valid. Mulai lagi.'); return; }
     sess.hargaJual = sess.selectedItem.price;
     sess.step      = 'terjual_konfirmasi';
+    await putData(db);
     const profit   = sess.hargaJual - sess.selectedItem.modal;
     await edit(chat, mid, `
 ✅ <b>KONFIRMASI PENJUALAN</b>
@@ -1021,7 +1003,7 @@ Konfirmasi?`, { reply_markup:{ inline_keyboard:[
   }
 
   if (data === 'terjual_confirm') {
-    const sess = getSession(uid);
+    const sess = getSession(db, uid);
     const item = sess.selectedItem;
     if (!item) { await send(chat, '❌ Sesi tidak valid.'); return; }
     try {
@@ -1030,8 +1012,10 @@ Konfirmasi?`, { reply_markup:{ inline_keyboard:[
       db.items[idx].status = 'sold';
       db.items[idx].price  = sess.hargaJual;
       db.items[idx].soldAt = new Date().toISOString().slice(0,10);
+      
+      clearSession(db, uid);
       await putData(db);
-      clearSession(uid);
+
       const profit = sess.hargaJual - item.modal;
       await edit(chat, mid, `
 🎉 <b>BARANG BERHASIL TERJUAL!</b>
@@ -1052,8 +1036,9 @@ Konfirmasi?`, { reply_markup:{ inline_keyboard:[
 
   // ── AKSI: LABA JASA ──────────────────────────────────────────────
   if (data === 'aksi_ekstra') {
-    clearSession(uid);
-    getSession(uid).step = 'ekstra_nama';
+    clearSession(db, uid);
+    getSession(db, uid).step = 'ekstra_nama';
+    await putData(db);
     await edit(chat, mid, `
 ⭐ <b>CATAT LABA JASA / EKSTRA</b>
 ━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1065,7 +1050,7 @@ Ketik <b>keterangan / nama transaksi</b>:
   }
 
   if (data === 'ekstra_confirm') {
-    const sess = getSession(uid);
+    const sess = getSession(db, uid);
     try {
       db.extraProfits = db.extraProfits || [];
       db.extraProfits.push({
@@ -1074,8 +1059,10 @@ Ketik <b>keterangan / nama transaksi</b>:
         profit: sess.ekstraNominal,
         date: new Date().toISOString().slice(0,10)
       });
+      
+      clearSession(db, uid);
       await putData(db);
-      clearSession(uid);
+
       await edit(chat, mid, `
 ✅ <b>LABA JASA DICATAT!</b>
 ━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1094,8 +1081,9 @@ Ketik <b>keterangan / nama transaksi</b>:
 
   // ── SETTINGS: SET MODAL ──────────────────────────────────────────
   if (data === 'set_modal') {
-    clearSession(uid);
-    getSession(uid).step = 'set_modal';
+    clearSession(db, uid);
+    getSession(db, uid).step = 'set_modal';
+    await putData(db);
     await edit(chat, mid, `
 💼 <b>UBAH MODAL AWAL</b>
 Modal saat ini: ${rp(Number(db.startBalance)||0)}
@@ -1106,11 +1094,11 @@ Ketik <b>modal awal baru</b>:
   }
 
   if (data === 'set_modal_confirm') {
-    const sess = getSession(uid);
+    const sess = getSession(db, uid);
     try {
       db.startBalance = sess.newModal;
+      clearSession(db, uid);
       await putData(db);
-      clearSession(uid);
       await edit(chat, mid, `✅ Modal awal berhasil diubah ke <b>${rp(sess.newModal)}</b>`, { reply_markup:{ inline_keyboard:[[{ text:'🏠 Menu', callback_data:'menu_utama' }]] }});
     } catch (e) {
       await edit(chat, mid, '❌ Gagal menyimpan.', { reply_markup:{ inline_keyboard:[[{ text:'🏠 Menu', callback_data:'menu_utama' }]] }});
@@ -1120,8 +1108,9 @@ Ketik <b>modal awal baru</b>:
 
   // ── CARI STOK ────────────────────────────────────────────────────
   if (data === 'stok_cari') {
-    clearSession(uid);
-    getSession(uid).step = 'stok_cari';
+    clearSession(db, uid);
+    getSession(db, uid).step = 'stok_cari';
+    await putData(db);
     await edit(chat, mid, `
 🔍 <b>CARI STOK</b>
 
@@ -1132,13 +1121,13 @@ Ketik <b>nama atau kata kunci</b> barang yang ingin dicari:
 
   // ── CANCEL ───────────────────────────────────────────────────────
   if (data === 'cancel') {
-    clearSession(uid);
+    clearSession(db, uid);
+    await putData(db);
     const m = menuUtama();
     await edit(chat, mid, m.text, { reply_markup:{ inline_keyboard: m.kb } });
     return;
   }
 
-  // Fallback
   await answer(cb.id, 'Aksi tidak dikenal.', true);
 }
 
@@ -1155,42 +1144,37 @@ async function handleCommand(msg) {
     return;
   }
 
+  let db;
+  try { db = await getData(); } 
+  catch (e) { await send(chat, '❌ Gagal ambil data.'); return; }
+
   if (text === '/start' || text === '/menu' || text === '/m') {
-    clearSession(uid);
+    clearSession(db, uid);
+    await putData(db);
     const m = menuUtama();
     await send(chat, m.text, { reply_markup:{ inline_keyboard: m.kb } });
     return;
   }
 
   if (text === '/dashboard' || text === '/d') {
-    try {
-      const db = await getData();
-      const m  = await msgDashboard(db);
-      await send(chat, m.text, { reply_markup:{ inline_keyboard: m.kb } });
-    } catch (e) { await send(chat, '❌ Gagal ambil data.'); }
+    const m = await msgDashboard(db);
+    await send(chat, m.text, { reply_markup:{ inline_keyboard: m.kb } });
     return;
   }
 
   if (text === '/stok' || text === '/s') {
-    try {
-      const db = await getData();
-      const m  = await msgStokMenu(db);
-      await send(chat, m.text, { reply_markup:{ inline_keyboard: m.kb } });
-    } catch (e) { await send(chat, '❌ Gagal ambil data.'); }
+    const m = await msgStokMenu(db);
+    await send(chat, m.text, { reply_markup:{ inline_keyboard: m.kb } });
     return;
   }
 
   if (text === '/laporan' || text === '/l') {
-    try {
-      const db = await getData();
-      const m  = await msgLaporanFull(db);
-      await send(chat, m.text, { reply_markup:{ inline_keyboard: m.kb } });
-    } catch (e) { await send(chat, '❌ Gagal ambil data.'); }
+    const m = await msgLaporanFull(db);
+    await send(chat, m.text, { reply_markup:{ inline_keyboard: m.kb } });
     return;
   }
 
   if (text.startsWith('/masuk ')) {
-    // Quick format: /masuk NamaBarang, Modal, HargaJual
     const parts = text.slice(7).split(',').map(s => s.trim());
     if (parts.length < 3) { await send(chat, '❌ Format: /masuk Nama, Modal, HargaJual'); return; }
     const [nama, modalStr, hargaStr] = parts;
@@ -1198,7 +1182,6 @@ async function handleCommand(msg) {
     const harga = parseInt(hargaStr.replace(/\D/g,''));
     if (!modal || !harga) { await send(chat, '❌ Format angka tidak valid.'); return; }
     try {
-      const db = await getData();
       db.items = db.items || [];
       db.items.push({ id: Date.now(), name: nama, modal, price: harga, status:'stok', type:'new', addedAt: new Date().toISOString() });
       await putData(db);
@@ -1230,10 +1213,9 @@ Gunakan tombol-tombol di bawah pesan untuk navigasi dan aksi.
   }
 
   // Jika ada sesi aktif, teruskan ke handler input
-  const sess = getSession(uid);
+  const sess = getSession(db, uid);
   if (sess.step) {
     try {
-      const db = await getData();
       await handleInput(chat, uid, text, db);
     } catch (e) { await send(chat, '❌ Terjadi error. Coba lagi dengan /menu.'); }
     return;
@@ -1255,17 +1237,21 @@ export default async function handler(req, res) {
     return res.status(405).send('Method Not Allowed');
   }
 
-  res.status(200).json({ ok: true }); // respond immediately to Telegram
-
   try {
     const body = req.body;
 
+    // Tunggu semua proses selesai sebelum merespons ke Vercel
     if (body.callback_query) {
       await handleCallback(body.callback_query);
     } else if (body.message?.text) {
       await handleCommand(body.message);
     }
+
+    // Response wajib ada di akhir agar function tidak terbunuh prematur
+    return res.status(200).json({ ok: true }); 
+
   } catch (e) {
     console.error('Handler error:', e);
+    return res.status(200).json({ ok: true, error: e.message });
   }
 }
