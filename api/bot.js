@@ -472,7 +472,7 @@ function txtStokList(items, page, totalPages, LIMIT) {
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 ${ringkasan || 'Stok kosong!'}
 ━━━━━━━━━━━━━━━━━━━━━━━━━
-🟢 <14hr  🟡 14–30hr  🔴 >30hr
+🟢 &lt;14hr  🟡 14–30hr  🔴 &gt;30hr
 <i>Ketuk tombol nomor di bawah untuk detail & aksi</i>`;
 }
 
@@ -574,7 +574,7 @@ ${brandRows || '—'}
 ${trendRows || '—'}
 
 ⚠️ <b>PERINGATAN STOK</b>
-🔴 Mengendap >30hr: ${over30} item
+🔴 Mengendap &gt;30hr: ${over30} item
 🟡 Mengendap 14–30hr: ${over14} item
 Total stok: ${c.stokCount} item`;
 }
@@ -678,7 +678,7 @@ async function txtStokAging(db) {
   const over14 = aging.filter(i => i.days > 14 && i.days <= 30).length;
   return `⏳ <b>STOK MENGENDAP</b>
 ━━━━━━━━━━━━━━━━━━━━━━━━━
-🔴 >30 hari: ${over30} item
+🔴 &gt;30 hari: ${over30} item
 🟡 14–30 hari: ${over14} item
 
 ${rows}`;
