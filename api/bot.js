@@ -34,8 +34,14 @@ const MAIN_KEYBOARD = {
 
 const BOTTOM_COMMANDS = [
   '📊 Dashboard', '📦 Menu Stok', '💳 Transaksi', '📈 Analitik', 
-  '➕ Catat Masuk', '✅ Tandai Terjual', '⭐ Laba Jasa', '⚙️ Pengaturan'
+  '➕ Catat Masuk', '✅ Tandai Terjual', '⭐ Laba Jasa', '⚙️ Pengaturan',
+  '✏️ Kelola Stok', '❌ Batal'
 ];
+
+// Helper untuk membuat keyboard dinamis di bawah layar
+function makeKb(layout) {
+  return { keyboard: layout, resize_keyboard: true, is_persistent: true };
+}
 
 // ── SESSION MANAGEMENT (VIA JSONBIN) ─────────────────────────────────
 // Menyimpan sesi di database agar tidak hilang saat Vercel cold-start
@@ -318,6 +324,7 @@ ${brandRows || '—'}
     text: txt,
     kb: [
       [{ text:'📋 Daftar Semua Stok', callback_data:'stok_list_1' }],
+      [{ text:'✏️ Kelola Stok (Edit/Hapus)', callback_data:'aksi_kelola_stok' }],
       [{ text:'⏳ Stok Mengendap (>14 hari)', callback_data:'stok_aging' }],
       [{ text:'🔍 Cari Stok', callback_data:'stok_cari' }],
       [{ text:'➕ Catat Barang Masuk', callback_data:'aksi_masuk' }],
@@ -328,7 +335,7 @@ ${brandRows || '—'}
 }
 
 async function msgStokList(db, page=1) {
-  const LIMIT = 8;
+  const LIMIT = 15;
   const items = (db.items||[]).filter(i => i.status==='stok');
   items.sort((a,b) => (a.id||0) - (b.id||0));
 
@@ -362,6 +369,28 @@ Total: ${total} item
   kb.push([{ text:'📦 Menu Stok', callback_data:'menu_stok' }, { text:'🏠 Menu', callback_data:'menu_utama' }]);
 
   return { text: txt.trim(), kb };
+}
+
+// ── FUNGSI UNTUK VIEW KELOLA STOK ────────────────────────────────────
+function getKelolaStokView(db, page=1) {
+  const LIMIT = 15;
+  const items = (db.items||[]).filter(i => i.status === 'stok').sort((a,b) => (a.id||0) - (b.id||0));
+  const total = items.length;
+  const pages = Math.ceil(total/LIMIT) || 1;
+  const p     = Math.min(Math.max(page,1), pages);
+  const slice = items.slice((p-1)*LIMIT, p*LIMIT);
+
+  let kb = slice.map((item, idx) => [{ text: `${(p-1)*LIMIT + idx + 1}. ${item.name}`, callback_data: `kelola_item_${item.id}` }]);
+  
+  let navRow = [];
+  if (p > 1)     navRow.push({ text: '⬅️ Hal Prev', callback_data: `kelola_page_${p-1}` });
+  if (p < pages) navRow.push({ text: 'Hal Next ➡️', callback_data: `kelola_page_${p+1}` });
+  if (navRow.length) kb.push(navRow);
+  
+  kb.push([{ text: '📦 Kembali ke Stok', callback_data: 'menu_stok' }]);
+
+  const txt = `⚙️ <b>KELOLA STOK</b> (Hal. ${p}/${pages})\n━━━━━━━━━━━━━━━━━━━━━━━━━\nPilih barang yang ingin <b>diedit</b> atau <b>dihapus</b>:`;
+  return { text: txt, kb: kb };
 }
 
 async function msgStokAging(db) {
@@ -658,7 +687,7 @@ async function handleInput(chat, uid, text, db) {
     sess.nama = text;
     sess.step = 'masuk_modal';
     await putData(db);
-    await send(chat, `✏️ Nama: <b>${text}</b>\n\nKetik <b>harga modal</b> (angka saja, contoh: 1500000):`);
+    await send(chat, `✏️ Nama: <b>${text}</b>\n\nKetik <b>harga modal</b> (angka saja, contoh: 1500000):`, { reply_markup:{ keyboard: [[{text:'❌ Batal'}]], resize_keyboard: true } });
     return;
   }
   if (sess.step === 'masuk_modal') {
@@ -667,7 +696,7 @@ async function handleInput(chat, uid, text, db) {
     sess.modal = val;
     sess.step  = 'masuk_harga';
     await putData(db);
-    await send(chat, `✏️ Modal: <b>${rp(val)}</b>\n\nKetik <b>harga jual</b>:`);
+    await send(chat, `✏️ Modal: <b>${rp(val)}</b>\n\nKetik <b>harga jual</b>:`, { reply_markup:{ keyboard: [[{text:'❌ Batal'}]], resize_keyboard: true } });
     return;
   }
   if (sess.step === 'masuk_harga') {
@@ -733,12 +762,54 @@ Konfirmasi penjualan ini?`, {
     return;
   }
 
+  // ── KELOLA STOK (EDIT NAMA / HARGA / HAPUS) ────────────────────────
+  if (sess.step === 'edit_stok_nama') {
+    const item = sess.selectedEditItem;
+    const idx = db.items.findIndex(i => i.id === item.id);
+    if (idx > -1) {
+      db.items[idx].name = text;
+      clearSession(db, uid);
+      await putData(db);
+      await send(chat, `✅ Nama barang berhasil diubah menjadi <b>${text}</b>!`, { reply_markup: MAIN_KEYBOARD });
+      const m = await msgStokMenu(db);
+      await send(chat, m.text, { reply_markup:{ inline_keyboard: m.kb } });
+    }
+    return;
+  }
+
+  if (sess.step === 'edit_stok_modal') {
+    const val = parseInt(text.replace(/\D/g,''));
+    if (!val || val <= 0) { await send(chat, '❌ Harga tidak valid. Coba lagi:'); return; }
+    sess.newEditModal = val;
+    sess.step = 'edit_stok_harga';
+    await putData(db);
+    await send(chat, `💰 Modal baru: <b>${rp(val)}</b>\n\nSekarang ketik <b>Harga Jual Baru</b>:`, { reply_markup:{ keyboard: [[{text:'❌ Batal'}]], resize_keyboard: true } });
+    return;
+  }
+
+  if (sess.step === 'edit_stok_harga') {
+    const val = parseInt(text.replace(/\D/g,''));
+    if (!val || val <= 0) { await send(chat, '❌ Harga tidak valid. Coba lagi:'); return; }
+    const item = sess.selectedEditItem;
+    const idx = db.items.findIndex(i => i.id === item.id);
+    if (idx > -1) {
+      db.items[idx].modal = sess.newEditModal;
+      db.items[idx].price = val;
+      clearSession(db, uid);
+      await putData(db);
+      await send(chat, `✅ Harga barang berhasil diubah!\nModal: ${rp(sess.newEditModal)}\nJual: ${rp(val)}`, { reply_markup: MAIN_KEYBOARD });
+      const m = await msgStokMenu(db);
+      await send(chat, m.text, { reply_markup:{ inline_keyboard: m.kb } });
+    }
+    return;
+  }
+
   // ── LABA JASA ────────────────────────────────────────────────────
   if (sess.step === 'ekstra_nama') {
     sess.ekstraNama = text;
     sess.step       = 'ekstra_nominal';
     await putData(db);
-    await send(chat, `✏️ Keterangan: <b>${text}</b>\n\nKetik <b>nominal laba</b>:`);
+    await send(chat, `✏️ Keterangan: <b>${text}</b>\n\nKetik <b>nominal laba</b>:`, { reply_markup:{ keyboard: [[{text:'❌ Batal'}]], resize_keyboard: true } });
     return;
   }
   if (sess.step === 'ekstra_nominal') {
@@ -812,7 +883,7 @@ ${rows || '—'}
   }
 
   // Fallback: tidak ada sesi aktif
-  await send(chat, `❓ Tidak ada aksi aktif. Ketik /menu untuk ke menu utama.`);
+  await send(chat, `❓ Tidak ada aksi aktif. Ketik /menu untuk ke menu utama.`, { reply_markup: MAIN_KEYBOARD });
 }
 
 // ══════════════════════════════════════════════════════════════════════
@@ -861,6 +932,78 @@ async function handleCallback(cb) {
     await edit(chat, mid, m.text, { reply_markup:{ inline_keyboard: m.kb } });
     return;
   }
+  
+  // ── FITUR KELOLA STOK (PAGINATION) ──────────────────────────────
+  if (data === 'aksi_kelola_stok' || data.startsWith('kelola_page_')) {
+    let page = 1;
+    if (data.startsWith('kelola_page_')) {
+      page = parseInt(data.split('_')[2]) || 1;
+    }
+    const view = getKelolaStokView(db, page);
+    await edit(chat, mid, view.text, { reply_markup: { inline_keyboard: view.kb } });
+    return;
+  }
+
+  if (data.startsWith('kelola_item_')) {
+    const itemId = parseInt(data.split('_')[2]);
+    const item = (db.items||[]).find(i => i.id === itemId);
+    if (!item) { await answer(cb.id, '❌ Item tidak ditemukan', true); return; }
+    
+    getSession(db, uid).selectedEditItem = item;
+    await putData(db);
+
+    const txt = `⚙️ <b>KELOLA BARANG</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n📦 Nama: <b>${item.name}</b>\n💰 Modal: ${rp(item.modal)}\n💵 Jual: ${rp(item.price)}\n\nPilih aksi di bawah ini:`;
+    const kb = [
+      [{ text: '✏️ Edit Nama', callback_data: 'edit_stok_nama' }, { text: '💰 Edit Harga', callback_data: 'edit_stok_harga' }],
+      [{ text: '🗑️ Hapus Barang', callback_data: 'hapus_stok_konfirm' }],
+      [{ text: '📦 Kembali ke Daftar', callback_data: 'aksi_kelola_stok' }]
+    ];
+    await edit(chat, mid, txt, { reply_markup: { inline_keyboard: kb } });
+    return;
+  }
+
+  if (data === 'edit_stok_nama') {
+    getSession(db, uid).step = 'edit_stok_nama';
+    await putData(db);
+    await send(chat, `✏️ Masukkan <b>Nama Baru</b> untuk barang ini:`, { reply_markup:{ keyboard: [[{text:'❌ Batal'}]], resize_keyboard: true } });
+    return;
+  }
+
+  if (data === 'edit_stok_harga') {
+    getSession(db, uid).step = 'edit_stok_modal';
+    await putData(db);
+    await send(chat, `💰 Masukkan <b>Harga Modal Baru</b> (angka saja):`, { reply_markup:{ keyboard: [[{text:'❌ Batal'}]], resize_keyboard: true } });
+    return;
+  }
+
+  if (data === 'hapus_stok_konfirm') {
+    const item = getSession(db, uid).selectedEditItem;
+    if (!item) return;
+    const txt = `⚠️ <b>YAKIN HAPUS BARANG INI?</b>\n📦 ${item.name}\n\nTindakan ini tidak bisa dibatalkan!`;
+    const kb = [
+      [{ text: '✅ Ya, Hapus Permanen', callback_data: 'hapus_stok_eksekusi' }],
+      [{ text: '❌ Batal, Kembali', callback_data: 'aksi_kelola_stok' }]
+    ];
+    await edit(chat, mid, txt, { reply_markup: { inline_keyboard: kb } });
+    return;
+  }
+
+  if (data === 'hapus_stok_eksekusi') {
+    const item = getSession(db, uid).selectedEditItem;
+    if (!item) return;
+    const idx = (db.items||[]).findIndex(i => i.id === item.id);
+    if (idx > -1) {
+      db.items.splice(idx, 1);
+      clearSession(db, uid);
+      await putData(db);
+      await edit(chat, mid, `🗑️ Barang <b>${item.name}</b> berhasil dihapus dari sistem.`, { 
+        reply_markup: { inline_keyboard: [[{ text: '📦 Menu Stok', callback_data: 'menu_stok' }]] }
+      });
+    }
+    return;
+  }
+  // ─────────────────────────────────────────────────────────────────
+
   if (data === 'menu_transaksi') {
     const m = await msgTransaksi(db);
     await edit(chat, mid, m.text, { reply_markup:{ inline_keyboard: m.kb } });
@@ -912,13 +1055,7 @@ async function handleCallback(cb) {
     clearSession(db, uid);
     getSession(db, uid).step = 'masuk_nama';
     await putData(db);
-    await edit(chat, mid, `
-➕ <b>CATAT BARANG MASUK</b>
-━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Ketik <b>nama barang</b> lengkap:
-(contoh: iPhone 13 128GB Black)
-`, { reply_markup:{ inline_keyboard:[[{ text:'❌ Batal', callback_data:'cancel' }]] } });
+    await send(chat, `➕ <b>CATAT BARANG MASUK</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n\nKetik <b>nama barang</b> lengkap:\n(contoh: iPhone 13 128GB Black)`, { reply_markup:{ keyboard: [[{text:'❌ Batal'}]], resize_keyboard: true } });
     return;
   }
 
@@ -953,6 +1090,7 @@ Ketik <b>nama barang</b> lengkap:
         [{ text:'➕ Catat Lagi', callback_data:'aksi_masuk' }],
         [{ text:'📦 Lihat Stok', callback_data:'menu_stok' }, { text:'🏠 Menu', callback_data:'menu_utama' }]
       ]}});
+      await send(chat, "✅ Aksi selesai.", { reply_markup: MAIN_KEYBOARD });
     } catch (e) {
       await edit(chat, mid, '❌ Gagal menyimpan. Coba lagi.', { reply_markup:{ inline_keyboard:[[{ text:'🏠 Menu', callback_data:'menu_utama' }]] }});
     }
@@ -964,12 +1102,7 @@ Ketik <b>nama barang</b> lengkap:
     clearSession(db, uid);
     getSession(db, uid).step = 'terjual_cari';
     await putData(db);
-    await edit(chat, mid, `
-✅ <b>TANDAI BARANG TERJUAL</b>
-━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Ketik <b>nama barang</b> atau <b>kata kunci</b> untuk dicari:
-`, { reply_markup:{ inline_keyboard:[[{ text:'❌ Batal', callback_data:'cancel' }]] } });
+    await send(chat, `✅ <b>TANDAI BARANG TERJUAL</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n\nKetik <b>nama barang</b> atau <b>kata kunci</b> untuk dicari:`, { reply_markup:{ keyboard: [[{text:'❌ Batal'}]], resize_keyboard: true } });
     return;
   }
 
@@ -1043,6 +1176,7 @@ Konfirmasi?`, { reply_markup:{ inline_keyboard:[
         [{ text:'✅ Tandai Terjual Lagi', callback_data:'aksi_terjual' }],
         [{ text:'📊 Dashboard', callback_data:'menu_dashboard' }, { text:'🏠 Menu', callback_data:'menu_utama' }]
       ]}});
+      await send(chat, "✅ Aksi selesai.", { reply_markup: MAIN_KEYBOARD });
     } catch (e) {
       await edit(chat, mid, '❌ Gagal update data. Coba lagi.', { reply_markup:{ inline_keyboard:[[{ text:'🏠 Menu', callback_data:'menu_utama' }]] }});
     }
@@ -1054,13 +1188,13 @@ Konfirmasi?`, { reply_markup:{ inline_keyboard:[
     clearSession(db, uid);
     getSession(db, uid).step = 'ekstra_nama';
     await putData(db);
-    await edit(chat, mid, `
+    await send(chat, `
 ⭐ <b>CATAT LABA JASA / EKSTRA</b>
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Ketik <b>keterangan / nama transaksi</b>:
 (contoh: Servis HP, Joki Unlock, dll)
-`, { reply_markup:{ inline_keyboard:[[{ text:'❌ Batal', callback_data:'cancel' }]] } });
+`, { reply_markup:{ keyboard: [[{text:'❌ Batal'}]], resize_keyboard: true } });
     return;
   }
 
@@ -1088,6 +1222,7 @@ Ketik <b>keterangan / nama transaksi</b>:
         [{ text:'⭐ Catat Lagi', callback_data:'aksi_ekstra' }],
         [{ text:'📊 Dashboard', callback_data:'menu_dashboard' }, { text:'🏠 Menu', callback_data:'menu_utama' }]
       ]}});
+      await send(chat, "✅ Aksi selesai.", { reply_markup: MAIN_KEYBOARD });
     } catch (e) {
       await edit(chat, mid, '❌ Gagal menyimpan.', { reply_markup:{ inline_keyboard:[[{ text:'🏠 Menu', callback_data:'menu_utama' }]] }});
     }
@@ -1099,12 +1234,12 @@ Ketik <b>keterangan / nama transaksi</b>:
     clearSession(db, uid);
     getSession(db, uid).step = 'set_modal';
     await putData(db);
-    await edit(chat, mid, `
+    await send(chat, `
 💼 <b>UBAH MODAL AWAL</b>
 Modal saat ini: ${rp(Number(db.startBalance)||0)}
 
 Ketik <b>modal awal baru</b>:
-`, { reply_markup:{ inline_keyboard:[[{ text:'❌ Batal', callback_data:'cancel' }]] } });
+`, { reply_markup:{ keyboard: [[{text:'❌ Batal'}]], resize_keyboard: true } });
     return;
   }
 
@@ -1115,6 +1250,7 @@ Ketik <b>modal awal baru</b>:
       clearSession(db, uid);
       await putData(db);
       await edit(chat, mid, `✅ Modal awal berhasil diubah ke <b>${rp(sess.newModal)}</b>`, { reply_markup:{ inline_keyboard:[[{ text:'🏠 Menu', callback_data:'menu_utama' }]] }});
+      await send(chat, "✅ Aksi selesai.", { reply_markup: MAIN_KEYBOARD });
     } catch (e) {
       await edit(chat, mid, '❌ Gagal menyimpan.', { reply_markup:{ inline_keyboard:[[{ text:'🏠 Menu', callback_data:'menu_utama' }]] }});
     }
@@ -1126,11 +1262,11 @@ Ketik <b>modal awal baru</b>:
     clearSession(db, uid);
     getSession(db, uid).step = 'stok_cari';
     await putData(db);
-    await edit(chat, mid, `
+    await send(chat, `
 🔍 <b>CARI STOK</b>
 
 Ketik <b>nama atau kata kunci</b> barang yang ingin dicari:
-`, { reply_markup:{ inline_keyboard:[[{ text:'❌ Batal', callback_data:'cancel' }]] } });
+`, { reply_markup:{ keyboard: [[{text:'❌ Batal'}]], resize_keyboard: true } });
     return;
   }
 
@@ -1140,6 +1276,7 @@ Ketik <b>nama atau kata kunci</b> barang yang ingin dicari:
     await putData(db);
     const m = menuUtama();
     await edit(chat, mid, m.text, { reply_markup:{ inline_keyboard: m.kb } });
+    await send(chat, "✅ Dibatalkan.", { reply_markup: MAIN_KEYBOARD });
     return;
   }
 
@@ -1164,7 +1301,7 @@ async function handleCommand(msg) {
   catch (e) { await send(chat, '❌ Gagal ambil data.'); return; }
 
   // ── MENCEGAT PERINTAH DARI TOMBOL BAWAH LAYAR ─────────
-  if (BOTTOM_COMMANDS.includes(text)) {
+  if (BOTTOM_COMMANDS.includes(text) || text === '❌ Batal') {
     clearSession(db, uid);
     await putData(db);
   }
@@ -1211,21 +1348,28 @@ async function handleCommand(msg) {
   if (text === '➕ Catat Masuk') {
     getSession(db, uid).step = 'masuk_nama';
     await putData(db);
-    await send(chat, `➕ <b>CATAT BARANG MASUK</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n\nKetik <b>nama barang</b> lengkap:\n(contoh: iPhone 13 128GB Black)`, { reply_markup:{ inline_keyboard:[[{ text:'❌ Batal', callback_data:'cancel' }]] } });
+    await send(chat, `➕ <b>CATAT BARANG MASUK</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n\nKetik <b>nama barang</b> lengkap:\n(contoh: iPhone 13 128GB Black)`, { reply_markup:{ keyboard: [[{text:'❌ Batal'}]], resize_keyboard: true } });
     return;
   }
 
   if (text === '✅ Tandai Terjual') {
     getSession(db, uid).step = 'terjual_cari';
     await putData(db);
-    await send(chat, `✅ <b>TANDAI BARANG TERJUAL</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n\nKetik <b>nama barang</b> atau <b>kata kunci</b> untuk dicari:`, { reply_markup:{ inline_keyboard:[[{ text:'❌ Batal', callback_data:'cancel' }]] } });
+    await send(chat, `✅ <b>TANDAI BARANG TERJUAL</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n\nKetik <b>nama barang</b> atau <b>kata kunci</b> untuk dicari:`, { reply_markup:{ keyboard: [[{text:'❌ Batal'}]], resize_keyboard: true } });
     return;
   }
 
   if (text === '⭐ Laba Jasa') {
     getSession(db, uid).step = 'ekstra_nama';
     await putData(db);
-    await send(chat, `⭐ <b>CATAT LABA JASA / EKSTRA</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n\nKetik <b>keterangan / nama transaksi</b>:\n(contoh: Servis HP, Joki Unlock, dll)`, { reply_markup:{ inline_keyboard:[[{ text:'❌ Batal', callback_data:'cancel' }]] } });
+    await send(chat, `⭐ <b>CATAT LABA JASA / EKSTRA</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n\nKetik <b>keterangan / nama transaksi</b>:\n(contoh: Servis HP, Joki Unlock, dll)`, { reply_markup:{ keyboard: [[{text:'❌ Batal'}]], resize_keyboard: true } });
+    return;
+  }
+
+  if (text === '❌ Batal') {
+    const m = menuUtama();
+    await send(chat, `✅ Aksi dibatalkan.`, { reply_markup: MAIN_KEYBOARD });
+    await send(chat, m.text, { reply_markup:{ inline_keyboard: m.kb } });
     return;
   }
   // ──────────────────────────────────────────────────────
