@@ -1,9 +1,7 @@
 // ═══════════════════════════════════════════════════════════════════
-//  FARID STORE BOT V10 — Full Admin Edition (Serverless Fixed)
+//  FARID STORE BOT V10 — Full Admin Edition (Serverless + Hybrid Fixed)
 //  Vercel Serverless Webhook Handler
 // ═══════════════════════════════════════════════════════════════════
-
-
 
 // ── CONFIG ──────────────────────────────────────────────────────────
 const BOT_TOKEN  = process.env.BOT_TOKEN;
@@ -21,6 +19,23 @@ const BRAND_ICONS = {
   Apple:'🍎', Samsung:'🌌', Xiaomi:'🟠', Oppo:'🟢', Vivo:'🔵',
   Realme:'🟡', Infinix:'⚡', Tecno:'🔷', iTel:'⬛', Other:'📦'
 };
+
+// ── KEYBOARD BAWAH (PERSISTENT REPLY KEYBOARD) ──────────────────────
+const MAIN_KEYBOARD = {
+  keyboard: [
+    [{ text: '📊 Dashboard' }, { text: '📦 Menu Stok' }],
+    [{ text: '💳 Transaksi' }, { text: '📈 Analitik' }],
+    [{ text: '➕ Catat Masuk' }, { text: '✅ Tandai Terjual' }],
+    [{ text: '⭐ Laba Jasa' }, { text: '⚙️ Pengaturan' }]
+  ],
+  resize_keyboard: true,
+  is_persistent: true
+};
+
+const BOTTOM_COMMANDS = [
+  '📊 Dashboard', '📦 Menu Stok', '💳 Transaksi', '📈 Analitik', 
+  '➕ Catat Masuk', '✅ Tandai Terjual', '⭐ Laba Jasa', '⚙️ Pengaturan'
+];
 
 // ── SESSION MANAGEMENT (VIA JSONBIN) ─────────────────────────────────
 // Menyimpan sesi di database agar tidak hilang saat Vercel cold-start
@@ -1148,31 +1163,72 @@ async function handleCommand(msg) {
   try { db = await getData(); } 
   catch (e) { await send(chat, '❌ Gagal ambil data.'); return; }
 
+  // ── MENCEGAT PERINTAH DARI TOMBOL BAWAH LAYAR ─────────
+  if (BOTTOM_COMMANDS.includes(text)) {
+    clearSession(db, uid);
+    await putData(db);
+  }
+
   if (text === '/start' || text === '/menu' || text === '/m') {
     clearSession(db, uid);
     await putData(db);
+    await send(chat, `🤖 <b>Keyboard Bawah Diaktifkan!</b>\nKamu bisa navigasi dengan tombol di bawah layar atau menu di bawah ini.`, { reply_markup: MAIN_KEYBOARD });
     const m = menuUtama();
     await send(chat, m.text, { reply_markup:{ inline_keyboard: m.kb } });
     return;
   }
 
-  if (text === '/dashboard' || text === '/d') {
+  if (text === '📊 Dashboard' || text === '/dashboard' || text === '/d') {
     const m = await msgDashboard(db);
     await send(chat, m.text, { reply_markup:{ inline_keyboard: m.kb } });
     return;
   }
 
-  if (text === '/stok' || text === '/s') {
+  if (text === '📦 Menu Stok' || text === '/stok' || text === '/s') {
     const m = await msgStokMenu(db);
     await send(chat, m.text, { reply_markup:{ inline_keyboard: m.kb } });
     return;
   }
 
-  if (text === '/laporan' || text === '/l') {
-    const m = await msgLaporanFull(db);
+  if (text === '💳 Transaksi') {
+    const m = await msgTransaksi(db);
     await send(chat, m.text, { reply_markup:{ inline_keyboard: m.kb } });
     return;
   }
+
+  if (text === '📈 Analitik' || text === '/laporan' || text === '/l') {
+    const m = await msgAnalitik(db);
+    await send(chat, m.text, { reply_markup:{ inline_keyboard: m.kb } });
+    return;
+  }
+
+  if (text === '⚙️ Pengaturan') {
+    const m = msgSettings(db);
+    await send(chat, m.text, { reply_markup:{ inline_keyboard: m.kb } });
+    return;
+  }
+
+  if (text === '➕ Catat Masuk') {
+    getSession(db, uid).step = 'masuk_nama';
+    await putData(db);
+    await send(chat, `➕ <b>CATAT BARANG MASUK</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n\nKetik <b>nama barang</b> lengkap:\n(contoh: iPhone 13 128GB Black)`, { reply_markup:{ inline_keyboard:[[{ text:'❌ Batal', callback_data:'cancel' }]] } });
+    return;
+  }
+
+  if (text === '✅ Tandai Terjual') {
+    getSession(db, uid).step = 'terjual_cari';
+    await putData(db);
+    await send(chat, `✅ <b>TANDAI BARANG TERJUAL</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n\nKetik <b>nama barang</b> atau <b>kata kunci</b> untuk dicari:`, { reply_markup:{ inline_keyboard:[[{ text:'❌ Batal', callback_data:'cancel' }]] } });
+    return;
+  }
+
+  if (text === '⭐ Laba Jasa') {
+    getSession(db, uid).step = 'ekstra_nama';
+    await putData(db);
+    await send(chat, `⭐ <b>CATAT LABA JASA / EKSTRA</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n\nKetik <b>keterangan / nama transaksi</b>:\n(contoh: Servis HP, Joki Unlock, dll)`, { reply_markup:{ inline_keyboard:[[{ text:'❌ Batal', callback_data:'cancel' }]] } });
+    return;
+  }
+  // ──────────────────────────────────────────────────────
 
   if (text.startsWith('/masuk ')) {
     const parts = text.slice(7).split(',').map(s => s.trim());
@@ -1223,6 +1279,7 @@ Gunakan tombol-tombol di bawah pesan untuk navigasi dan aksi.
 
   // Teks biasa tapi tidak ada sesi → tunjukkan menu
   const m = menuUtama();
+  await send(chat, `❓ Perintah tidak dikenali. Silakan gunakan tombol di bawah layar atau menu ini:`, { reply_markup: MAIN_KEYBOARD });
   await send(chat, m.text, { reply_markup:{ inline_keyboard: m.kb } });
 }
 
