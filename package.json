@@ -1,1 +1,9 @@
-
+{
+  "name": "farid-store-app",
+  "version": "1.0.0",
+  "description": "Farid Store Tracker & Bot",
+  "scripts": {
+    "start": "node"
+  },
+  "dependencies": {}
+}
