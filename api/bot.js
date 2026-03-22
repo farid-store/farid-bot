@@ -57,7 +57,7 @@ function getBrand(name) {
   const n = String(name || '').toUpperCase();
   if (n.includes('IPHONE') || n.includes('APPLE') || n.includes('IPAD')) return 'Apple';
   if (n.includes('SAMSUNG') || n.includes('GALAXY') || n.includes('SEIN')) return 'Samsung';
-  if (n.includes('XIAOMI') || n.includes('REDMI') || n.includes('POCO') || n.includes('MI ')) return 'Xiaomi';
+  if (n.includes('XIAOMI') || n.includes('REDMI') || n.includes('NOTE') || n.includes('POCO') || n.includes('MI ')) return 'Xiaomi';
   if (n.includes('OPPO') || n.includes('RENO')) return 'Oppo';
   if (n.includes('VIVO') || n.includes('IQOO')) return 'Vivo';
   if (n.includes('REALME') || n.includes('NARZO')) return 'Realme';
