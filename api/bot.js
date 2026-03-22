@@ -3,7 +3,7 @@
 //  Vercel Serverless Webhook Handler
 // ═══════════════════════════════════════════════════════════════════
 
-import fetch from 'node-fetch';
+
 
 // ── CONFIG ──────────────────────────────────────────────────────────
 const BOT_TOKEN  = process.env.BOT_TOKEN;
