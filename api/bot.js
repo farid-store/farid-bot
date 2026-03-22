@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════
-//  FARID STORE BOT V10 — Full Admin Edition (Serverless + Hybrid Fixed)
+//  FARID STORE BOT V10 — Full Admin Edition (100% Bottom Keyboard)
 //  Vercel Serverless Webhook Handler
 // ═══════════════════════════════════════════════════════════════════
 
@@ -21,27 +21,22 @@ const BRAND_ICONS = {
 };
 
 // ── KEYBOARD BAWAH (PERSISTENT REPLY KEYBOARD) ──────────────────────
-const MAIN_KEYBOARD = {
-  keyboard: [
-    [{ text: '📊 Dashboard' }, { text: '📦 Menu Stok' }],
-    [{ text: '💳 Transaksi' }, { text: '📈 Analitik' }],
-    [{ text: '➕ Catat Masuk' }, { text: '✅ Tandai Terjual' }],
-    [{ text: '⭐ Laba Jasa' }, { text: '⚙️ Pengaturan' }]
-  ],
-  resize_keyboard: true,
-  is_persistent: true
-};
+function makeKb(layout) {
+  return { keyboard: layout, resize_keyboard: true, is_persistent: true };
+}
+
+const MAIN_KEYBOARD = makeKb([
+  [{ text: '📊 Dashboard' }, { text: '📦 Menu Stok' }],
+  [{ text: '💳 Transaksi' }, { text: '📈 Analitik' }],
+  [{ text: '➕ Catat Masuk' }, { text: '✅ Tandai Terjual' }],
+  [{ text: '⭐ Laba Jasa' }, { text: '⚙️ Pengaturan' }]
+]);
 
 const BOTTOM_COMMANDS = [
   '📊 Dashboard', '📦 Menu Stok', '💳 Transaksi', '📈 Analitik', 
   '➕ Catat Masuk', '✅ Tandai Terjual', '⭐ Laba Jasa', '⚙️ Pengaturan',
-  '✏️ Kelola Stok', '❌ Batal'
+  '✏️ Kelola Stok'
 ];
-
-// Helper untuk membuat keyboard dinamis di bawah layar
-function makeKb(layout) {
-  return { keyboard: layout, resize_keyboard: true, is_persistent: true };
-}
 
 // ── SESSION MANAGEMENT (VIA JSONBIN) ─────────────────────────────────
 // Menyimpan sesi di database agar tidak hilang saat Vercel cold-start
@@ -139,6 +134,7 @@ async function tg(method, body) {
 }
 
 const send      = (chat, text, extra={}) => tg('sendMessage', { chat_id:chat, text, parse_mode:'HTML', ...extra });
+// edit dan editKb sudah tidak dipakai karena keyboard di bawah butuh pesan baru, tapi dibiarkan utuh
 const edit      = (chat, msg, text, extra={}) => tg('editMessageText', { chat_id:chat, message_id:msg, text, parse_mode:'HTML', ...extra });
 const editKb    = (chat, msg, kb) => tg('editMessageReplyMarkup', { chat_id:chat, message_id:msg, reply_markup:{ inline_keyboard:kb } });
 const answer    = (id, text='', alert=false) => tg('answerCallbackQuery', { callback_query_id:id, text, show_alert:alert });
@@ -230,13 +226,7 @@ function compute(db) {
 function menuUtama() {
   return {
     text: `🏪 <b>FARID STORE</b> — Admin Panel\n━━━━━━━━━━━━━━━━━━━━━\nPilih menu yang ingin kamu akses:`,
-    kb: [
-      [{ text:'📊 Dashboard', callback_data:'menu_dashboard' }, { text:'📦 Stok & Inventori', callback_data:'menu_stok' }],
-      [{ text:'💳 Transaksi', callback_data:'menu_transaksi' }, { text:'📈 Analitik', callback_data:'menu_analitik' }],
-      [{ text:'➕ Catat Masuk', callback_data:'aksi_masuk' },   { text:'✅ Tandai Terjual', callback_data:'aksi_terjual' }],
-      [{ text:'💰 Laba Jasa', callback_data:'aksi_ekstra' },    { text:'⚙️ Pengaturan', callback_data:'menu_settings' }],
-      [{ text:'🔄 Refresh Data', callback_data:'refresh' }]
-    ]
+    kb: MAIN_KEYBOARD
   };
 }
 
@@ -292,11 +282,11 @@ ${c.stokCount} item • Modal: ${rp(c.floatModal)} • Harga: ${rp(c.floatPrice)
 
   return {
     text: txt,
-    kb: [
-      [{ text:'📈 Analitik Detail', callback_data:'menu_analitik' }, { text:'💳 Transaksi', callback_data:'menu_transaksi' }],
-      [{ text:'📦 Lihat Stok', callback_data:'stok_list_1' }, { text:'⏳ Stok Lama', callback_data:'stok_aging' }],
-      [{ text:'🔄 Refresh', callback_data:'dash_refresh' }, { text:'🏠 Menu', callback_data:'menu_utama' }]
-    ]
+    kb: makeKb([
+      [{ text:'📈 Analitik Detail' }, { text:'💳 Menu Transaksi' }],
+      [{ text:'📋 Daftar Semua Stok' }, { text:'⏳ Stok Mengendap' }],
+      [{ text:'🔄 Refresh Data' }, { text:'🏠 Menu Utama' }]
+    ])
   };
 }
 
@@ -322,15 +312,12 @@ ${brandRows || '—'}
 
   return {
     text: txt,
-    kb: [
-      [{ text:'📋 Daftar Semua Stok', callback_data:'stok_list_1' }],
-      [{ text:'✏️ Kelola Stok (Edit/Hapus)', callback_data:'aksi_kelola_stok' }],
-      [{ text:'⏳ Stok Mengendap (>14 hari)', callback_data:'stok_aging' }],
-      [{ text:'🔍 Cari Stok', callback_data:'stok_cari' }],
-      [{ text:'➕ Catat Barang Masuk', callback_data:'aksi_masuk' }],
-      [{ text:'✅ Tandai Terjual', callback_data:'aksi_terjual' }],
-      [{ text:'🔄 Refresh', callback_data:'menu_stok' }, { text:'🏠 Menu', callback_data:'menu_utama' }]
-    ]
+    kb: makeKb([
+      [{ text:'📋 Daftar Semua Stok' }, { text:'✏️ Kelola Stok' }],
+      [{ text:'🔍 Cari Stok' }, { text:'⏳ Stok Mengendap' }],
+      [{ text:'➕ Catat Barang Masuk' }, { text:'✅ Tandai Terjual' }],
+      [{ text:'🏠 Menu Utama' }]
+    ])
   };
 }
 
@@ -361,17 +348,16 @@ Total: ${total} item
 `.trim();
 
   const navRow = [];
-  if (p > 1)     navRow.push({ text:'⬅️ Sebelumnya', callback_data:`stok_list_${p-1}` });
-  if (p < pages) navRow.push({ text:'Selanjutnya ➡️', callback_data:`stok_list_${p+1}` });
+  if (p > 1)     navRow.push({ text:`⬅️ Daftar Hal ${p-1}` });
+  if (p < pages) navRow.push({ text:`Daftar Hal ${p+1} ➡️` });
 
   const kb = [];
   if (navRow.length) kb.push(navRow);
-  kb.push([{ text:'📦 Menu Stok', callback_data:'menu_stok' }, { text:'🏠 Menu', callback_data:'menu_utama' }]);
+  kb.push([{ text:'📦 Menu Stok' }, { text:'🏠 Menu Utama' }]);
 
-  return { text: txt.trim(), kb };
+  return { text: txt.trim(), kb: makeKb(kb) };
 }
 
-// ── FUNGSI UNTUK VIEW KELOLA STOK ────────────────────────────────────
 function getKelolaStokView(db, page=1) {
   const LIMIT = 15;
   const items = (db.items||[]).filter(i => i.status === 'stok').sort((a,b) => (a.id||0) - (b.id||0));
@@ -380,17 +366,22 @@ function getKelolaStokView(db, page=1) {
   const p     = Math.min(Math.max(page,1), pages);
   const slice = items.slice((p-1)*LIMIT, p*LIMIT);
 
-  let kb = slice.map((item, idx) => [{ text: `${(p-1)*LIMIT + idx + 1}. ${item.name}`, callback_data: `kelola_item_${item.id}` }]);
+  let kb = [];
+  for (let i = 0; i < slice.length; i += 2) {
+    let row = [{ text: `${(p-1)*LIMIT + i + 1}. ${slice[i].name}` }];
+    if (slice[i+1]) row.push({ text: `${(p-1)*LIMIT + i + 2}. ${slice[i+1].name}` });
+    kb.push(row);
+  }
   
   let navRow = [];
-  if (p > 1)     navRow.push({ text: '⬅️ Hal Prev', callback_data: `kelola_page_${p-1}` });
-  if (p < pages) navRow.push({ text: 'Hal Next ➡️', callback_data: `kelola_page_${p+1}` });
+  if (p > 1)     navRow.push({ text: `⬅️ Edit Hal ${p-1}` });
+  if (p < pages) navRow.push({ text: `Edit Hal ${p+1} ➡️` });
   if (navRow.length) kb.push(navRow);
   
-  kb.push([{ text: '📦 Kembali ke Stok', callback_data: 'menu_stok' }]);
+  kb.push([{ text: '📦 Menu Stok' }, { text: '❌ Batal' }]);
 
-  const txt = `⚙️ <b>KELOLA STOK</b> (Hal. ${p}/${pages})\n━━━━━━━━━━━━━━━━━━━━━━━━━\nPilih barang yang ingin <b>diedit</b> atau <b>dihapus</b>:`;
-  return { text: txt, kb: kb };
+  const txt = `⚙️ <b>KELOLA STOK</b> (Hal. ${p}/${pages})\n\nPilih barang yang ingin <b>diedit</b> atau <b>dihapus</b> dari tombol di bawah:`;
+  return { text: txt, kb: makeKb(kb) };
 }
 
 async function msgStokAging(db) {
@@ -400,7 +391,7 @@ async function msgStokAging(db) {
   if (aging.length === 0) {
     return {
       text: `⏳ <b>STOK MENGENDAP</b>\n\nTidak ada stok yang mengendap. Perputaran barang lancar! ✅`,
-      kb: [[{ text:'📦 Stok', callback_data:'menu_stok' }, { text:'🏠 Menu', callback_data:'menu_utama' }]]
+      kb: makeKb([[{ text:'📦 Menu Stok' }, { text:'🏠 Menu Utama' }]])
     };
   }
 
@@ -421,10 +412,10 @@ async function msgStokAging(db) {
 
 ${rows}
 `.trim(),
-    kb: [
-      [{ text:'✅ Tandai Terjual', callback_data:'aksi_terjual' }],
-      [{ text:'📦 Stok', callback_data:'menu_stok' }, { text:'🏠 Menu', callback_data:'menu_utama' }]
-    ]
+    kb: makeKb([
+      [{ text:'✅ Tandai Terjual' }],
+      [{ text:'📦 Menu Stok' }, { text:'🏠 Menu Utama' }]
+    ])
   };
 }
 
@@ -452,14 +443,10 @@ async function msgTransaksi(db) {
 <b>5 TRANSAKSI TERAKHIR</b>
 ${rows || '—'}
 `.trim(),
-    kb: [
-      [{ text:'📊 Semua Tx (10 terakhir)', callback_data:'tx_list_10' }],
-      [{ text:'📅 Filter Bulan Ini', callback_data:'tx_bulan_ini' }],
-      [{ text:'💰 Arus Kas per Bulan', callback_data:'tx_cashflow' }],
-      [{ text:'➕ Catat Masuk', callback_data:'aksi_masuk' }, { text:'✅ Terjual', callback_data:'aksi_terjual' }],
-      [{ text:'⭐ Laba Jasa', callback_data:'aksi_ekstra' }],
-      [{ text:'🏠 Menu', callback_data:'menu_utama' }]
-    ]
+    kb: makeKb([
+      [{ text:'📋 10 Tx Terakhir' }, { text:'📅 Tx Bulan Ini' }],
+      [{ text:'💰 Arus Kas Per Bulan' }, { text:'🏠 Menu Utama' }]
+    ])
   };
 }
 
@@ -478,7 +465,7 @@ async function msgTxList(db, limit=10) {
 
   return {
     text: `💳 <b>${limit} TRANSAKSI TERAKHIR</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n${rows || '—'}`,
-    kb: [[{ text:'💳 Menu Tx', callback_data:'menu_transaksi' }, { text:'🏠 Menu', callback_data:'menu_utama' }]]
+    kb: makeKb([[{ text:'💳 Menu Transaksi' }, { text:'🏠 Menu Utama' }]])
   };
 }
 
@@ -495,7 +482,7 @@ async function msgCashflow(db) {
 
   return {
     text: `💰 <b>ARUS KAS PER BULAN</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n${rows || '—'}`,
-    kb: [[{ text:'💳 Menu Tx', callback_data:'menu_transaksi' }, { text:'🏠 Menu', callback_data:'menu_utama' }]]
+    kb: makeKb([[{ text:'💳 Menu Transaksi' }, { text:'🏠 Menu Utama' }]])
   };
 }
 
@@ -534,13 +521,11 @@ ${trendRows || '—'}
 🟡 Mengendap 14-30hr: ${over14} item
 Total stok: ${c.stokCount} item
 `.trim(),
-    kb: [
-      [{ text:'🔥 Top Brand Detail', callback_data:'analitik_brand' }],
-      [{ text:'📊 Tren Bulanan', callback_data:'analitik_tren' }],
-      [{ text:'⏳ Stok Aging', callback_data:'stok_aging' }],
-      [{ text:'📋 Laporan Lengkap', callback_data:'laporan_full' }],
-      [{ text:'🏠 Menu', callback_data:'menu_utama' }]
-    ]
+    kb: makeKb([
+      [{ text:'🔥 Top Brand Detail' }, { text:'📊 Tren Bulanan' }],
+      [{ text:'⏳ Stok Mengendap' }, { text:'📋 Laporan Lengkap' }],
+      [{ text:'🏠 Menu Utama' }]
+    ])
   };
 }
 
@@ -557,7 +542,7 @@ async function msgBrandDetail(db) {
 
   return {
     text: `🔥 <b>DETAIL TOP MEREK</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n${rows || '—'}`,
-    kb: [[{ text:'📈 Analitik', callback_data:'menu_analitik' }, { text:'🏠 Menu', callback_data:'menu_utama' }]]
+    kb: makeKb([[{ text:'📈 Analitik' }, { text:'🏠 Menu Utama' }]])
   };
 }
 
@@ -575,7 +560,7 @@ async function msgTren(db) {
 
   return {
     text: `📊 <b>TREN BULANAN (SEMUA)</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n${rows || '—'}`,
-    kb: [[{ text:'📈 Analitik', callback_data:'menu_analitik' }, { text:'🏠 Menu', callback_data:'menu_utama' }]]
+    kb: makeKb([[{ text:'📈 Analitik' }, { text:'🏠 Menu Utama' }]])
   };
 }
 
@@ -621,10 +606,10 @@ Progress: ${pctGoal}%
 🏆 <b>TOP 3 MEREK</b>
 ${bArr.map(([b,v],i)=>`${['🥇','🥈','🥉'][i]} ${b}: ${rp(v.profit)} (${v.count}unit)`).join('\n')}
 `.trim(),
-    kb: [
-      [{ text:'📈 Analitik', callback_data:'menu_analitik' }, { text:'📊 Dashboard', callback_data:'menu_dashboard' }],
-      [{ text:'🏠 Menu', callback_data:'menu_utama' }]
-    ]
+    kb: makeKb([
+      [{ text:'📈 Analitik' }, { text:'📊 Dashboard' }],
+      [{ text:'🏠 Menu Utama' }]
+    ])
   };
 }
 
@@ -653,7 +638,7 @@ async function msgTxBulanIni(db) {
 <b>DETAIL TRANSAKSI:</b>
 ${rows || '—'}
 `.trim(),
-    kb: [[{ text:'💳 Menu Tx', callback_data:'menu_transaksi' }, { text:'🏠 Menu', callback_data:'menu_utama' }]]
+    kb: makeKb([[{ text:'💳 Menu Transaksi' }, { text:'🏠 Menu Utama' }]])
   };
 }
 
@@ -667,11 +652,10 @@ Modal Awal: ${rp(startBal)}
 
 Kamu bisa mengubah konfigurasi data toko di sini.
 `.trim(),
-    kb: [
-      [{ text:'💼 Ubah Modal Awal', callback_data:'set_modal' }],
-      [{ text:'💰 Tambah Laba Jasa', callback_data:'aksi_ekstra' }],
-      [{ text:'🏠 Menu', callback_data:'menu_utama' }]
-    ]
+    kb: makeKb([
+      [{ text:'💼 Ubah Modal Awal' }, { text:'⭐ Laba Jasa' }],
+      [{ text:'🏠 Menu Utama' }]
+    ])
   };
 }
 
@@ -687,7 +671,7 @@ async function handleInput(chat, uid, text, db) {
     sess.nama = text;
     sess.step = 'masuk_modal';
     await putData(db);
-    await send(chat, `✏️ Nama: <b>${text}</b>\n\nKetik <b>harga modal</b> (angka saja, contoh: 1500000):`, { reply_markup:{ keyboard: [[{text:'❌ Batal'}]], resize_keyboard: true } });
+    await send(chat, `✏️ Nama: <b>${text}</b>\n\nKetik <b>harga modal</b> (angka saja, contoh: 1500000):`, { reply_markup: makeKb(KB_CANCEL) });
     return;
   }
   if (sess.step === 'masuk_modal') {
@@ -696,7 +680,7 @@ async function handleInput(chat, uid, text, db) {
     sess.modal = val;
     sess.step  = 'masuk_harga';
     await putData(db);
-    await send(chat, `✏️ Modal: <b>${rp(val)}</b>\n\nKetik <b>harga jual</b>:`, { reply_markup:{ keyboard: [[{text:'❌ Batal'}]], resize_keyboard: true } });
+    await send(chat, `✏️ Modal: <b>${rp(val)}</b>\n\nKetik <b>harga jual</b>:`, { reply_markup: makeKb(KB_CANCEL) });
     return;
   }
   if (sess.step === 'masuk_harga') {
@@ -711,12 +695,136 @@ async function handleInput(chat, uid, text, db) {
 ✏️ Harga Jual: <b>${rp(val)}</b>
 Margin: <b>${rp(margin)}</b> (${pctM}%)
 
-Tipe barang:`, {
-      reply_markup: { inline_keyboard: [
-        [{ text:'🆕 Baru (modal keluar)', callback_data:'masuk_tipe_new' }],
-        [{ text:'♻️ Konsinyasi/Titipan', callback_data:'masuk_tipe_konsinyasi' }]
-      ]}
+Pilih tipe barang dari tombol di bawah layar:`, {
+      reply_markup: makeKb([[{ text:'🆕 Baru' }, { text:'♻️ Konsinyasi' }], [{ text:'❌ Batal' }]])
     });
+    return;
+  }
+  if (sess.step === 'masuk_tipe') {
+    if (text === '🆕 Baru' || text === '♻️ Konsinyasi') {
+      sess.tipe = text === '🆕 Baru' ? 'new' : 'konsinyasi';
+      try {
+        db.items = db.items || [];
+        db.items.push({ id: Date.now(), name: sess.nama, modal: sess.modal, price: sess.harga, status: 'stok', type: sess.tipe, addedAt: new Date().toISOString() });
+        clearSession(db, uid);
+        await putData(db);
+        const margin = sess.harga - sess.modal;
+        await send(chat, `
+✅ <b>BARANG BERHASIL DICATAT!</b>
+━━━━━━━━━━━━━━━━━━━━━━━━━
+📦 Nama: <b>${sess.nama}</b>
+💰 Modal: ${rp(sess.modal)}
+💵 Harga Jual: ${rp(sess.harga)}
+💛 Potensi Laba: ${rp(margin)}
+🏷️ Tipe: ${sess.tipe === 'new' ? '🆕 Baru' : '♻️ Konsinyasi'}
+📅 Dicatat: ${new Date().toLocaleDateString('id-ID')}
+`, { reply_markup: makeKb([[{ text:'➕ Catat Masuk' }, { text:'📦 Menu Stok' }], [{ text:'🏠 Menu Utama' }]]) });
+      } catch (e) { await send(chat, '❌ Gagal menyimpan. Coba lagi.', { reply_markup: MAIN_KEYBOARD }); }
+    } else {
+      await send(chat, '❌ Silakan gunakan tombol di bawah layar (Baru/Konsinyasi).');
+    }
+    return;
+  }
+
+  // ── KELOLA STOK (EDIT NAMA / HARGA / HAPUS) ────────────────────────
+  if (sess.step === 'kelola_stok_pilih') {
+    let pageMatch = text.match(/Edit Hal (\d+)/);
+    if (pageMatch) {
+      const view = getKelolaStokView(db, parseInt(pageMatch[1]));
+      await send(chat, view.text, { reply_markup: view.kb });
+      return;
+    }
+
+    let itemMatch = text.match(/^(\d+)\./);
+    if (itemMatch) {
+      const idx = parseInt(itemMatch[1]) - 1;
+      const items = (db.items||[]).filter(i => i.status === 'stok').sort((a,b) => (a.id||0) - (b.id||0));
+      const item = items[idx];
+      if (!item) { await send(chat, '❌ Item tidak ditemukan.'); return; }
+      
+      sess.selectedEditItem = item;
+      sess.step = 'kelola_aksi'; 
+      await putData(db);
+
+      const txt = `⚙️ <b>KELOLA BARANG</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n📦 Nama: <b>${item.name}</b>\n💰 Modal: ${rp(item.modal)}\n💵 Jual: ${rp(item.price)}\n\nPilih aksi di bawah layar:`;
+      const kb = makeKb([[{ text:'✏️ Edit Nama' }, { text:'💰 Edit Harga' }], [{ text:'🗑️ Hapus Barang' }, { text:'❌ Batal' }]]);
+      await send(chat, txt, { reply_markup: kb });
+      return;
+    }
+    await send(chat, '❌ Silakan pilih barang dari tombol di bawah layar.');
+    return;
+  }
+
+  if (sess.step === 'kelola_aksi') {
+    if (text === '✏️ Edit Nama') {
+      sess.step = 'edit_stok_nama'; await putData(db);
+      await send(chat, `✏️ Masukkan <b>Nama Baru</b> untuk barang ini:`, { reply_markup: makeKb(KB_CANCEL) });
+      return;
+    }
+    if (text === '💰 Edit Harga') {
+      sess.step = 'edit_stok_modal'; await putData(db);
+      await send(chat, `💰 Masukkan <b>Harga Modal Baru</b> (angka saja):`, { reply_markup: makeKb(KB_CANCEL) });
+      return;
+    }
+    if (text === '🗑️ Hapus Barang') {
+      sess.step = 'hapus_konfirmasi'; await putData(db);
+      await send(chat, `⚠️ <b>YAKIN HAPUS BARANG INI?</b>\n📦 ${sess.selectedEditItem.name}\n\nTindakan ini tidak bisa dibatalkan!`, { reply_markup: makeKb([[{ text:'✅ Ya, Hapus' }, { text:'❌ Batal' }]]) });
+      return;
+    }
+  }
+
+  if (sess.step === 'edit_stok_nama') {
+    const item = sess.selectedEditItem;
+    const idx = db.items.findIndex(i => i.id === item.id);
+    if (idx > -1) {
+      db.items[idx].name = text;
+      clearSession(db, uid);
+      await putData(db);
+      await send(chat, `✅ Nama barang berhasil diubah menjadi <b>${text}</b>!`, { reply_markup: MAIN_KEYBOARD });
+    }
+    return;
+  }
+
+  if (sess.step === 'edit_stok_modal') {
+    const val = parseInt(text.replace(/\D/g,''));
+    if (!val || val <= 0) { await send(chat, '❌ Harga tidak valid. Coba lagi:'); return; }
+    sess.newEditModal = val;
+    sess.step = 'edit_stok_harga';
+    await putData(db);
+    await send(chat, `💰 Modal baru: <b>${rp(val)}</b>\n\nSekarang ketik <b>Harga Jual Baru</b>:`, { reply_markup: makeKb(KB_CANCEL) });
+    return;
+  }
+
+  if (sess.step === 'edit_stok_harga') {
+    const val = parseInt(text.replace(/\D/g,''));
+    if (!val || val <= 0) { await send(chat, '❌ Harga tidak valid. Coba lagi:'); return; }
+    const item = sess.selectedEditItem;
+    const idx = db.items.findIndex(i => i.id === item.id);
+    if (idx > -1) {
+      db.items[idx].modal = sess.newEditModal;
+      db.items[idx].price = val;
+      clearSession(db, uid);
+      await putData(db);
+      await send(chat, `✅ Harga barang berhasil diubah!\nModal: ${rp(sess.newEditModal)}\nJual: ${rp(val)}`, { reply_markup: MAIN_KEYBOARD });
+    }
+    return;
+  }
+
+  if (sess.step === 'hapus_konfirmasi') {
+    if (text === '✅ Ya, Hapus') {
+      const item = sess.selectedEditItem;
+      const idx = db.items.findIndex(i => i.id === item.id);
+      if (idx > -1) {
+        db.items.splice(idx, 1);
+        clearSession(db, uid);
+        await putData(db);
+        await send(chat, `🗑️ Barang <b>${item.name}</b> berhasil dihapus dari sistem.`, { reply_markup: MAIN_KEYBOARD });
+      }
+    } else {
+      clearSession(db, uid);
+      await putData(db);
+      await send(chat, `❌ Penghapusan dibatalkan.`, { reply_markup: MAIN_KEYBOARD });
+    }
     return;
   }
 
@@ -731,14 +839,39 @@ Tipe barang:`, {
     sess.step        = 'terjual_pilih';
     sess.cariResults = items.slice(0, 8);
     await putData(db);
-    const kb = items.slice(0, 8).map((item, i) => [{ text:`${i+1}. ${item.name} (${rpShort(item.price)})`, callback_data:`terjual_item_${i}` }]);
-    kb.push([{ text:'❌ Batal', callback_data:'cancel' }]);
-    await send(chat, `🔍 Ditemukan <b>${items.length}</b> item:\nPilih barang yang terjual:`, { reply_markup:{ inline_keyboard:kb } });
+    let kb = items.slice(0, 8).map((item, i) => [{ text:`${i+1}. ${item.name}` }]);
+    kb.push([{ text:'❌ Batal' }]);
+    await send(chat, `🔍 Ditemukan <b>${items.length}</b> item:\nPilih barang yang terjual dari tombol di bawah layar:`, { reply_markup: makeKb(kb) });
+    return;
+  }
+
+  if (sess.step === 'terjual_pilih') {
+    const match = text.match(/^(\d+)\./);
+    if (!match) { await send(chat, '❌ Gunakan tombol yang muncul di bawah layar.'); return; }
+    const idx = parseInt(match[1]) - 1;
+    const item = sess.cariResults?.[idx];
+    if (!item) { await send(chat, '❌ Item tidak ditemukan.'); return; }
+    
+    sess.selectedItem = item;
+    sess.step = 'terjual_harga';
+    await putData(db);
+    await send(chat, `
+✅ <b>KONFIRMASI BARANG</b>
+━━━━━━━━━━━━━━━━━━━━━━━━━
+📦 Barang: <b>${item.name}</b>
+💰 Modal: ${rp(item.modal)}
+💵 Harga List: ${rp(item.price)}
+
+Ketik <b>harga jual aktual</b> (atau pencet tombol list harga di bawah):
+`, { reply_markup: makeKb([[{ text:`💵 Pakai harga list: ${rpShort(item.price)}` }], [{ text:'❌ Batal' }]]) });
     return;
   }
 
   if (sess.step === 'terjual_harga') {
-    const val = parseInt(text.replace(/\D/g,''));
+    let val;
+    if (text.startsWith('💵 Pakai harga list')) val = sess.selectedItem.price;
+    else val = parseInt(text.replace(/\D/g,''));
+
     if (!val || val <= 0) { await send(chat, '❌ Harga tidak valid. Coba lagi:'); return; }
     sess.hargaJual = val;
     sess.step = 'terjual_konfirmasi';
@@ -755,51 +888,32 @@ Tipe barang:`, {
 📅 Tgl Jual: ${new Date().toLocaleDateString('id-ID')}
 
 Konfirmasi penjualan ini?`, {
-      reply_markup: { inline_keyboard: [
-        [{ text:'✅ Ya, Konfirmasi', callback_data:'terjual_confirm' }, { text:'❌ Batal', callback_data:'cancel' }]
-      ]}
+      reply_markup: makeKb([[{ text:'✅ Ya, Konfirmasi' }, { text:'❌ Batal' }]])
     });
     return;
   }
 
-  // ── KELOLA STOK (EDIT NAMA / HARGA / HAPUS) ────────────────────────
-  if (sess.step === 'edit_stok_nama') {
-    const item = sess.selectedEditItem;
-    const idx = db.items.findIndex(i => i.id === item.id);
-    if (idx > -1) {
-      db.items[idx].name = text;
+  if (sess.step === 'terjual_konfirmasi') {
+    if (text !== '✅ Ya, Konfirmasi') { await send(chat, 'Silakan pilih Ya atau Batal di bawah.'); return; }
+    const item = sess.selectedItem;
+    try {
+      const idx = (db.items||[]).findIndex(i => i.id === item.id);
+      db.items[idx].status = 'sold'; db.items[idx].price = sess.hargaJual; db.items[idx].soldAt = new Date().toISOString().slice(0,10);
+      
       clearSession(db, uid);
       await putData(db);
-      await send(chat, `✅ Nama barang berhasil diubah menjadi <b>${text}</b>!`, { reply_markup: MAIN_KEYBOARD });
-      const m = await msgStokMenu(db);
-      await send(chat, m.text, { reply_markup:{ inline_keyboard: m.kb } });
-    }
-    return;
-  }
 
-  if (sess.step === 'edit_stok_modal') {
-    const val = parseInt(text.replace(/\D/g,''));
-    if (!val || val <= 0) { await send(chat, '❌ Harga tidak valid. Coba lagi:'); return; }
-    sess.newEditModal = val;
-    sess.step = 'edit_stok_harga';
-    await putData(db);
-    await send(chat, `💰 Modal baru: <b>${rp(val)}</b>\n\nSekarang ketik <b>Harga Jual Baru</b>:`, { reply_markup:{ keyboard: [[{text:'❌ Batal'}]], resize_keyboard: true } });
-    return;
-  }
-
-  if (sess.step === 'edit_stok_harga') {
-    const val = parseInt(text.replace(/\D/g,''));
-    if (!val || val <= 0) { await send(chat, '❌ Harga tidak valid. Coba lagi:'); return; }
-    const item = sess.selectedEditItem;
-    const idx = db.items.findIndex(i => i.id === item.id);
-    if (idx > -1) {
-      db.items[idx].modal = sess.newEditModal;
-      db.items[idx].price = val;
-      clearSession(db, uid);
-      await putData(db);
-      await send(chat, `✅ Harga barang berhasil diubah!\nModal: ${rp(sess.newEditModal)}\nJual: ${rp(val)}`, { reply_markup: MAIN_KEYBOARD });
-      const m = await msgStokMenu(db);
-      await send(chat, m.text, { reply_markup:{ inline_keyboard: m.kb } });
+      const profit = sess.hargaJual - item.modal;
+      await send(chat, `
+🎉 <b>BARANG BERHASIL TERJUAL!</b>
+━━━━━━━━━━━━━━━━━━━━━━━━━
+📦 Barang: <b>${item.name}</b>
+💵 Harga Jual: ${rp(sess.hargaJual)}
+💛 Laba: <b>${rp(profit)}</b>
+📅 Tgl: ${new Date().toLocaleDateString('id-ID')}
+`, { reply_markup: makeKb([[{ text:'✅ Tandai Terjual Lagi' }, { text:'📊 Dashboard' }], [{ text:'🏠 Menu Utama' }]]) });
+    } catch (e) {
+      await send(chat, '❌ Gagal update data. Coba lagi.', { reply_markup: MAIN_KEYBOARD });
     }
     return;
   }
@@ -809,7 +923,7 @@ Konfirmasi penjualan ini?`, {
     sess.ekstraNama = text;
     sess.step       = 'ekstra_nominal';
     await putData(db);
-    await send(chat, `✏️ Keterangan: <b>${text}</b>\n\nKetik <b>nominal laba</b>:`, { reply_markup:{ keyboard: [[{text:'❌ Batal'}]], resize_keyboard: true } });
+    await send(chat, `✏️ Keterangan: <b>${text}</b>\n\nKetik <b>nominal laba</b>:`, { reply_markup: makeKb(KB_CANCEL) });
     return;
   }
   if (sess.step === 'ekstra_nominal') {
@@ -825,10 +939,34 @@ Konfirmasi penjualan ini?`, {
 💰 Nominal: <b>${rp(val)}</b>
 
 Catat laba ini?`, {
-      reply_markup: { inline_keyboard: [
-        [{ text:'✅ Ya, Catat', callback_data:'ekstra_confirm' }, { text:'❌ Batal', callback_data:'cancel' }]
-      ]}
+      reply_markup: makeKb([[{ text:'✅ Ya, Catat' }, { text:'❌ Batal' }]])
     });
+    return;
+  }
+  if (sess.step === 'ekstra_konfirmasi') {
+    if (text !== '✅ Ya, Catat') { await send(chat, 'Pilih Ya atau Batal.'); return; }
+    try {
+      db.extraProfits = db.extraProfits || [];
+      db.extraProfits.push({
+        id: Date.now(),
+        name: sess.ekstraNama,
+        profit: sess.ekstraNominal,
+        date: new Date().toISOString().slice(0,10)
+      });
+      
+      clearSession(db, uid);
+      await putData(db);
+
+      await send(chat, `
+✅ <b>LABA JASA DICATAT!</b>
+━━━━━━━━━━━━━━━━━━━━━━━━━
+📋 Keterangan: <b>${sess.ekstraNama}</b>
+💰 Nominal: <b>${rp(sess.ekstraNominal)}</b>
+📅 Tanggal: ${new Date().toLocaleDateString('id-ID')}
+`, { reply_markup: makeKb([[{ text:'⭐ Catat Lagi' }, { text:'📊 Dashboard' }], [{ text:'🏠 Menu Utama' }]]) });
+    } catch (e) {
+      await send(chat, '❌ Gagal menyimpan.', { reply_markup: MAIN_KEYBOARD });
+    }
     return;
   }
 
@@ -844,10 +982,20 @@ Catat laba ini?`, {
 Modal baru: <b>${rp(val)}</b>
 
 Lanjutkan perubahan ini?`, {
-      reply_markup: { inline_keyboard: [
-        [{ text:'✅ Ya', callback_data:'set_modal_confirm' }, { text:'❌ Batal', callback_data:'cancel' }]
-      ]}
+      reply_markup: makeKb([[{ text:'✅ Ya, Ubah' }, { text:'❌ Batal' }]])
     });
+    return;
+  }
+  if (sess.step === 'set_modal_konfirmasi') {
+    if (text !== '✅ Ya, Ubah') return;
+    try {
+      db.startBalance = sess.newModal;
+      clearSession(db, uid);
+      await putData(db);
+      await send(chat, `✅ Modal awal berhasil diubah ke <b>${rp(sess.newModal)}</b>`, { reply_markup: makeKb(KB_SETTING) });
+    } catch (e) {
+      await send(chat, '❌ Gagal menyimpan.', { reply_markup: MAIN_KEYBOARD });
+    }
     return;
   }
 
@@ -875,7 +1023,7 @@ Lanjutkan perubahan ini?`, {
 ✅ Sudah Terjual: ${sold.length} item
 
 ${rows || '—'}
-`, { reply_markup:{ inline_keyboard:[[{ text:'📦 Menu Stok', callback_data:'menu_stok' }]] } });
+`, { reply_markup: makeKb([[{ text:'📦 Menu Stok' }]]) });
     
     clearSession(db, uid);
     await putData(db);
@@ -890,397 +1038,9 @@ ${rows || '—'}
 //  CALLBACK HANDLER
 // ══════════════════════════════════════════════════════════════════════
 async function handleCallback(cb) {
-  const chat = cb.message.chat.id;
-  const uid  = cb.from.id;
-  const mid  = cb.message.message_id;
-  const data = cb.data;
-  await answer(cb.id);
-
-  if (!isAdmin(uid)) {
-    await answer(cb.id, '⛔ Kamu tidak punya akses!', true);
-    return;
-  }
-
-  let db;
-  try { db = await getData(); }
-  catch (e) { await send(chat, '❌ Gagal ambil data. Coba lagi.'); return; }
-
-  // ── NAVIGASI MENU ────────────────────────────────────────────────
-  if (data === 'menu_utama' || data === 'refresh') {
-    const m = menuUtama();
-    await edit(chat, mid, m.text, { reply_markup:{ inline_keyboard: m.kb } });
-    return;
-  }
-  if (data === 'menu_dashboard' || data === 'dash_refresh') {
-    const m = await msgDashboard(db);
-    await edit(chat, mid, m.text, { reply_markup:{ inline_keyboard: m.kb } });
-    return;
-  }
-  if (data === 'menu_stok') {
-    const m = await msgStokMenu(db);
-    await edit(chat, mid, m.text, { reply_markup:{ inline_keyboard: m.kb } });
-    return;
-  }
-  if (data.startsWith('stok_list_')) {
-    const page = parseInt(data.split('_')[2]) || 1;
-    const m    = await msgStokList(db, page);
-    await edit(chat, mid, m.text, { reply_markup:{ inline_keyboard: m.kb } });
-    return;
-  }
-  if (data === 'stok_aging') {
-    const m = await msgStokAging(db);
-    await edit(chat, mid, m.text, { reply_markup:{ inline_keyboard: m.kb } });
-    return;
-  }
-  
-  // ── FITUR KELOLA STOK (PAGINATION) ──────────────────────────────
-  if (data === 'aksi_kelola_stok' || data.startsWith('kelola_page_')) {
-    let page = 1;
-    if (data.startsWith('kelola_page_')) {
-      page = parseInt(data.split('_')[2]) || 1;
-    }
-    const view = getKelolaStokView(db, page);
-    await edit(chat, mid, view.text, { reply_markup: { inline_keyboard: view.kb } });
-    return;
-  }
-
-  if (data.startsWith('kelola_item_')) {
-    const itemId = parseInt(data.split('_')[2]);
-    const item = (db.items||[]).find(i => i.id === itemId);
-    if (!item) { await answer(cb.id, '❌ Item tidak ditemukan', true); return; }
-    
-    getSession(db, uid).selectedEditItem = item;
-    await putData(db);
-
-    const txt = `⚙️ <b>KELOLA BARANG</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n📦 Nama: <b>${item.name}</b>\n💰 Modal: ${rp(item.modal)}\n💵 Jual: ${rp(item.price)}\n\nPilih aksi di bawah ini:`;
-    const kb = [
-      [{ text: '✏️ Edit Nama', callback_data: 'edit_stok_nama' }, { text: '💰 Edit Harga', callback_data: 'edit_stok_harga' }],
-      [{ text: '🗑️ Hapus Barang', callback_data: 'hapus_stok_konfirm' }],
-      [{ text: '📦 Kembali ke Daftar', callback_data: 'aksi_kelola_stok' }]
-    ];
-    await edit(chat, mid, txt, { reply_markup: { inline_keyboard: kb } });
-    return;
-  }
-
-  if (data === 'edit_stok_nama') {
-    getSession(db, uid).step = 'edit_stok_nama';
-    await putData(db);
-    await send(chat, `✏️ Masukkan <b>Nama Baru</b> untuk barang ini:`, { reply_markup:{ keyboard: [[{text:'❌ Batal'}]], resize_keyboard: true } });
-    return;
-  }
-
-  if (data === 'edit_stok_harga') {
-    getSession(db, uid).step = 'edit_stok_modal';
-    await putData(db);
-    await send(chat, `💰 Masukkan <b>Harga Modal Baru</b> (angka saja):`, { reply_markup:{ keyboard: [[{text:'❌ Batal'}]], resize_keyboard: true } });
-    return;
-  }
-
-  if (data === 'hapus_stok_konfirm') {
-    const item = getSession(db, uid).selectedEditItem;
-    if (!item) return;
-    const txt = `⚠️ <b>YAKIN HAPUS BARANG INI?</b>\n📦 ${item.name}\n\nTindakan ini tidak bisa dibatalkan!`;
-    const kb = [
-      [{ text: '✅ Ya, Hapus Permanen', callback_data: 'hapus_stok_eksekusi' }],
-      [{ text: '❌ Batal, Kembali', callback_data: 'aksi_kelola_stok' }]
-    ];
-    await edit(chat, mid, txt, { reply_markup: { inline_keyboard: kb } });
-    return;
-  }
-
-  if (data === 'hapus_stok_eksekusi') {
-    const item = getSession(db, uid).selectedEditItem;
-    if (!item) return;
-    const idx = (db.items||[]).findIndex(i => i.id === item.id);
-    if (idx > -1) {
-      db.items.splice(idx, 1);
-      clearSession(db, uid);
-      await putData(db);
-      await edit(chat, mid, `🗑️ Barang <b>${item.name}</b> berhasil dihapus dari sistem.`, { 
-        reply_markup: { inline_keyboard: [[{ text: '📦 Menu Stok', callback_data: 'menu_stok' }]] }
-      });
-    }
-    return;
-  }
-  // ─────────────────────────────────────────────────────────────────
-
-  if (data === 'menu_transaksi') {
-    const m = await msgTransaksi(db);
-    await edit(chat, mid, m.text, { reply_markup:{ inline_keyboard: m.kb } });
-    return;
-  }
-  if (data === 'tx_list_10') {
-    const m = await msgTxList(db, 10);
-    await edit(chat, mid, m.text, { reply_markup:{ inline_keyboard: m.kb } });
-    return;
-  }
-  if (data === 'tx_bulan_ini') {
-    const m = await msgTxBulanIni(db);
-    await edit(chat, mid, m.text, { reply_markup:{ inline_keyboard: m.kb } });
-    return;
-  }
-  if (data === 'tx_cashflow') {
-    const m = await msgCashflow(db);
-    await edit(chat, mid, m.text, { reply_markup:{ inline_keyboard: m.kb } });
-    return;
-  }
-  if (data === 'menu_analitik') {
-    const m = await msgAnalitik(db);
-    await edit(chat, mid, m.text, { reply_markup:{ inline_keyboard: m.kb } });
-    return;
-  }
-  if (data === 'analitik_brand') {
-    const m = await msgBrandDetail(db);
-    await edit(chat, mid, m.text, { reply_markup:{ inline_keyboard: m.kb } });
-    return;
-  }
-  if (data === 'analitik_tren') {
-    const m = await msgTren(db);
-    await edit(chat, mid, m.text, { reply_markup:{ inline_keyboard: m.kb } });
-    return;
-  }
-  if (data === 'laporan_full') {
-    const m = await msgLaporanFull(db);
-    await edit(chat, mid, m.text, { reply_markup:{ inline_keyboard: m.kb } });
-    return;
-  }
-  if (data === 'menu_settings') {
-    const m = msgSettings(db);
-    await edit(chat, mid, m.text, { reply_markup:{ inline_keyboard: m.kb } });
-    return;
-  }
-
-  // ── AKSI: CATAT MASUK ────────────────────────────────────────────
-  if (data === 'aksi_masuk') {
-    clearSession(db, uid);
-    getSession(db, uid).step = 'masuk_nama';
-    await putData(db);
-    await send(chat, `➕ <b>CATAT BARANG MASUK</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n\nKetik <b>nama barang</b> lengkap:\n(contoh: iPhone 13 128GB Black)`, { reply_markup:{ keyboard: [[{text:'❌ Batal'}]], resize_keyboard: true } });
-    return;
-  }
-
-  if (data === 'masuk_tipe_new' || data === 'masuk_tipe_konsinyasi') {
-    const sess = getSession(db, uid);
-    sess.tipe  = data === 'masuk_tipe_new' ? 'new' : 'konsinyasi';
-    try {
-      db.items = db.items || [];
-      db.items.push({
-        id: Date.now(),
-        name: sess.nama,
-        modal: sess.modal,
-        price: sess.harga,
-        status: 'stok',
-        type: sess.tipe,
-        addedAt: new Date().toISOString()
-      });
-      clearSession(db, uid);
-      await putData(db);
-      
-      const margin = sess.harga - sess.modal;
-      await edit(chat, mid, `
-✅ <b>BARANG BERHASIL DICATAT!</b>
-━━━━━━━━━━━━━━━━━━━━━━━━━
-📦 Nama: <b>${sess.nama}</b>
-💰 Modal: ${rp(sess.modal)}
-💵 Harga Jual: ${rp(sess.harga)}
-💛 Potensi Laba: ${rp(margin)}
-🏷️ Tipe: ${sess.tipe === 'new' ? '🆕 Baru' : '♻️ Konsinyasi'}
-📅 Dicatat: ${new Date().toLocaleDateString('id-ID')}
-`, { reply_markup:{ inline_keyboard:[
-        [{ text:'➕ Catat Lagi', callback_data:'aksi_masuk' }],
-        [{ text:'📦 Lihat Stok', callback_data:'menu_stok' }, { text:'🏠 Menu', callback_data:'menu_utama' }]
-      ]}});
-      await send(chat, "✅ Aksi selesai.", { reply_markup: MAIN_KEYBOARD });
-    } catch (e) {
-      await edit(chat, mid, '❌ Gagal menyimpan. Coba lagi.', { reply_markup:{ inline_keyboard:[[{ text:'🏠 Menu', callback_data:'menu_utama' }]] }});
-    }
-    return;
-  }
-
-  // ── AKSI: TANDAI TERJUAL ──────────────────────────────────────────
-  if (data === 'aksi_terjual') {
-    clearSession(db, uid);
-    getSession(db, uid).step = 'terjual_cari';
-    await putData(db);
-    await send(chat, `✅ <b>TANDAI BARANG TERJUAL</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n\nKetik <b>nama barang</b> atau <b>kata kunci</b> untuk dicari:`, { reply_markup:{ keyboard: [[{text:'❌ Batal'}]], resize_keyboard: true } });
-    return;
-  }
-
-  if (data.startsWith('terjual_item_')) {
-    const idx  = parseInt(data.split('_')[2]);
-    const sess = getSession(db, uid);
-    const item = sess.cariResults?.[idx];
-    if (!item) { await send(chat, '❌ Item tidak ditemukan.'); return; }
-    sess.selectedItem = item;
-    sess.step = 'terjual_harga';
-    await putData(db);
-    await edit(chat, mid, `
-✅ <b>KONFIRMASI BARANG</b>
-━━━━━━━━━━━━━━━━━━━━━━━━━
-📦 Barang: <b>${item.name}</b>
-💰 Modal: ${rp(item.modal)}
-💵 Harga List: ${rp(item.price)}
-
-Ketik <b>harga jual aktual</b> (atau kosongkan untuk pakai harga list ${rp(item.price)}):
-`, { reply_markup:{ inline_keyboard:[
-      [{ text:`💵 Pakai harga list: ${rpShort(item.price)}`, callback_data:'terjual_harga_list' }],
-      [{ text:'❌ Batal', callback_data:'cancel' }]
-    ]}});
-    return;
-  }
-
-  if (data === 'terjual_harga_list') {
-    const sess = getSession(db, uid);
-    if (!sess.selectedItem) { await send(chat, '❌ Sesi tidak valid. Mulai lagi.'); return; }
-    sess.hargaJual = sess.selectedItem.price;
-    sess.step      = 'terjual_konfirmasi';
-    await putData(db);
-    const profit   = sess.hargaJual - sess.selectedItem.modal;
-    await edit(chat, mid, `
-✅ <b>KONFIRMASI PENJUALAN</b>
-━━━━━━━━━━━━━━━━━━━━━━━━━
-📦 Barang: <b>${sess.selectedItem.name}</b>
-💰 Modal: ${rp(sess.selectedItem.modal)}
-💵 Harga Jual: ${rp(sess.hargaJual)}
-💛 Laba: ${rp(profit)}
-
-Konfirmasi?`, { reply_markup:{ inline_keyboard:[
-      [{ text:'✅ Ya, Konfirmasi', callback_data:'terjual_confirm' }, { text:'❌ Batal', callback_data:'cancel' }]
-    ]}});
-    return;
-  }
-
-  if (data === 'terjual_confirm') {
-    const sess = getSession(db, uid);
-    const item = sess.selectedItem;
-    if (!item) { await send(chat, '❌ Sesi tidak valid.'); return; }
-    try {
-      const idx = (db.items||[]).findIndex(i => i.id === item.id);
-      if (idx === -1) throw new Error('Item not found');
-      db.items[idx].status = 'sold';
-      db.items[idx].price  = sess.hargaJual;
-      db.items[idx].soldAt = new Date().toISOString().slice(0,10);
-      
-      clearSession(db, uid);
-      await putData(db);
-
-      const profit = sess.hargaJual - item.modal;
-      await edit(chat, mid, `
-🎉 <b>BARANG BERHASIL TERJUAL!</b>
-━━━━━━━━━━━━━━━━━━━━━━━━━
-📦 Barang: <b>${item.name}</b>
-💵 Harga Jual: ${rp(sess.hargaJual)}
-💛 Laba: <b>${rp(profit)}</b>
-📅 Tgl: ${new Date().toLocaleDateString('id-ID')}
-`, { reply_markup:{ inline_keyboard:[
-        [{ text:'✅ Tandai Terjual Lagi', callback_data:'aksi_terjual' }],
-        [{ text:'📊 Dashboard', callback_data:'menu_dashboard' }, { text:'🏠 Menu', callback_data:'menu_utama' }]
-      ]}});
-      await send(chat, "✅ Aksi selesai.", { reply_markup: MAIN_KEYBOARD });
-    } catch (e) {
-      await edit(chat, mid, '❌ Gagal update data. Coba lagi.', { reply_markup:{ inline_keyboard:[[{ text:'🏠 Menu', callback_data:'menu_utama' }]] }});
-    }
-    return;
-  }
-
-  // ── AKSI: LABA JASA ──────────────────────────────────────────────
-  if (data === 'aksi_ekstra') {
-    clearSession(db, uid);
-    getSession(db, uid).step = 'ekstra_nama';
-    await putData(db);
-    await send(chat, `
-⭐ <b>CATAT LABA JASA / EKSTRA</b>
-━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Ketik <b>keterangan / nama transaksi</b>:
-(contoh: Servis HP, Joki Unlock, dll)
-`, { reply_markup:{ keyboard: [[{text:'❌ Batal'}]], resize_keyboard: true } });
-    return;
-  }
-
-  if (data === 'ekstra_confirm') {
-    const sess = getSession(db, uid);
-    try {
-      db.extraProfits = db.extraProfits || [];
-      db.extraProfits.push({
-        id: Date.now(),
-        name: sess.ekstraNama,
-        profit: sess.ekstraNominal,
-        date: new Date().toISOString().slice(0,10)
-      });
-      
-      clearSession(db, uid);
-      await putData(db);
-
-      await edit(chat, mid, `
-✅ <b>LABA JASA DICATAT!</b>
-━━━━━━━━━━━━━━━━━━━━━━━━━
-📋 Keterangan: <b>${sess.ekstraNama}</b>
-💰 Nominal: <b>${rp(sess.ekstraNominal)}</b>
-📅 Tanggal: ${new Date().toLocaleDateString('id-ID')}
-`, { reply_markup:{ inline_keyboard:[
-        [{ text:'⭐ Catat Lagi', callback_data:'aksi_ekstra' }],
-        [{ text:'📊 Dashboard', callback_data:'menu_dashboard' }, { text:'🏠 Menu', callback_data:'menu_utama' }]
-      ]}});
-      await send(chat, "✅ Aksi selesai.", { reply_markup: MAIN_KEYBOARD });
-    } catch (e) {
-      await edit(chat, mid, '❌ Gagal menyimpan.', { reply_markup:{ inline_keyboard:[[{ text:'🏠 Menu', callback_data:'menu_utama' }]] }});
-    }
-    return;
-  }
-
-  // ── SETTINGS: SET MODAL ──────────────────────────────────────────
-  if (data === 'set_modal') {
-    clearSession(db, uid);
-    getSession(db, uid).step = 'set_modal';
-    await putData(db);
-    await send(chat, `
-💼 <b>UBAH MODAL AWAL</b>
-Modal saat ini: ${rp(Number(db.startBalance)||0)}
-
-Ketik <b>modal awal baru</b>:
-`, { reply_markup:{ keyboard: [[{text:'❌ Batal'}]], resize_keyboard: true } });
-    return;
-  }
-
-  if (data === 'set_modal_confirm') {
-    const sess = getSession(db, uid);
-    try {
-      db.startBalance = sess.newModal;
-      clearSession(db, uid);
-      await putData(db);
-      await edit(chat, mid, `✅ Modal awal berhasil diubah ke <b>${rp(sess.newModal)}</b>`, { reply_markup:{ inline_keyboard:[[{ text:'🏠 Menu', callback_data:'menu_utama' }]] }});
-      await send(chat, "✅ Aksi selesai.", { reply_markup: MAIN_KEYBOARD });
-    } catch (e) {
-      await edit(chat, mid, '❌ Gagal menyimpan.', { reply_markup:{ inline_keyboard:[[{ text:'🏠 Menu', callback_data:'menu_utama' }]] }});
-    }
-    return;
-  }
-
-  // ── CARI STOK ────────────────────────────────────────────────────
-  if (data === 'stok_cari') {
-    clearSession(db, uid);
-    getSession(db, uid).step = 'stok_cari';
-    await putData(db);
-    await send(chat, `
-🔍 <b>CARI STOK</b>
-
-Ketik <b>nama atau kata kunci</b> barang yang ingin dicari:
-`, { reply_markup:{ keyboard: [[{text:'❌ Batal'}]], resize_keyboard: true } });
-    return;
-  }
-
-  // ── CANCEL ───────────────────────────────────────────────────────
-  if (data === 'cancel') {
-    clearSession(db, uid);
-    await putData(db);
-    const m = menuUtama();
-    await edit(chat, mid, m.text, { reply_markup:{ inline_keyboard: m.kb } });
-    await send(chat, "✅ Dibatalkan.", { reply_markup: MAIN_KEYBOARD });
-    return;
-  }
-
-  await answer(cb.id, 'Aksi tidak dikenal.', true);
+  // Hanya cegat tombol lama yang tertinggal di bubble chat
+  await answer(cb.id, '⛔ Tombol ini sudah tidak aktif! Silakan gunakan menu keyboard di bawah layar.', true);
+  await tg('editMessageReplyMarkup', { chat_id: cb.message.chat.id, message_id: cb.message.message_id, reply_markup: { inline_keyboard: [] } });
 }
 
 // ══════════════════════════════════════════════════════════════════════
@@ -1301,75 +1061,145 @@ async function handleCommand(msg) {
   catch (e) { await send(chat, '❌ Gagal ambil data.'); return; }
 
   // ── MENCEGAT PERINTAH DARI TOMBOL BAWAH LAYAR ─────────
-  if (BOTTOM_COMMANDS.includes(text) || text === '❌ Batal') {
+  if (RESET_COMMANDS.includes(text) || text.startsWith('🏠')) {
     clearSession(db, uid);
     await putData(db);
   }
 
-  if (text === '/start' || text === '/menu' || text === '/m') {
-    clearSession(db, uid);
-    await putData(db);
-    await send(chat, `🤖 <b>Keyboard Bawah Diaktifkan!</b>\nKamu bisa navigasi dengan tombol di bawah layar atau menu di bawah ini.`, { reply_markup: MAIN_KEYBOARD });
+  if (text === '/start' || text === '/menu' || text === '/m' || text === '🏠 Menu Utama' || text === '❌ Batal') {
     const m = menuUtama();
-    await send(chat, m.text, { reply_markup:{ inline_keyboard: m.kb } });
+    await send(chat, m.text, { reply_markup: m.kb });
     return;
   }
 
-  if (text === '📊 Dashboard' || text === '/dashboard' || text === '/d') {
+  if (text === '📊 Dashboard' || text === '🔄 Refresh Data' || text === '/dashboard' || text === '/d') {
     const m = await msgDashboard(db);
-    await send(chat, m.text, { reply_markup:{ inline_keyboard: m.kb } });
+    await send(chat, m.text, { reply_markup: makeKb(KB_DASHBOARD) });
     return;
   }
 
   if (text === '📦 Menu Stok' || text === '/stok' || text === '/s') {
     const m = await msgStokMenu(db);
-    await send(chat, m.text, { reply_markup:{ inline_keyboard: m.kb } });
+    await send(chat, m.text, { reply_markup: makeKb(KB_STOK) });
     return;
   }
 
-  if (text === '💳 Transaksi') {
+  if (text === '💳 Transaksi' || text === '💳 Menu Transaksi') {
     const m = await msgTransaksi(db);
-    await send(chat, m.text, { reply_markup:{ inline_keyboard: m.kb } });
+    await send(chat, m.text, { reply_markup: makeKb(KB_TX) });
     return;
   }
 
   if (text === '📈 Analitik' || text === '/laporan' || text === '/l') {
     const m = await msgAnalitik(db);
-    await send(chat, m.text, { reply_markup:{ inline_keyboard: m.kb } });
+    await send(chat, m.text, { reply_markup: makeKb(KB_ANALITIK) });
     return;
   }
 
   if (text === '⚙️ Pengaturan') {
     const m = msgSettings(db);
-    await send(chat, m.text, { reply_markup:{ inline_keyboard: m.kb } });
+    await send(chat, m.text, { reply_markup: makeKb(KB_SETTING) });
+    return;
+  }
+
+  // ── SUB-MENU NAVIGASI ──
+  if (text === '📈 Analitik Detail') {
+    const m = await msgBrandDetail(db);
+    await send(chat, m.text, { reply_markup: makeKb([[{ text:'📈 Analitik' }, { text:'🏠 Menu Utama' }]]) }); 
+    return;
+  }
+  if (text === '📋 Daftar Semua Stok' || text.match(/Daftar Hal \d+/)) {
+    let page = 1;
+    const matchNext = text.match(/Daftar Hal (\d+) ➡️/);
+    const matchPrev = text.match(/⬅️ Daftar Hal (\d+)/);
+    if (matchNext) page = parseInt(matchNext[1]);
+    if (matchPrev) page = parseInt(matchPrev[1]);
+    const m = await msgStokList(db, page);
+    await send(chat, m.text, { reply_markup: m.kb }); 
+    return;
+  }
+  if (text === '⏳ Stok Mengendap') {
+    const m = await msgStokAging(db);
+    await send(chat, m.text, { reply_markup: makeKb([[{ text:'✅ Tandai Terjual' }], [{ text:'📦 Menu Stok' }, { text:'🏠 Menu Utama' }]]) }); 
+    return;
+  }
+  if (text === '📋 10 Tx Terakhir') {
+    const m = await msgTxList(db, 10);
+    await send(chat, m.text, { reply_markup: makeKb([[{ text:'💳 Menu Transaksi' }, { text:'🏠 Menu Utama' }]]) }); 
+    return;
+  }
+  if (text === '📅 Tx Bulan Ini') {
+    const m = await msgTxBulanIni(db);
+    await send(chat, m.text, { reply_markup: makeKb([[{ text:'💳 Menu Transaksi' }, { text:'🏠 Menu Utama' }]]) }); 
+    return;
+  }
+  if (text === '💰 Arus Kas Per Bulan') {
+    const m = await msgCashflow(db);
+    await send(chat, m.text, { reply_markup: makeKb([[{ text:'💳 Menu Transaksi' }, { text:'🏠 Menu Utama' }]]) }); 
+    return;
+  }
+  if (text === '🔥 Top Brand Detail') {
+    const m = await msgBrandDetail(db);
+    await send(chat, m.text, { reply_markup: makeKb([[{ text:'📈 Analitik' }, { text:'🏠 Menu Utama' }]]) }); 
+    return;
+  }
+  if (text === '📊 Tren Bulanan') {
+    const m = await msgTren(db);
+    await send(chat, m.text, { reply_markup: makeKb([[{ text:'📈 Analitik' }, { text:'🏠 Menu Utama' }]]) }); 
+    return;
+  }
+  if (text === '📋 Laporan Lengkap') {
+    const m = await msgLaporanFull(db);
+    await send(chat, m.text, { reply_markup: makeKb([[{ text:'📈 Analitik' }, { text:'📊 Dashboard' }], [{ text:'🏠 Menu Utama' }]]) }); 
+    return;
+  }
+
+  // ── TRIGGER AKSI INPUT ──
+  if (text === '✏️ Kelola Stok' || text.match(/Edit Hal \d+/)) {
+    getSession(db, uid).step = 'kelola_stok_pilih'; 
+    await putData(db);
+    let page = 1;
+    const matchNext = text.match(/Edit Hal (\d+) ➡️/);
+    const matchPrev = text.match(/⬅️ Edit Hal (\d+)/);
+    if (matchNext) page = parseInt(matchNext[1]);
+    if (matchPrev) page = parseInt(matchPrev[1]);
+    const view = getKelolaStokView(db, page);
+    await send(chat, view.text, { reply_markup: view.kb }); 
     return;
   }
 
   if (text === '➕ Catat Masuk') {
     getSession(db, uid).step = 'masuk_nama';
     await putData(db);
-    await send(chat, `➕ <b>CATAT BARANG MASUK</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n\nKetik <b>nama barang</b> lengkap:\n(contoh: iPhone 13 128GB Black)`, { reply_markup:{ keyboard: [[{text:'❌ Batal'}]], resize_keyboard: true } });
+    await send(chat, `➕ <b>CATAT BARANG MASUK</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n\nKetik <b>nama barang</b> lengkap:\n(contoh: iPhone 13 128GB Black)`, { reply_markup: makeKb(KB_CANCEL) });
     return;
   }
 
   if (text === '✅ Tandai Terjual') {
     getSession(db, uid).step = 'terjual_cari';
     await putData(db);
-    await send(chat, `✅ <b>TANDAI BARANG TERJUAL</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n\nKetik <b>nama barang</b> atau <b>kata kunci</b> untuk dicari:`, { reply_markup:{ keyboard: [[{text:'❌ Batal'}]], resize_keyboard: true } });
+    await send(chat, `✅ <b>TANDAI BARANG TERJUAL</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n\nKetik <b>nama barang</b> atau <b>kata kunci</b> untuk dicari:`, { reply_markup: makeKb(KB_CANCEL) });
     return;
   }
 
   if (text === '⭐ Laba Jasa') {
     getSession(db, uid).step = 'ekstra_nama';
     await putData(db);
-    await send(chat, `⭐ <b>CATAT LABA JASA / EKSTRA</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n\nKetik <b>keterangan / nama transaksi</b>:\n(contoh: Servis HP, Joki Unlock, dll)`, { reply_markup:{ keyboard: [[{text:'❌ Batal'}]], resize_keyboard: true } });
+    await send(chat, `⭐ <b>CATAT LABA JASA / EKSTRA</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n\nKetik <b>keterangan / nama transaksi</b>:\n(contoh: Servis HP, Joki Unlock, dll)`, { reply_markup: makeKb(KB_CANCEL) });
     return;
   }
 
-  if (text === '❌ Batal') {
-    const m = menuUtama();
-    await send(chat, `✅ Aksi dibatalkan.`, { reply_markup: MAIN_KEYBOARD });
-    await send(chat, m.text, { reply_markup:{ inline_keyboard: m.kb } });
+  if (text === '🔍 Cari Stok') {
+    getSession(db, uid).step = 'stok_cari';
+    await putData(db);
+    await send(chat, `🔍 <b>CARI STOK</b>\n\nKetik <b>nama atau kata kunci</b> barang yang ingin dicari:`, { reply_markup: makeKb(KB_CANCEL) });
+    return;
+  }
+
+  if (text === '💼 Ubah Modal Awal') {
+    getSession(db, uid).step = 'set_modal';
+    await putData(db);
+    await send(chat, `💼 <b>UBAH MODAL AWAL</b>\nModal saat ini: ${rp(Number(db.startBalance)||0)}\n\nKetik <b>modal awal baru</b> (angka saja):`, { reply_markup: makeKb(KB_CANCEL) });
     return;
   }
   // ──────────────────────────────────────────────────────
@@ -1417,14 +1247,12 @@ Gunakan tombol-tombol di bawah pesan untuk navigasi dan aksi.
   if (sess.step) {
     try {
       await handleInput(chat, uid, text, db);
-    } catch (e) { await send(chat, '❌ Terjadi error. Coba lagi dengan /menu.'); }
+    } catch (e) { await send(chat, '❌ Terjadi error. Coba lagi dengan /menu.', { reply_markup: MAIN_KEYBOARD }); }
     return;
   }
 
   // Teks biasa tapi tidak ada sesi → tunjukkan menu
-  const m = menuUtama();
-  await send(chat, `❓ Perintah tidak dikenali. Silakan gunakan tombol di bawah layar atau menu ini:`, { reply_markup: MAIN_KEYBOARD });
-  await send(chat, m.text, { reply_markup:{ inline_keyboard: m.kb } });
+  await send(chat, `❓ Perintah tidak dikenali. Silakan gunakan tombol di bawah layar:`, { reply_markup: MAIN_KEYBOARD });
 }
 
 // ══════════════════════════════════════════════════════════════════════
