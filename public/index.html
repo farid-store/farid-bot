@@ -99,16 +99,25 @@ body{opacity:0;padding-bottom:110px;animation:bIn .4s ease-out .1s forwards;font
 <div id="tab-dashboard" class="tab-pane active">
   <div class="glass rounded-2xl p-5 mb-3 relative overflow-hidden">
     <div class="absolute -right-8 -top-8 w-36 h-36 rounded-full blur-3xl pointer-events-none" style="background:rgba(14,165,233,.08)"></div>
+    
     <div class="flex justify-between items-start mb-4 relative z-10">
       <div>
         <span class="text-brand-400 font-bold text-[9px] uppercase tracking-[.14em] block mb-0.5">Target Utama</span>
-        <h2 style="font-family:Outfit,sans-serif" class="text-xl font-black text-white">100 Juta <span class="text-slate-500 font-normal text-sm">Rupiah</span></h2>
+        <h2 id="targetText" style="font-family:Outfit,sans-serif" class="text-xl font-black text-white">100 Juta <span class="text-slate-500 font-normal text-sm">Rupiah</span></h2>
       </div>
-      <div id="etaBadge" class="flex items-center gap-1.5 bg-warning/10 border border-warning/20 text-warning px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-wide">
-        <i class="fas fa-clock text-[8px]"></i><span id="etaTxt">Menghitung...</span>
+      <div class="flex flex-col items-end gap-2">
+        <div id="etaBadge" class="flex items-center gap-1.5 bg-warning/10 border border-warning/20 text-warning px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-wide">
+          <i class="fas fa-clock text-[8px]"></i><span id="etaTxt">Menghitung...</span>
+        </div>
+        <div class="flex items-center gap-1.5 bg-white/5 rounded-full px-2 py-1 border border-white/10 mt-1" style="backdrop-filter:blur(8px)">
+          <span id="lblIDR" class="text-[9px] font-bold text-brand-400 transition-colors">IDR</span>
+          <label class="sw" style="transform:scale(0.75);margin:-4px -2px"><input type="checkbox" id="currToggle" onchange="onCurrToggle()"><span class="sw-track"></span></label>
+          <span id="lblUSD" class="text-[9px] font-bold text-slate-500 transition-colors">USD</span>
+        </div>
       </div>
     </div>
-    <div class="flex items-center gap-4 relative z-10">
+
+    <div class="flex items-center gap-4 relative z-10 mt-1">
       <div id="goalWrap"><canvas id="goalChart"></canvas><div id="goalInner"><span id="goalPct" style="font-family:Outfit,sans-serif" class="text-[12px] font-black text-white leading-none">0%</span></div></div>
       <div class="flex-grow min-w-0">
         <p class="text-[9px] text-slate-500 uppercase tracking-[.12em] font-bold mb-0.5">Total Aset</p>
@@ -274,7 +283,7 @@ body{opacity:0;padding-bottom:110px;animation:bIn .4s ease-out .1s forwards;font
 'use strict';
 const BIN_ID='699644fdae596e708f3582af';
 const API_KEY='$2a$10$tcKHEWwuz2sqRoMCKJfga.1xxTFW0RxpXUPnP.NI4YbivtlK1xxau';
-const CACHE_KEY='fsCacheV13';
+const CACHE_KEY='fsCacheV14';
 const GOAL=100000000;
 const GAJI_EMP=2500000;
 const MILESTONES=[10,20,30,40,50,60,75,90,100].map(v=>v*1000000);
@@ -283,6 +292,7 @@ const ROADMAP=[{m:1,p:4500000},{m:2,p:5400000},{m:3,p:6075000},{m:4,p:6750000},{
 const RY=2026;
 
 let rawDB=null,netMode=false,selMonth='';
+let isUSD=false, exchangeRate=15500; // default fallback rate
 let cGoal={cur:0,rem:GOAL},cAlloc={o:0,e:0,r:0},cTrend={labels:[],profit:[],unit:[]};
 let charts={};
 let ddOpen=false;
@@ -293,16 +303,26 @@ document.addEventListener('DOMContentLoaded',()=>{
 });
 
 function fRp(n){
-  if(!Number.isFinite(n))return'Rp 0';
-  const a=Math.abs(n);
-  if(a>=1000000)return(n/1000000).toFixed(1).replace(/\.0$/,'')+' Jt';
-  if(a>=1000)return(n/1000).toFixed(0)+' Rb';
-  return'Rp '+n.toLocaleString('id-ID');
+  if(!Number.isFinite(n)) return isUSD ? '$0' : 'Rp 0';
+  const val = isUSD ? n / exchangeRate : n;
+  const a = Math.abs(val);
+  if(isUSD) {
+    if(a >= 1000) return '$' + (val/1000).toFixed(1) + 'k';
+    return '$' + val.toFixed(2);
+  } else {
+    if(a>=1000000)return(val/1000000).toFixed(1).replace(/\.0$/,'')+' Jt';
+    if(a>=1000)return(val/1000).toFixed(0)+' Rb';
+    return 'Rp '+val.toLocaleString('id-ID');
+  }
 }
+
 function fFull(n){
-  if(!Number.isFinite(n))return'Rp 0';
-  return new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',minimumFractionDigits:0}).format(n);
+  if(!Number.isFinite(n)) return isUSD ? '$0.00' : 'Rp 0';
+  const val = isUSD ? n / exchangeRate : n;
+  if(isUSD) return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',minimumFractionDigits:2}).format(val);
+  return new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',minimumFractionDigits:0}).format(val);
 }
+
 function mkey(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}
 function mlabel(s){const[y,m]=s.split('-');return MN[parseInt(m)-1]+' '+y;}
 function parseD(s){
@@ -374,14 +394,12 @@ function setDDLabel(){
 function buildDD(months){
   const list=document.getElementById('ddList');
   list.innerHTML='';
-  // All Time
   const aOpt=document.createElement('div');
   aOpt.className='dd-opt'+(selMonth==='all'?' active':'');
   aOpt.innerHTML='<span style="display:flex;align-items:center;gap:6px"><i class="fa-solid fa-infinity" style="color:#38bdf8;font-size:10px"></i>Semua Waktu</span><i class="fas fa-check ck"></i>';
   aOpt.addEventListener('click',()=>{selMonth='all';setDDLabel();list.querySelectorAll('.dd-opt').forEach(o=>o.classList.remove('active'));aOpt.classList.add('active');closeDD();if(rawDB)processData(rawDB);});
   list.appendChild(aOpt);
   const dv=document.createElement('div');dv.className='dd-div';list.appendChild(dv);
-  // months newest first
   [...months].reverse().forEach(m=>{
     const opt=document.createElement('div');
     opt.className='dd-opt'+(m===selMonth?' active':'');
@@ -390,6 +408,13 @@ function buildDD(months){
     list.appendChild(opt);
   });
   setDDLabel();
+}
+
+function onCurrToggle(){
+  isUSD = document.getElementById('currToggle').checked;
+  document.getElementById('lblIDR').className = isUSD ? 'text-[9px] font-bold text-slate-500 transition-colors' : 'text-[9px] font-bold text-brand-400 transition-colors';
+  document.getElementById('lblUSD').className = isUSD ? 'text-[9px] font-bold text-emerald-400 transition-colors' : 'text-[9px] font-bold text-slate-500 transition-colors';
+  if(rawDB) processData(rawDB);
 }
 
 function processData(db){
@@ -494,11 +519,19 @@ function rDashboard({totalAset,totalNet,unitsSold,cash,floatP,monthly,nowMk}){
     badge.innerHTML='<i class="fas fa-clock text-[8px]"></i><span>Menghitung...</span>';
   }
 
+  const targetH2 = document.getElementById('targetText');
+  if(targetH2) {
+    if(isUSD) {
+      const uGoal = GOAL / exchangeRate;
+      targetH2.innerHTML = '$' + Math.floor(uGoal).toLocaleString('en-US') + ' <span class="text-slate-500 font-normal text-sm">USD</span>';
+    } else {
+      targetH2.innerHTML = '100 Juta <span class="text-slate-500 font-normal text-sm">Rupiah</span>';
+    }
+  }
+
   if(document.getElementById('tab-dashboard').classList.contains('active'))rGoalChart(cGoal.cur,cGoal.rem);
 
-  // BARIS YANG DIUBAH DARI fRp MENJADI fFull
   document.getElementById('totalAsset').textContent=fFull(totalAset);
-  
   document.getElementById('totalProfit').textContent=fFull(totalNet);
   document.getElementById('totalUnits').textContent=unitsSold+' Unit';
   document.getElementById('avgMargin').textContent=unitsSold>0?fRp(totalNet/unitsSold)+'/unit':'—';
@@ -624,7 +657,13 @@ function rDoughnut(o,e,r){
 function rLineChart(labels,profit,unit){
   if(typeof Chart==='undefined')return;
   dChart('line');const canvas=document.getElementById('lineChart');if(!canvas)return;
-  charts.line=new Chart(canvas.getContext('2d'),{type:'line',data:{labels,datasets:[{label:netMode?'Laba Bersih':'Laba Kotor',data:profit,backgroundColor:'rgba(56,189,248,.08)',borderColor:'#38bdf8',borderWidth:2,pointBackgroundColor:'#38bdf8',pointBorderColor:'#020202',pointRadius:3,fill:true,tension:0.4,yAxisID:'y'},{label:'Volume',data:unit,type:'bar',backgroundColor:'rgba(129,140,248,.75)',borderRadius:4,barThickness:7,yAxisID:'y1'}]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',labels:{boxWidth:6,usePointStyle:true,color:'#e2e8f0',font:{size:9},padding:10}}},scales:{x:{grid:{display:false},ticks:{font:{size:8},maxRotation:45}},y:{position:'left',grid:{color:'rgba(255,255,255,.025)'},ticks:{callback:v=>(v/1000000).toFixed(1)+' Jt',font:{size:8}}},y1:{position:'right',grid:{drawOnChartArea:false},ticks:{font:{size:8},stepSize:1}}},animation:{duration:1400,easing:'easeOutQuart'}}});
+  charts.line=new Chart(canvas.getContext('2d'),{type:'line',data:{labels,datasets:[{label:netMode?'Laba Bersih':'Laba Kotor',data:profit,backgroundColor:'rgba(56,189,248,.08)',borderColor:'#38bdf8',borderWidth:2,pointBackgroundColor:'#38bdf8',pointBorderColor:'#020202',pointRadius:3,fill:true,tension:0.4,yAxisID:'y'},{label:'Volume',data:unit,type:'bar',backgroundColor:'rgba(129,140,248,.75)',borderRadius:4,barThickness:7,yAxisID:'y1'}]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',labels:{boxWidth:6,usePointStyle:true,color:'#e2e8f0',font:{size:9},padding:10}}},scales:{x:{grid:{display:false},ticks:{font:{size:8},maxRotation:45}},y:{position:'left',grid:{color:'rgba(255,255,255,.025)'},ticks:{callback:v=>{
+    if(isUSD){
+      const val=v/exchangeRate;
+      return '$'+(val>=1000?(val/1000).toFixed(1)+'k':val.toFixed(0));
+    }
+    return(v/1000000).toFixed(1)+' Jt';
+  },font:{size:8}}},y1:{position:'right',grid:{drawOnChartArea:false},ticks:{font:{size:8},stepSize:1}}},animation:{duration:1400,easing:'easeOutQuart'}}});
 }
 
 function switchTab(id,el){
@@ -672,6 +711,15 @@ async function doExport(){
 }
 
 async function initApp(){
+  try{
+    // Fetch Realtime USD to IDR rates from Fawaz Ahmed's open API
+    const fxRes = await fetch('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json');
+    if(fxRes.ok){
+      const fxData = await fxRes.json();
+      if(fxData && fxData.usd && fxData.usd.idr) exchangeRate = fxData.usd.idr;
+    }
+  }catch(e){console.log('FX API Error:', e);} // Fallback to 15500 if failed
+
   try{const c=localStorage.getItem(CACHE_KEY);if(c){rawDB=JSON.parse(c);processData(rawDB);}}catch(_){localStorage.removeItem(CACHE_KEY);}
   const db=await fetchDB();
   if(db){localStorage.setItem(CACHE_KEY,JSON.stringify(db));rawDB=db;processData(db);}
