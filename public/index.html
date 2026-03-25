@@ -496,7 +496,9 @@ function rDashboard({totalAset,totalNet,unitsSold,cash,floatP,monthly,nowMk}){
 
   if(document.getElementById('tab-dashboard').classList.contains('active'))rGoalChart(cGoal.cur,cGoal.rem);
 
-  document.getElementById('totalAsset').textContent=fRp(totalAset);
+  // BARIS YANG DIUBAH DARI fRp MENJADI fFull
+  document.getElementById('totalAsset').textContent=fFull(totalAset);
+  
   document.getElementById('totalProfit').textContent=fFull(totalNet);
   document.getElementById('totalUnits').textContent=unitsSold+' Unit';
   document.getElementById('avgMargin').textContent=unitsSold>0?fRp(totalNet/unitsSold)+'/unit':'—';
