@@ -1142,7 +1142,7 @@ function updateUI({ actuals, totalAset, totalNet, totalUnit, cash, stock,
     } else if (avg3 > 0) {
         const d = new Date(); d.setMonth(d.getMonth() + Math.ceil(remain / avg3));
         badge.className = 'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-wide border bg-warning/10 border-warning/20 text-warning';
-        badge.innerHTML = `<i class="fas fa-clock text-[8px]"></i><span>~${MONTH_NAMES[d.getMonth()].slice(0,3)} ${d.getFullYear()}</span>`;
+        badge.innerHTML = `<i class="fas fa-clock text-[8px]"></i><span>~${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}</span>`;
     } else {
         badge.className = 'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-wide border bg-white/5 border-white/10 text-slate-500';
         badge.innerHTML = '<i class="fas fa-clock text-[8px]"></i><span>Menghitung...</span>';
