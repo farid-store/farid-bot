@@ -1,1627 +1,694 @@
 <!DOCTYPE html>
 <html lang="id" class="scroll-smooth">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Farid Store | Neo Tracker</title>
-    <meta name="theme-color" content="#020202">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Plus Jakarta Sans', 'sans-serif'],
-                        heading: ['Outfit', 'sans-serif']
-                    },
-                    colors: {
-                        dark: '#020202',
-                        surface: '#0d0d0d',
-                        brand: { 300: '#7dd3fc', 400: '#38bdf8', 500: '#0ea5e9', 600: '#0284c7' },
-                        accent: { 400: '#818cf8', 500: '#6366f1' },
-                        warning: '#f59e0b',
-                        success: '#10b981'
-                    },
-                    keyframes: {
-                        'fade-up': {
-                            '0%': { opacity: '0', transform: 'translateY(12px)' },
-                            '100%': { opacity: '1', transform: 'translateY(0)' }
-                        },
-                        'scale-in': {
-                            '0%': { opacity: '0', transform: 'scale(0.94)' },
-                            '100%': { opacity: '1', transform: 'scale(1)' }
-                        },
-                        'pulse-soft': {
-                            '0%, 100%': { opacity: '1' },
-                            '50%': { opacity: '0.5' }
-                        }
-                    },
-                    animation: {
-                        'fade-up': 'fade-up 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards',
-                        'scale-in': 'scale-in 0.35s cubic-bezier(0.34,1.56,0.64,1) forwards',
-                        'pulse-soft': 'pulse-soft 2s ease-in-out infinite'
-                    }
-                }
-            }
-        }
-    </script>
-
-    <style>
-        :root {
-            --clr-bg: #020202;
-            --clr-surface: #0d0d0d;
-            --clr-border: rgba(255,255,255,0.06);
-            --clr-brand: #0ea5e9;
-            --clr-accent: #6366f1;
-            --clr-text: #f1f5f9;
-            --clr-muted: #64748b;
-        }
-
-        * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
-
-        html, body {
-            background-color: var(--clr-bg);
-            color: var(--clr-text);
-            overflow-x: hidden;
-            width: 100%;
-            position: relative;
-            overscroll-behavior-y: contain;
-            -webkit-font-smoothing: antialiased;
-        }
-
-        body {
-            opacity: 0;
-            animation: bodyFadeIn 0.45s ease-out 0.1s forwards;
-            padding-bottom: 110px;
-        }
-
-        @keyframes bodyFadeIn { to { opacity: 1; } }
-
-        .glass-panel {
-            background: linear-gradient(145deg, rgba(28,28,28,0.4) 0%, rgba(8,8,8,0.85) 100%);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid var(--clr-border);
-        }
-
-        .glass-pill {
-            background: rgba(12,12,12,0.92);
-            backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
-            border: 1px solid rgba(255,255,255,0.09);
-        }
-
-        .ambient-1 {
-            position: fixed; top: -15%; left: -15%;
-            width: 65vw; height: 65vw;
-            background: radial-gradient(circle, rgba(14,165,233,0.11) 0%, transparent 65%);
-            filter: blur(60px); z-index: -1; pointer-events: none;
-            animation: glowFloat1 12s ease-in-out infinite alternate;
-        }
-        .ambient-2 {
-            position: fixed; bottom: 5%; right: -15%;
-            width: 55vw; height: 55vw;
-            background: radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 65%);
-            filter: blur(60px); z-index: -1; pointer-events: none;
-            animation: glowFloat2 15s ease-in-out infinite alternate;
-        }
-        @keyframes glowFloat1 { to { transform: translate(4%, 4%); } }
-        @keyframes glowFloat2 { to { transform: translate(-4%, -4%); } }
-
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .spinner { animation: spin 0.8s linear infinite; }
-
-        .hide-scroll::-webkit-scrollbar { display: none; }
-        .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
-
-        .card-hover {
-            transition: transform 0.28s cubic-bezier(0.4,0,0.2,1),
-                        border-color 0.28s ease,
-                        box-shadow 0.28s ease;
-        }
-        .card-hover:active {
-            transform: scale(0.99);
-        }
-
-        /* Tab content */
-        .tab-content { display: none; }
-        .tab-content.active {
-            display: block;
-            animation: tabPop 0.38s cubic-bezier(0.34,1.56,0.64,1) forwards;
-        }
-        @keyframes tabPop {
-            from { opacity: 0; transform: scale(0.97) translateY(8px); }
-            to   { opacity: 1; transform: scale(1) translateY(0); }
-        }
-
-        /* Progress bars */
-        .bar-bg {
-            width: 100%;
-            background: rgba(255,255,255,0.05);
-            overflow: hidden;
-            border-radius: 999px;
-        }
-        .bar-fill {
-            height: 100%;
-            border-radius: 999px;
-            transition: width 1.1s cubic-bezier(0.34,1.2,0.64,1);
-        }
-
-        /* Toggle switch */
-        .switch { position: relative; display: inline-block; width: 38px; height: 22px; flex-shrink: 0; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider-track {
-            position: absolute; cursor: pointer; inset: 0;
-            background: rgba(255,255,255,0.08);
-            border-radius: 999px;
-            border: 1px solid rgba(255,255,255,0.06);
-            transition: background 0.3s, border-color 0.3s;
-        }
-        .slider-track::before {
-            content: '';
-            position: absolute;
-            width: 16px; height: 16px;
-            left: 2px; bottom: 2px;
-            background: #94a3b8;
-            border-radius: 50%;
-            transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), background 0.3s, box-shadow 0.3s;
-        }
-        input:checked + .slider-track { background: rgba(14,165,233,0.22); border-color: rgba(56,189,248,0.4); }
-        input:checked + .slider-track::before {
-            transform: translateX(16px);
-            background: #38bdf8;
-            box-shadow: 0 0 10px rgba(56,189,248,0.6);
-        }
-
-        /* Pull-to-refresh */
-        #ptr-indicator {
-            text-align: center; color: var(--clr-muted);
-            font-size: 11px; font-weight: 700;
-            height: 0; overflow: hidden;
-            display: flex; align-items: center; justify-content: center; gap: 7px;
-            transition: height 0.18s ease;
-        }
-
-        /* Nav active */
-        .nav-item { transition: all 0.25s ease; }
-        .nav-item.active { color: white; background: rgba(255,255,255,0.07); }
-        .nav-item.active .nav-icon { transform: translateY(-1px); color: #38bdf8; }
-        .nav-item.active .nav-label { max-height: 16px; opacity: 1; margin-top: 2px; }
-
-        select option { background: #0d0d0d; color: #fff; }
-
-        /* Toast */
-        #toast {
-            position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%) translateY(20px);
-            background: rgba(20,20,20,0.97); border: 1px solid rgba(255,255,255,0.1);
-            color: #f1f5f9; font-size: 12px; font-weight: 600;
-            padding: 10px 18px; border-radius: 999px;
-            backdrop-filter: blur(16px);
-            opacity: 0; pointer-events: none;
-            transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
-            z-index: 9999; white-space: nowrap;
-        }
-        #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-
-        /* Skeleton */
-        .skeleton {
-            background: linear-gradient(90deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 100%);
-            background-size: 200% 100%;
-            animation: shimmer 1.6s ease-in-out infinite;
-            border-radius: 8px;
-        }
-        @keyframes shimmer { to { background-position: -200% 0; } }
-
-        /* Month dropdown */
-        .month-dropdown-wrap { position: relative; }
-        .month-dropdown-btn {
-            display: flex; align-items: center; gap: 8px;
-            padding: 8px 14px; border-radius: 12px;
-            background: rgba(255,255,255,0.04);
-            border: 1px solid rgba(255,255,255,0.08);
-            color: #e2e8f0; font-size: 12px; font-weight: 700;
-            cursor: pointer; transition: all 0.2s ease;
-            width: 100%;
-        }
-        .month-dropdown-btn:hover { background: rgba(14,165,233,0.1); border-color: rgba(56,189,248,0.3); }
-        .month-dropdown-btn .chevron { margin-left: auto; transition: transform 0.2s ease; }
-        .month-dropdown-btn.open .chevron { transform: rotate(180deg); }
-
-        .month-dropdown-list {
-            position: absolute; top: calc(100% + 6px); left: 0; right: 0;
-            background: #0d0d0d;
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 14px;
-            overflow: hidden; overflow-y: auto;
-            max-height: 220px;
-            z-index: 500;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.8);
-            display: none;
-        }
-        .month-dropdown-list.open { display: block; animation: dropDown 0.2s cubic-bezier(0.34,1.56,0.64,1) forwards; }
-        @keyframes dropDown { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
-
-        .month-dropdown-list::-webkit-scrollbar { width: 4px; }
-        .month-dropdown-list::-webkit-scrollbar-track { background: transparent; }
-        .month-dropdown-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 99px; }
-
-        .month-option {
-            padding: 10px 14px;
-            font-size: 12px; font-weight: 600;
-            color: #94a3b8; cursor: pointer;
-            transition: all 0.15s ease;
-            display: flex; align-items: center; justify-content: space-between;
-            border-bottom: 1px solid rgba(255,255,255,0.04);
-        }
-        .month-option:last-child { border-bottom: none; }
-        .month-option:hover { background: rgba(255,255,255,0.04); color: #e2e8f0; }
-        .month-option.active { color: #38bdf8; background: rgba(14,165,233,0.1); }
-        .month-option.active .check-icon { display: block; }
-        .check-icon { display: none; font-size: 10px; color: #38bdf8; }
-
-        /* Export card capture */
-        .export-capture {
-            background: #0d0d0d !important;
-            border: 1px solid rgba(255,255,255,0.1) !important;
-        }
-
-        /* Watermark */
-        #exportWatermark {
-            display: none;
-            position: absolute; bottom: 10px; right: 14px;
-            font-size: 8px; color: #334155; font-weight: 700;
-            letter-spacing: 0.12em; text-transform: uppercase;
-        }
-
-        /* Goal chart container fix */
-        #goalChartWrap {
-            position: relative;
-            width: 72px; height: 72px; flex-shrink: 0;
-        }
-        #goalChartWrap canvas {
-            position: absolute; inset: 0;
-            width: 100% !important; height: 100% !important;
-        }
-        #goalChartInner {
-            position: absolute; inset: 0;
-            display: flex; flex-direction: column;
-            align-items: center; justify-content: center;
-            pointer-events: none;
-        }
-
-        /* Doughnut container */
-        #doughnutWrap {
-            position: relative;
-            height: 190px; width: 100%;
-            display: flex; align-items: center; justify-content: center;
-        }
-        #doughnutWrap canvas {
-            max-height: 190px;
-        }
-
-        /* Line chart wrapper */
-        #salesChartWrap {
-            width: 100%; overflow-x: auto;
-        }
-        #salesChartWrap > div {
-            min-width: 460px; height: 190px;
-        }
-
-        /* Cashflow export area */
-        #cashflowExportArea {
-            position: relative;
-            overflow: hidden;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Farid Store | Neo Tracker</title>
+<meta name="theme-color" content="#020202">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script>
+tailwind.config={theme:{extend:{fontFamily:{sans:['Plus Jakarta Sans','sans-serif'],heading:['Outfit','sans-serif']},colors:{dark:'#020202',surface:'#0d0d0d',brand:{300:'#7dd3fc',400:'#38bdf8',500:'#0ea5e9',600:'#0284c7'},accent:{400:'#818cf8',500:'#6366f1'},warning:'#f59e0b',success:'#10b981'},keyframes:{'pulse-soft':{'0%,100%':{opacity:'1'},'50%':{opacity:'0.5'}}},animation:{'pulse-soft':'pulse-soft 2s ease-in-out infinite'}}}}
+</script>
+<style>
+*{-webkit-tap-highlight-color:transparent;box-sizing:border-box}
+html,body{background:#020202;color:#f1f5f9;overflow-x:hidden;overscroll-behavior-y:contain;-webkit-font-smoothing:antialiased}
+body{opacity:0;padding-bottom:110px;animation:bIn .4s ease-out .1s forwards;font-family:'Plus Jakarta Sans',sans-serif}
+@keyframes bIn{to{opacity:1}}
+.glass{background:linear-gradient(145deg,rgba(28,28,28,.4),rgba(8,8,8,.85));backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.06)}
+.pill{background:rgba(12,12,12,.92);backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,.09)}
+.amb1{position:fixed;top:-15%;left:-15%;width:65vw;height:65vw;background:radial-gradient(circle,rgba(14,165,233,.11),transparent 65%);filter:blur(60px);z-index:-1;pointer-events:none;animation:g1 12s ease-in-out infinite alternate}
+.amb2{position:fixed;bottom:5%;right:-15%;width:55vw;height:55vw;background:radial-gradient(circle,rgba(99,102,241,.08),transparent 65%);filter:blur(60px);z-index:-1;pointer-events:none;animation:g2 15s ease-in-out infinite alternate}
+@keyframes g1{to{transform:translate(4%,4%)}}@keyframes g2{to{transform:translate(-4%,-4%)}}
+@keyframes spin{to{transform:rotate(360deg)}}.spinning{animation:spin .8s linear infinite}
+.tab-pane{display:none}.tab-pane.active{display:block;animation:tabIn .35s cubic-bezier(.34,1.56,.64,1) forwards}
+@keyframes tabIn{from{opacity:0;transform:scale(.97) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.bar-bg{width:100%;background:rgba(255,255,255,.05);overflow:hidden;border-radius:999px}
+.bar-fill{height:100%;border-radius:999px;transition:width 1.1s cubic-bezier(.34,1.2,.64,1)}
+.sw{position:relative;display:inline-block;width:38px;height:22px;flex-shrink:0}
+.sw input{opacity:0;width:0;height:0}
+.sw-track{position:absolute;cursor:pointer;inset:0;background:rgba(255,255,255,.08);border-radius:999px;border:1px solid rgba(255,255,255,.06);transition:background .3s,border-color .3s}
+.sw-track::before{content:'';position:absolute;width:16px;height:16px;left:2px;bottom:2px;background:#94a3b8;border-radius:50%;transition:transform .3s cubic-bezier(.34,1.56,.64,1),background .3s,box-shadow .3s}
+.sw input:checked+.sw-track{background:rgba(14,165,233,.22);border-color:rgba(56,189,248,.4)}
+.sw input:checked+.sw-track::before{transform:translateX(16px);background:#38bdf8;box-shadow:0 0 10px rgba(56,189,248,.6)}
+.nav-btn{transition:all .25s ease}
+.nav-btn.active{color:#fff;background:rgba(255,255,255,.07)}
+.nav-btn.active .nav-ic{transform:translateY(-1px);color:#38bdf8}
+.nav-btn.active .nav-lbl{max-height:16px;opacity:1;margin-top:2px}
+#toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(20px);background:rgba(20,20,20,.97);border:1px solid rgba(255,255,255,.1);color:#f1f5f9;font-size:12px;font-weight:600;padding:10px 18px;border-radius:999px;backdrop-filter:blur(16px);opacity:0;pointer-events:none;transition:all .3s cubic-bezier(.34,1.56,.64,1);z-index:9999;white-space:nowrap}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#ptr{text-align:center;color:#64748b;font-size:11px;font-weight:700;height:0;overflow:hidden;display:flex;align-items:center;justify-content:center;gap:7px;transition:height .18s ease}
+#goalWrap{position:relative;width:72px;height:72px;flex-shrink:0}
+#goalWrap canvas{position:absolute;inset:0;width:100%!important;height:100%!important}
+#goalInner{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
+#doughWrap{position:relative;height:190px;width:100%;display:flex;align-items:center;justify-content:center}
+#doughWrap canvas{max-height:190px}
+#lineWrap{width:100%;overflow-x:auto;-ms-overflow-style:none;scrollbar-width:none}
+#lineWrap::-webkit-scrollbar{display:none}
+#lineWrap>div{min-width:460px;height:190px}
+.dd-wrap{position:relative}
+.dd-btn{display:flex;align-items:center;gap:8px;padding:9px 14px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:#e2e8f0;font-size:12px;font-weight:700;cursor:pointer;width:100%;transition:background .2s,border-color .2s}
+.dd-btn:hover{background:rgba(14,165,233,.1);border-color:rgba(56,189,248,.3)}
+.dd-btn .chev{margin-left:auto;font-size:9px;color:#64748b;transition:transform .2s}
+.dd-btn.open .chev{transform:rotate(180deg)}
+.dd-list{position:absolute;top:calc(100% + 6px);left:0;right:0;background:#0d0d0d;border:1px solid rgba(255,255,255,.1);border-radius:14px;overflow:hidden;overflow-y:auto;max-height:230px;z-index:500;box-shadow:0 20px 60px rgba(0,0,0,.8);display:none}
+.dd-list.open{display:block;animation:ddIn .2s cubic-bezier(.34,1.56,.64,1) forwards}
+@keyframes ddIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+.dd-list::-webkit-scrollbar{width:3px}.dd-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:99px}
+.dd-opt{padding:10px 14px;font-size:12px;font-weight:600;color:#94a3b8;cursor:pointer;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.04);transition:background .15s,color .15s}
+.dd-opt:last-child{border-bottom:none}
+.dd-opt:hover{background:rgba(255,255,255,.04);color:#e2e8f0}
+.dd-opt.active{color:#38bdf8;background:rgba(14,165,233,.1)}
+.ck{display:none;font-size:10px;color:#38bdf8}
+.dd-opt.active .ck{display:block}
+.dd-div{height:1px;background:rgba(255,255,255,.06);margin:2px 0}
+#exportMark{display:none;position:absolute;bottom:10px;right:14px;font-size:8px;color:#334155;font-weight:700;letter-spacing:.12em;text-transform:uppercase}
+</style>
 </head>
-<body class="antialiased">
-
-<div class="ambient-1"></div>
-<div class="ambient-2"></div>
+<body>
+<div class="amb1"></div><div class="amb2"></div>
 <div id="toast"></div>
-
-<!-- Pull to refresh -->
-<div id="ptr-indicator">
-    <i class="fas fa-arrow-down" id="ptr-icon" style="transition: transform 0.2s ease;"></i>
-    <span id="ptr-text">Tarik untuk Memperbarui</span>
-</div>
+<div id="ptr"><i class="fas fa-arrow-down" id="ptrIco" style="transition:transform .2s ease"></i><span id="ptrTxt">Tarik untuk Memperbarui</span></div>
 
 <div class="max-w-xl mx-auto px-4 pt-5 relative z-10">
 
-    <!-- HEADER -->
-    <header class="flex justify-between items-center mb-5">
-        <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-black text-sm font-heading shadow-lg shadow-brand-500/20">FS</div>
-            <div>
-                <h1 class="font-heading text-[17px] font-black tracking-tight text-white leading-none">Farid<span class="text-slate-400 font-medium">Store</span></h1>
-                <p class="text-[9px] text-brand-400 font-bold tracking-[0.18em] uppercase mt-0.5">Neo Tracker v2</p>
-            </div>
-        </div>
-        <div class="flex items-center gap-2">
-            <button id="refreshBtn" onclick="manualRefresh()" title="Refresh Data"
-                class="w-8 h-8 rounded-full glass-panel flex items-center justify-center text-slate-400 hover:text-brand-400 active:scale-90 transition-all">
-                <i class="fas fa-rotate-right text-xs" id="refreshIcon"></i>
-            </button>
-            <div id="syncStatus" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full glass-panel">
-                <span class="w-1.5 h-1.5 rounded-full bg-slate-500" id="syncDot"></span>
-                <span id="syncLabel" class="text-[9px] tracking-widest uppercase font-bold text-slate-500">Idle</span>
-            </div>
-        </div>
-    </header>
-
-    <!-- ═══════════ TAB: DASHBOARD ═══════════ -->
-    <div id="tab-dashboard" class="tab-content active">
-
-        <!-- Main goal card -->
-        <div class="glass-panel rounded-2xl p-5 mb-3 card-hover relative overflow-hidden">
-            <div class="absolute -right-8 -top-8 w-36 h-36 bg-brand-500/8 rounded-full blur-3xl pointer-events-none"></div>
-
-            <div class="flex justify-between items-start mb-4 relative z-10">
-                <div>
-                    <span class="text-brand-400 font-bold text-[9px] uppercase tracking-[0.14em] block mb-0.5">Target Utama</span>
-                    <h2 class="font-heading text-xl font-black text-white">100 Juta <span class="text-slate-500 font-normal text-sm">Rupiah</span></h2>
-                </div>
-                <div id="uiEtaBadge" class="flex items-center gap-1.5 bg-warning/10 border border-warning/20 text-warning px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-wide">
-                    <i class="fas fa-clock text-[8px]"></i>
-                    <span id="uiEtaText">Menghitung...</span>
-                </div>
-            </div>
-
-            <div class="flex items-center gap-4 relative z-10">
-                <div id="goalChartWrap">
-                    <canvas id="goalChart"></canvas>
-                    <div id="goalChartInner">
-                        <span id="uiGoalPct" class="font-heading text-[12px] font-black text-white leading-none">0%</span>
-                    </div>
-                </div>
-                <div class="flex-grow min-w-0">
-                    <p class="text-[9px] text-slate-500 uppercase tracking-[0.12em] font-bold mb-0.5">Total Aset</p>
-                    <h3 id="uiTotalAsset" class="font-heading text-[24px] font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-300 tracking-tighter leading-none truncate">Rp 0</h3>
-                    <p class="text-[9px] text-slate-500 mt-1.5">Kas + Nilai Stok Gudang</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Milestone bar -->
-        <div class="glass-panel rounded-2xl p-4 mb-3 card-hover">
-            <div class="flex justify-between items-center mb-2">
-                <div class="flex items-center gap-1.5">
-                    <i class="fa-solid fa-flag-checkered text-brand-400 text-xs"></i>
-                    <span class="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Milestone Berikutnya</span>
-                </div>
-                <span id="uiNextMilestone" class="font-heading text-xs font-bold text-white">—</span>
-            </div>
-            <div class="bar-bg h-1.5 mb-1.5">
-                <div id="milestoneBar" class="bar-fill bg-gradient-to-r from-brand-600 to-brand-400" style="width:0%"></div>
-            </div>
-            <div class="flex justify-between text-[9px] text-slate-600 font-medium">
-                <span id="milestonePrevLabel">—</span>
-                <span id="milestoneNextLabel">—</span>
-            </div>
-        </div>
-
-        <!-- Asset allocation -->
-        <div class="glass-panel rounded-2xl p-4 mb-3 card-hover">
-            <div class="flex items-center gap-1.5 mb-3">
-                <i class="fa-solid fa-chart-pie text-accent-400 text-xs"></i>
-                <span class="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Alokasi Aset</span>
-            </div>
-            <div class="bar-bg h-2 mb-3 flex overflow-hidden rounded-full">
-                <div id="barCash"  class="bar-fill rounded-none" style="width:0%; background:#6366f1; border-radius:999px 0 0 999px;"></div>
-                <div id="barStock" class="bar-fill rounded-none" style="width:0%; background:#0ea5e9; border-radius:0 999px 999px 0;"></div>
-            </div>
-            <div class="flex justify-between">
-                <div>
-                    <div class="flex items-center gap-1.5 mb-0.5">
-                        <span class="w-1.5 h-1.5 rounded-full bg-accent-500 shrink-0"></span>
-                        <span class="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Kas Tunai</span>
-                    </div>
-                    <div id="uiValCash" class="font-heading text-sm font-bold text-white">Rp 0</div>
-                </div>
-                <div class="text-right">
-                    <div class="flex items-center justify-end gap-1.5 mb-0.5">
-                        <span class="w-1.5 h-1.5 rounded-full bg-brand-500 shrink-0"></span>
-                        <span class="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Nilai Stok</span>
-                    </div>
-                    <div id="uiValStock" class="font-heading text-sm font-bold text-white">Rp 0</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Profit summary -->
-        <div class="glass-panel rounded-2xl p-5 mb-3 card-hover relative overflow-hidden">
-            <div class="absolute right-4 bottom-4 opacity-[0.035] text-[64px] text-white pointer-events-none">
-                <i class="fa-solid fa-chart-line"></i>
-            </div>
-            <div class="flex justify-between items-center mb-3 relative z-10">
-                <div class="flex items-center gap-1.5">
-                    <i class="fa-solid fa-sack-dollar text-success text-xs"></i>
-                    <span class="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Akumulasi Laba</span>
-                </div>
-                <div class="flex items-center gap-2">
-                    <span id="labelNetto" class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Kotor</span>
-                    <label class="switch">
-                        <input type="checkbox" id="netProfitToggle" onchange="toggleNetProfit()">
-                        <span class="slider-track"></span>
-                    </label>
-                </div>
-            </div>
-            <div class="relative z-10">
-                <h3 id="uiTotalProfit" class="font-heading text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-green-500 tracking-tighter mb-1.5">Rp 0</h3>
-                <div class="flex items-center gap-3 flex-wrap">
-                    <p class="text-[10px] text-slate-500 font-medium flex items-center gap-1.5">
-                        <i class="fa-solid fa-box-open text-slate-600"></i>
-                        Terjual <span id="uiTotalUnits" class="font-bold text-slate-300 ml-0.5">0 Unit</span>
-                    </p>
-                    <span class="text-slate-700">·</span>
-                    <p class="text-[10px] text-slate-500">
-                        Avg <span id="uiAvgMargin" class="font-bold text-slate-300">—</span>
-                    </p>
-                </div>
-            </div>
-        </div>
-
-    </div><!-- /tab-dashboard -->
-
-    <!-- ═══════════ TAB: ANALYTICS ═══════════ -->
-    <div id="tab-analytics" class="tab-content">
-
-        <!-- Top brands -->
-        <div class="glass-panel rounded-2xl p-5 mb-3">
-            <div class="flex items-center gap-1.5 mb-4">
-                <i class="fa-solid fa-fire text-orange-400 text-sm"></i>
-                <span class="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Top Performa Merek</span>
-            </div>
-            <div id="topBrandsUI" class="space-y-2.5"></div>
-        </div>
-
-        <!-- Profit allocation doughnut -->
-        <div class="glass-panel rounded-2xl p-5 mb-3">
-            <div class="flex items-center justify-between mb-1">
-                <div class="flex items-center gap-1.5">
-                    <i class="fa-solid fa-chart-pie text-brand-400 text-sm"></i>
-                    <span class="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Alokasi Laba Bulan Ini</span>
-                </div>
-                <span id="analyticsMonthLabel" class="text-[9px] text-slate-500 font-bold uppercase tracking-wide"></span>
-            </div>
-            <div id="doughnutWrap" class="mt-3">
-                <canvas id="doughnutChart"></canvas>
-            </div>
-            <div id="allocationEmpty" class="hidden text-center text-slate-500 text-xs py-4">Belum ada laba bulan ini</div>
-        </div>
-
-        <!-- Aging stock -->
-        <div class="glass-panel rounded-2xl p-5 mb-3">
-            <div class="flex items-center justify-between mb-4">
-                <div class="flex items-center gap-1.5">
-                    <i class="fa-solid fa-boxes-stacked text-slate-400 text-sm"></i>
-                    <span class="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Stok Mengendap</span>
-                </div>
-                <span id="agingCount" class="text-[9px] text-slate-500 font-bold uppercase tracking-wide"></span>
-            </div>
-            <div id="agingListUI" class="space-y-1"></div>
-        </div>
-
-    </div><!-- /tab-analytics -->
-
-    <!-- ═══════════ TAB: PERFORMANCE ═══════════ -->
-    <div id="tab-performance" class="tab-content">
-
-        <div class="glass-panel rounded-2xl p-5 mb-4">
-            <div class="flex items-center gap-1.5 mb-4">
-                <i class="fa-solid fa-chart-area text-brand-400 text-sm"></i>
-                <span class="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Kinerja 12 Bulan</span>
-            </div>
-            <div id="salesChartWrap" class="hide-scroll">
-                <div>
-                    <canvas id="salesChart"></canvas>
-                </div>
-            </div>
-        </div>
-
-        <div class="flex items-center gap-2 mb-4 px-0.5">
-            <div class="w-4 h-px bg-brand-500/60"></div>
-            <h3 class="font-heading text-[10px] font-bold text-slate-400 tracking-widest uppercase">Target Pendapatan Bulanan</h3>
-            <div class="flex-grow h-px bg-white/5"></div>
-        </div>
-
-        <div id="trackerBody" class="space-y-3"></div>
-
-    </div><!-- /tab-performance -->
-
-    <!-- ═══════════ TAB: CASHFLOW ═══════════ -->
-    <div id="tab-cashflow" class="tab-content">
-
-        <!-- Month selector dropdown -->
-        <div class="mb-3 month-dropdown-wrap" id="monthDropdownWrap">
-            <button class="month-dropdown-btn" id="monthDropdownBtn" onclick="toggleMonthDropdown()">
-                <i class="fa-regular fa-calendar text-brand-400 text-xs"></i>
-                <span id="monthDropdownLabel">Pilih Bulan</span>
-                <i class="fas fa-chevron-down text-[9px] text-slate-500 chevron"></i>
-            </button>
-            <div class="month-dropdown-list" id="monthDropdownList"></div>
-        </div>
-
-        <!-- Cashflow export area -->
-        <div id="cashflowExportArea" class="glass-panel rounded-2xl p-5 mb-3 card-hover relative overflow-hidden">
-            <div class="absolute -right-5 -bottom-5 opacity-[0.04] text-[72px] text-white pointer-events-none">
-                <i class="fa-solid fa-money-bill-transfer"></i>
-            </div>
-
-            <div class="flex justify-between items-center mb-5 relative z-10">
-                <div>
-                    <p class="text-[9px] text-slate-500 uppercase tracking-widest font-bold mb-0.5">Periode</p>
-                    <h3 id="cashflowPeriodLabel" class="font-heading text-base font-bold text-white">—</h3>
-                </div>
-                <button id="btnExport" onclick="downloadReport()"
-                    class="flex items-center gap-1.5 bg-brand-500/10 hover:bg-brand-500/20 active:scale-95 text-brand-400 border border-brand-500/20 rounded-xl px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest transition-all duration-200">
-                    <i class="fa-solid fa-download text-[9px]"></i> Simpan
-                </button>
-            </div>
-
-            <!-- Income / Expense -->
-            <div class="space-y-2.5 relative z-10 mb-4">
-                <div class="flex items-center justify-between bg-emerald-500/5 border border-emerald-500/10 rounded-xl p-3">
-                    <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs shrink-0">
-                            <i class="fa-solid fa-arrow-down"></i>
-                        </div>
-                        <div>
-                            <span class="block text-[9px] font-bold text-slate-400 uppercase tracking-widest">Pemasukan (Omset)</span>
-                            <span class="font-heading text-[17px] font-bold text-emerald-400" id="uiTotalIncome">Rp 0</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="flex items-center justify-between bg-rose-500/5 border border-rose-500/10 rounded-xl p-3">
-                    <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center text-xs shrink-0">
-                            <i class="fa-solid fa-arrow-up"></i>
-                        </div>
-                        <div>
-                            <span class="block text-[9px] font-bold text-slate-400 uppercase tracking-widest">Pengeluaran (HPP)</span>
-                            <span class="font-heading text-[17px] font-bold text-rose-400" id="uiTotalExpense">Rp 0</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-4 relative z-10"></div>
-
-            <div class="flex justify-between items-center relative z-10">
-                <span class="text-[11px] font-bold text-slate-300 uppercase tracking-widest" id="netCashLabel">Laba Bersih Bulan Ini</span>
-                <span class="font-heading text-2xl font-black text-white" id="uiNetCashFlow">Rp 0</span>
-            </div>
-
-            <div id="exportWatermark">Generated by Farid Store Neo Tracker</div>
-        </div>
-
-        <!-- Recent transactions -->
-        <div class="glass-panel rounded-2xl p-5 mb-3">
-            <div class="flex justify-between items-center mb-4">
-                <div class="flex items-center gap-1.5">
-                    <i class="fa-solid fa-clock-rotate-left text-brand-400 text-sm"></i>
-                    <span class="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Mutasi Terakhir</span>
-                </div>
-                <span id="txCountLabel" class="text-[9px] text-slate-500 font-bold uppercase tracking-wide"></span>
-            </div>
-            <div id="recentTransactionsUI" class="space-y-0"></div>
-        </div>
-
-    </div><!-- /tab-cashflow -->
-
-</div><!-- /max-w-xl -->
-
-<!-- BOTTOM NAV -->
-<nav class="fixed bottom-4 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[420px] glass-pill rounded-full px-2 py-1.5 flex justify-between items-center z-50 shadow-[0_16px_48px_rgba(0,0,0,0.9)]">
-    <button onclick="switchTab('dashboard',this)" class="nav-item active flex-1 py-2.5 px-1 rounded-full text-slate-500 transition-all flex flex-col items-center gap-0">
-        <i class="fa-solid fa-layer-group text-[15px] nav-icon transition-all duration-300"></i>
-        <span class="nav-label text-[8px] font-bold uppercase tracking-widest max-h-0 opacity-0 overflow-hidden transition-all duration-300">Dasbor</span>
+<!-- HEADER -->
+<header class="flex justify-between items-center mb-5">
+  <div class="flex items-center gap-3">
+    <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-black text-sm" style="font-family:Outfit,sans-serif;box-shadow:0 8px 24px rgba(14,165,233,.2)">FS</div>
+    <div>
+      <h1 style="font-family:Outfit,sans-serif" class="text-[17px] font-black tracking-tight text-white leading-none">Farid<span class="text-slate-400 font-medium">Store</span></h1>
+      <p class="text-[9px] text-brand-400 font-bold tracking-[.18em] uppercase mt-0.5">Neo Tracker v2</p>
+    </div>
+  </div>
+  <div class="flex items-center gap-2">
+    <button id="refreshBtn" onclick="manualRefresh()" class="w-8 h-8 rounded-full glass flex items-center justify-center text-slate-400 hover:text-brand-400 active:scale-90 transition-all">
+      <i class="fas fa-rotate-right text-xs" id="refreshIco"></i>
     </button>
-    <button onclick="switchTab('analytics',this)" class="nav-item flex-1 py-2.5 px-1 rounded-full text-slate-500 transition-all flex flex-col items-center gap-0">
-        <i class="fa-solid fa-compass text-[15px] nav-icon transition-all duration-300"></i>
-        <span class="nav-label text-[8px] font-bold uppercase tracking-widest max-h-0 opacity-0 overflow-hidden transition-all duration-300">Analitik</span>
+    <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full glass">
+      <span class="w-1.5 h-1.5 rounded-full bg-slate-500" id="syncDot"></span>
+      <span id="syncLbl" class="text-[9px] tracking-widest uppercase font-bold text-slate-500">Idle</span>
+    </div>
+  </div>
+</header>
+
+<!-- TAB DASHBOARD -->
+<div id="tab-dashboard" class="tab-pane active">
+  <div class="glass rounded-2xl p-5 mb-3 relative overflow-hidden">
+    <div class="absolute -right-8 -top-8 w-36 h-36 rounded-full blur-3xl pointer-events-none" style="background:rgba(14,165,233,.08)"></div>
+    <div class="flex justify-between items-start mb-4 relative z-10">
+      <div>
+        <span class="text-brand-400 font-bold text-[9px] uppercase tracking-[.14em] block mb-0.5">Target Utama</span>
+        <h2 style="font-family:Outfit,sans-serif" class="text-xl font-black text-white">100 Juta <span class="text-slate-500 font-normal text-sm">Rupiah</span></h2>
+      </div>
+      <div id="etaBadge" class="flex items-center gap-1.5 bg-warning/10 border border-warning/20 text-warning px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-wide">
+        <i class="fas fa-clock text-[8px]"></i><span id="etaTxt">Menghitung...</span>
+      </div>
+    </div>
+    <div class="flex items-center gap-4 relative z-10">
+      <div id="goalWrap"><canvas id="goalChart"></canvas><div id="goalInner"><span id="goalPct" style="font-family:Outfit,sans-serif" class="text-[12px] font-black text-white leading-none">0%</span></div></div>
+      <div class="flex-grow min-w-0">
+        <p class="text-[9px] text-slate-500 uppercase tracking-[.12em] font-bold mb-0.5">Total Aset</p>
+        <h3 id="totalAsset" style="font-family:Outfit,sans-serif" class="text-[24px] font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-300 tracking-tighter leading-none truncate">Rp 0</h3>
+        <p class="text-[9px] text-slate-500 mt-1.5">Kas + Nilai Stok Gudang</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="glass rounded-2xl p-4 mb-3">
+    <div class="flex justify-between items-center mb-2">
+      <div class="flex items-center gap-1.5">
+        <i class="fa-solid fa-flag-checkered text-brand-400 text-xs"></i>
+        <span class="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Milestone Berikutnya</span>
+      </div>
+      <span id="nextMile" style="font-family:Outfit,sans-serif" class="text-xs font-bold text-white">—</span>
+    </div>
+    <div class="bar-bg h-1.5 mb-1.5"><div id="milestoneBar" class="bar-fill bg-gradient-to-r from-brand-600 to-brand-400" style="width:0%"></div></div>
+    <div class="flex justify-between text-[9px] text-slate-600 font-medium"><span id="milePrev">—</span><span id="mileNext">—</span></div>
+  </div>
+
+  <div class="glass rounded-2xl p-4 mb-3">
+    <div class="flex items-center gap-1.5 mb-3">
+      <i class="fa-solid fa-chart-pie text-accent-400 text-xs"></i>
+      <span class="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Alokasi Aset</span>
+    </div>
+    <div class="bar-bg h-2 mb-3 flex overflow-hidden rounded-full">
+      <div id="barCash"  style="height:100%;width:0%;background:#6366f1;border-radius:999px 0 0 999px;transition:width 1.1s cubic-bezier(.34,1.2,.64,1)"></div>
+      <div id="barStock" style="height:100%;width:0%;background:#0ea5e9;border-radius:0 999px 999px 0;transition:width 1.1s cubic-bezier(.34,1.2,.64,1)"></div>
+    </div>
+    <div class="flex justify-between">
+      <div><div class="flex items-center gap-1.5 mb-0.5"><span class="w-1.5 h-1.5 rounded-full bg-accent-500 shrink-0"></span><span class="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Kas Tunai</span></div><div id="valCash" style="font-family:Outfit,sans-serif" class="text-sm font-bold text-white">Rp 0</div></div>
+      <div class="text-right"><div class="flex items-center justify-end gap-1.5 mb-0.5"><span class="w-1.5 h-1.5 rounded-full bg-brand-500 shrink-0"></span><span class="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Nilai Stok</span></div><div id="valStock" style="font-family:Outfit,sans-serif" class="text-sm font-bold text-white">Rp 0</div></div>
+    </div>
+  </div>
+
+  <div class="glass rounded-2xl p-5 mb-3 relative overflow-hidden">
+    <div class="absolute right-4 bottom-4 opacity-[.035] text-[64px] text-white pointer-events-none"><i class="fa-solid fa-chart-line"></i></div>
+    <div class="flex justify-between items-center mb-3 relative z-10">
+      <div class="flex items-center gap-1.5">
+        <i class="fa-solid fa-sack-dollar text-success text-xs"></i>
+        <span class="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Akumulasi Laba</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span id="labelMode" class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Kotor</span>
+        <label class="sw"><input type="checkbox" id="netToggle" onchange="onNetToggle()"><span class="sw-track"></span></label>
+      </div>
+    </div>
+    <div class="relative z-10">
+      <h3 id="totalProfit" style="font-family:Outfit,sans-serif" class="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-green-500 tracking-tighter mb-1.5">Rp 0</h3>
+      <div class="flex items-center gap-3 flex-wrap">
+        <p class="text-[10px] text-slate-500 flex items-center gap-1.5"><i class="fa-solid fa-box-open text-slate-600"></i>Terjual <span id="totalUnits" class="font-bold text-slate-300 ml-0.5">0 Unit</span></p>
+        <span class="text-slate-700">·</span>
+        <p class="text-[10px] text-slate-500">Avg <span id="avgMargin" class="font-bold text-slate-300">—</span></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB ANALYTICS -->
+<div id="tab-analytics" class="tab-pane">
+  <div class="glass rounded-2xl p-5 mb-3">
+    <div class="flex items-center gap-1.5 mb-4"><i class="fa-solid fa-fire text-orange-400 text-sm"></i><span class="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Top Performa Merek</span></div>
+    <div id="topBrands" class="space-y-2.5"></div>
+  </div>
+  <div class="glass rounded-2xl p-5 mb-3">
+    <div class="flex items-center justify-between mb-1">
+      <div class="flex items-center gap-1.5"><i class="fa-solid fa-chart-pie text-brand-400 text-sm"></i><span class="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Alokasi Laba Bulan Ini</span></div>
+      <span id="analyticsMon" class="text-[9px] text-slate-500 font-bold uppercase tracking-wide"></span>
+    </div>
+    <div id="doughWrap" class="mt-3"><canvas id="doughChart"></canvas></div>
+    <div id="doughEmpty" class="hidden text-center text-slate-500 text-xs py-4">Belum ada laba bulan ini</div>
+  </div>
+  <div class="glass rounded-2xl p-5 mb-3">
+    <div class="flex items-center justify-between mb-4">
+      <div class="flex items-center gap-1.5"><i class="fa-solid fa-boxes-stacked text-slate-400 text-sm"></i><span class="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Stok Mengendap</span></div>
+      <span id="agingCount" class="text-[9px] text-slate-500 font-bold uppercase tracking-wide"></span>
+    </div>
+    <div id="agingList" class="space-y-1"></div>
+  </div>
+</div>
+
+<!-- TAB PERFORMANCE -->
+<div id="tab-performance" class="tab-pane">
+  <div class="glass rounded-2xl p-5 mb-4">
+    <div class="flex items-center gap-1.5 mb-4"><i class="fa-solid fa-chart-area text-brand-400 text-sm"></i><span class="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Kinerja 12 Bulan</span></div>
+    <div id="lineWrap"><div><canvas id="lineChart"></canvas></div></div>
+  </div>
+  <div class="flex items-center gap-2 mb-4 px-0.5">
+    <div class="w-4 h-px bg-brand-500/60"></div>
+    <h3 class="text-[10px] font-bold text-slate-400 tracking-widest uppercase" style="font-family:Outfit,sans-serif">Target Pendapatan Bulanan</h3>
+    <div class="flex-grow h-px bg-white/5"></div>
+  </div>
+  <div id="trackerBody" class="space-y-3"></div>
+</div>
+
+<!-- TAB CASHFLOW -->
+<div id="tab-cashflow" class="tab-pane">
+  <div class="dd-wrap mb-3" id="ddWrap">
+    <button class="dd-btn" id="ddBtn" onclick="toggleDD()">
+      <i class="fa-regular fa-calendar text-brand-400 text-xs"></i>
+      <span id="ddLabel">Pilih Bulan</span>
+      <i class="fas fa-chevron-down chev"></i>
     </button>
-    <button onclick="switchTab('performance',this)" class="nav-item flex-1 py-2.5 px-1 rounded-full text-slate-500 transition-all flex flex-col items-center gap-0">
-        <i class="fa-solid fa-chart-bar text-[15px] nav-icon transition-all duration-300"></i>
-        <span class="nav-label text-[8px] font-bold uppercase tracking-widest max-h-0 opacity-0 overflow-hidden transition-all duration-300">Performa</span>
-    </button>
-    <button onclick="switchTab('cashflow',this)" class="nav-item flex-1 py-2.5 px-1 rounded-full text-slate-500 transition-all flex flex-col items-center gap-0">
-        <i class="fa-solid fa-wallet text-[15px] nav-icon transition-all duration-300"></i>
-        <span class="nav-label text-[8px] font-bold uppercase tracking-widest max-h-0 opacity-0 overflow-hidden transition-all duration-300">Arus Kas</span>
-    </button>
+    <div class="dd-list" id="ddList"></div>
+  </div>
+
+  <div id="exportCard" class="glass rounded-2xl p-5 mb-3 relative overflow-hidden">
+    <div class="absolute -right-5 -bottom-5 opacity-[.04] text-[72px] text-white pointer-events-none"><i class="fa-solid fa-money-bill-transfer"></i></div>
+    <div class="flex justify-between items-center mb-5 relative z-10">
+      <div>
+        <p class="text-[9px] text-slate-500 uppercase tracking-widest font-bold mb-0.5">Periode</p>
+        <h3 id="cfPeriod" style="font-family:Outfit,sans-serif" class="text-base font-bold text-white">—</h3>
+      </div>
+      <button id="exportBtn" onclick="doExport()" class="flex items-center gap-1.5 text-brand-400 border border-brand-500/20 rounded-xl px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest transition-all active:scale-95" style="background:rgba(14,165,233,.1)">
+        <i class="fa-solid fa-download text-[9px]"></i> Simpan
+      </button>
+    </div>
+    <div class="space-y-2.5 relative z-10 mb-4">
+      <div class="flex items-center gap-3 rounded-xl p-3" style="background:rgba(16,185,129,.05);border:1px solid rgba(16,185,129,.1)">
+        <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs shrink-0 text-emerald-400" style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2)"><i class="fa-solid fa-arrow-down"></i></div>
+        <div><span class="block text-[9px] font-bold text-slate-400 uppercase tracking-widest">Pemasukan (Omset)</span><span id="cfIncome" style="font-family:Outfit,sans-serif" class="text-[17px] font-bold text-emerald-400">Rp 0</span></div>
+      </div>
+      <div class="flex items-center gap-3 rounded-xl p-3" style="background:rgba(244,63,94,.05);border:1px solid rgba(244,63,94,.1)">
+        <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs shrink-0 text-rose-400" style="background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.2)"><i class="fa-solid fa-arrow-up"></i></div>
+        <div><span class="block text-[9px] font-bold text-slate-400 uppercase tracking-widest">Pengeluaran (HPP)</span><span id="cfExpense" style="font-family:Outfit,sans-serif" class="text-[17px] font-bold text-rose-400">Rp 0</span></div>
+      </div>
+    </div>
+    <div class="w-full h-px mb-4 relative z-10" style="background:linear-gradient(to right,transparent,rgba(255,255,255,.1),transparent)"></div>
+    <div class="flex justify-between items-center relative z-10">
+      <span id="cfNetLabel" class="text-[11px] font-bold text-slate-300 uppercase tracking-widest">Laba Bersih Bulan Ini</span>
+      <span id="cfNet" style="font-family:Outfit,sans-serif" class="text-2xl font-black text-white">Rp 0</span>
+    </div>
+    <div id="exportMark">Generated by Farid Store Neo Tracker</div>
+  </div>
+
+  <div class="glass rounded-2xl p-5 mb-3">
+    <div class="flex justify-between items-center mb-4">
+      <div class="flex items-center gap-1.5"><i class="fa-solid fa-clock-rotate-left text-brand-400 text-sm"></i><span class="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Mutasi Terakhir</span></div>
+      <span id="txCount" class="text-[9px] text-slate-500 font-bold uppercase tracking-wide"></span>
+    </div>
+    <div id="txList"></div>
+  </div>
+</div>
+
+</div><!-- /container -->
+
+<nav class="fixed bottom-4 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[420px] pill rounded-full px-2 py-1.5 flex justify-between items-center z-50" style="box-shadow:0 16px 48px rgba(0,0,0,.9)">
+  <button onclick="switchTab('dashboard',this)" class="nav-btn active flex-1 py-2.5 px-1 rounded-full text-slate-500 flex flex-col items-center gap-0">
+    <i class="fa-solid fa-layer-group text-[15px] nav-ic transition-all duration-300"></i>
+    <span class="nav-lbl text-[8px] font-bold uppercase tracking-widest max-h-0 opacity-0 overflow-hidden transition-all duration-300">Dasbor</span>
+  </button>
+  <button onclick="switchTab('analytics',this)" class="nav-btn flex-1 py-2.5 px-1 rounded-full text-slate-500 flex flex-col items-center gap-0">
+    <i class="fa-solid fa-compass text-[15px] nav-ic transition-all duration-300"></i>
+    <span class="nav-lbl text-[8px] font-bold uppercase tracking-widest max-h-0 opacity-0 overflow-hidden transition-all duration-300">Analitik</span>
+  </button>
+  <button onclick="switchTab('performance',this)" class="nav-btn flex-1 py-2.5 px-1 rounded-full text-slate-500 flex flex-col items-center gap-0">
+    <i class="fa-solid fa-chart-bar text-[15px] nav-ic transition-all duration-300"></i>
+    <span class="nav-lbl text-[8px] font-bold uppercase tracking-widest max-h-0 opacity-0 overflow-hidden transition-all duration-300">Performa</span>
+  </button>
+  <button onclick="switchTab('cashflow',this)" class="nav-btn flex-1 py-2.5 px-1 rounded-full text-slate-500 flex flex-col items-center gap-0">
+    <i class="fa-solid fa-wallet text-[15px] nav-ic transition-all duration-300"></i>
+    <span class="nav-lbl text-[8px] font-bold uppercase tracking-widest max-h-0 opacity-0 overflow-hidden transition-all duration-300">Arus Kas</span>
+  </button>
 </nav>
 
 <script>
 'use strict';
+const BIN_ID='699644fdae596e708f3582af';
+const API_KEY='$2a$10$tcKHEWwuz2sqRoMCKJfga.1xxTFW0RxpXUPnP.NI4YbivtlK1xxau';
+const CACHE_KEY='fsCacheV13';
+const GOAL=100000000;
+const GAJI_EMP=2500000;
+const MILESTONES=[10,20,30,40,50,60,75,90,100].map(v=>v*1000000);
+const MN=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+const ROADMAP=[{m:1,p:4500000},{m:2,p:5400000},{m:3,p:6075000},{m:4,p:6750000},{m:5,p:6750000},{m:6,p:7200000},{m:7,p:7200000},{m:8,p:7650000},{m:9,p:7650000},{m:10,p:7875000},{m:11,p:7875000},{m:12,p:6750000}];
+const RY=2026;
 
-// ── CONFIG ──────────────────────────────────────────────────────────────
-const BIN_ID  = '699644fdae596e708f3582af';
-const API_KEY = '$2a$10$tcKHEWwuz2sqRoMCKJfga.1xxTFW0RxpXUPnP.NI4YbivtlK1xxau';
-const CACHE_KEY = 'fsCacheV12';
+let rawDB=null,netMode=false,selMonth='';
+let cGoal={cur:0,rem:GOAL},cAlloc={o:0,e:0,r:0},cTrend={labels:[],profit:[],unit:[]};
+let charts={};
+let ddOpen=false;
 
-const GOAL           = 100_000_000;
-const GAJI_KARYAWAN  = 2_500_000;
-const MILESTONES     = [10,20,30,40,50,60,75,90,100].map(v => v * 1_000_000);
-
-const MONTH_NAMES = ['Januari','Februari','Maret','April','Mei','Juni',
-                     'Juli','Agustus','September','Oktober','November','Desember'];
-
-const roadmapTargets = [
-    {month:1,profit:4_500_000},{month:2,profit:5_400_000},
-    {month:3,profit:6_075_000},{month:4,profit:6_750_000},
-    {month:5,profit:6_750_000},{month:6,profit:7_200_000},
-    {month:7,profit:7_200_000},{month:8,profit:7_650_000},
-    {month:9,profit:7_650_000},{month:10,profit:7_875_000},
-    {month:11,profit:7_875_000},{month:12,profit:6_750_000}
-];
-
-// ── STATE ────────────────────────────────────────────────────────────────
-let globalRawData    = null;
-let isNetProfitMode  = false;
-let selectedMonth    = '';
-
-let cacheGoal   = { cur: 0, rem: GOAL };
-let cacheAlloc  = { owner: 0, emp: 0, retained: 0 };
-let cacheTrend  = { labels: [], profit: [], unit: [] };
-
-let chartInstances = {};
-let dropdownOpen   = false;
-
-// ── CHART.JS DEFAULTS ────────────────────────────────────────────────────
-window.addEventListener('load', () => {
-    if (typeof Chart !== 'undefined') {
-        Chart.defaults.font.family = "'Plus Jakarta Sans', sans-serif";
-        Chart.defaults.color = '#64748b';
-    }
-    initDashboard();
+document.addEventListener('DOMContentLoaded',()=>{
+  if(typeof Chart!=='undefined'){Chart.defaults.font.family="'Plus Jakarta Sans',sans-serif";Chart.defaults.color='#64748b';}
+  initApp();
 });
 
-// ── FORMATTERS ───────────────────────────────────────────────────────────
-function formatRp(num) {
-    if (!Number.isFinite(num)) return 'Rp 0';
-    const abs = Math.abs(num);
-    if (abs >= 1_000_000) return (num / 1_000_000).toFixed(1).replace(/\.0$/, '') + ' Jt';
-    if (abs >= 1_000)     return (num / 1_000).toFixed(0) + ' Rb';
-    return 'Rp ' + num.toLocaleString('id-ID');
+function fRp(n){
+  if(!Number.isFinite(n))return'Rp 0';
+  const a=Math.abs(n);
+  if(a>=1000000)return(n/1000000).toFixed(1).replace(/\.0$/,'')+' Jt';
+  if(a>=1000)return(n/1000).toFixed(0)+' Rb';
+  return'Rp '+n.toLocaleString('id-ID');
+}
+function fFull(n){
+  if(!Number.isFinite(n))return'Rp 0';
+  return new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',minimumFractionDigits:0}).format(n);
+}
+function mkey(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}
+function mlabel(s){const[y,m]=s.split('-');return MN[parseInt(m)-1]+' '+y;}
+function parseD(s){
+  if(!s||s==='Imported'||s==='Bulan Lalu')return new Date();
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s))return new Date(s);
+  const p=s.split(' ')[0].split('/');
+  if(p.length===3)return new Date(+p[2],+p[1]-1,+p[0]);
+  return new Date();
+}
+function getBrand(name){
+  const n=name.toUpperCase();
+  if(/IPHONE|APPLE|IPAD/.test(n))return'Apple';
+  if(/SAMSUNG|GALAXY/.test(n))return'Samsung';
+  if(/XIAOMI|REDMI|POCO/.test(n))return'Xiaomi';
+  if(/OPPO|RENO/.test(n))return'Oppo';
+  if(/VIVO|IQOO/.test(n))return'Vivo';
+  if(/REALME|NARZO/.test(n))return'Realme';
+  if(/INFINIX/.test(n))return'Infinix';
+  if(/TECNO/.test(n))return'Tecno';
+  if(/ITEL/.test(n))return'iTel';
+  return n.split(' ')[0];
 }
 
-function formatRpFull(num) {
-    if (!Number.isFinite(num)) return 'Rp 0';
-    return new Intl.NumberFormat('id-ID', { style:'currency', currency:'IDR', minimumFractionDigits:0 }).format(num);
+let _tt;
+function toast(msg,ms=2600){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');clearTimeout(_tt);_tt=setTimeout(()=>el.classList.remove('show'),ms);}
+
+function setSyncing(s){
+  const dot=document.getElementById('syncDot'),lbl=document.getElementById('syncLbl'),ico=document.getElementById('refreshIco');
+  const M={loading:['bg-brand-400 animate-pulse-soft','text-brand-400','Sync...','fas fa-rotate-right spinning'],success:['bg-emerald-400','text-emerald-400','Live','fas fa-rotate-right text-slate-400'],error:['bg-rose-400','text-rose-400','Gagal','fas fa-rotate-right text-slate-400'],idle:['bg-slate-500','text-slate-500','Idle','fas fa-rotate-right text-slate-400']};
+  const[dc,lc,lt,ic]=M[s]||M.idle;
+  dot.className='w-1.5 h-1.5 rounded-full '+dc;
+  lbl.className='text-[9px] tracking-widest uppercase font-bold '+lc;
+  lbl.textContent=lt;ico.className=ic;
+  if(s==='success')setTimeout(()=>setSyncing('idle'),3000);
 }
 
-function monthKey(date) {
-    return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}`;
+async function fetchDB(){
+  setSyncing('loading');
+  try{
+    const r=await fetch('https://api.jsonbin.io/v3/b/'+BIN_ID+'/latest',{headers:{'X-Master-Key':API_KEY}});
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    const j=await r.json();setSyncing('success');return j.record;
+  }catch(e){console.error(e);setSyncing('error');toast('⚠️ Gagal memuat data. Cek koneksi.');return null;}
 }
 
-function monthLabel(mk) {
-    const [y, m] = mk.split('-');
-    return `${MONTH_NAMES[parseInt(m)-1]} ${y}`;
+function animVal(id,end,dur=900){
+  const el=document.getElementById(id);if(!el)return;
+  let t0=null;
+  function step(ts){
+    if(!t0)t0=ts;
+    const p=Math.min((ts-t0)/dur,1),e=1-Math.pow(1-p,3);
+    el.textContent=fFull(Math.floor(e*end));
+    if(p<1)requestAnimationFrame(step);else el.textContent=fFull(end);
+  }
+  requestAnimationFrame(step);
 }
 
-function parseDateStr(s) {
-    if (!s || s === 'Imported' || s === 'Bulan Lalu') return new Date();
-    if (s.includes('-') && s.length === 10) return new Date(s);
-    const parts = s.split(' ')[0].split('/');
-    if (parts.length === 3) return new Date(+parts[2], +parts[1]-1, +parts[0]);
-    return new Date();
+function toggleDD(){ddOpen=!ddOpen;document.getElementById('ddBtn').classList.toggle('open',ddOpen);document.getElementById('ddList').classList.toggle('open',ddOpen);}
+function closeDD(){ddOpen=false;document.getElementById('ddBtn').classList.remove('open');document.getElementById('ddList').classList.remove('open');}
+document.addEventListener('click',e=>{const w=document.getElementById('ddWrap');if(w&&!w.contains(e.target))closeDD();});
+
+function setDDLabel(){
+  const lbl=document.getElementById('ddLabel');
+  if(selMonth==='all'){lbl.innerHTML='<i class="fa-solid fa-infinity" style="color:#38bdf8;font-size:10px;margin-right:4px"></i>Semua Waktu';}
+  else if(selMonth){lbl.textContent=mlabel(selMonth);}
+  else{lbl.textContent='Pilih Bulan';}
 }
 
-function getBrand(name) {
-    const n = name.toUpperCase();
-    if (n.includes('IPHONE')||n.includes('APPLE')||n.includes('IPAD'))  return 'Apple';
-    if (n.includes('SAMSUNG')||n.includes('GALAXY')||n.startsWith('SAM ')) return 'Samsung';
-    if (n.includes('XIAOMI')||n.includes('REDMI')||n.includes('POCO'))   return 'Xiaomi';
-    if (n.includes('OPPO')||n.includes('RENO'))   return 'Oppo';
-    if (n.includes('VIVO')||n.includes('IQOO'))   return 'Vivo';
-    if (n.includes('REALME')||n.includes('NARZO')) return 'Realme';
-    if (n.includes('INFINIX')) return 'Infinix';
-    if (n.includes('TECNO'))   return 'Tecno';
-    if (n.includes('ITEL'))    return 'iTel';
-    return n.split(' ')[0];
+function buildDD(months){
+  const list=document.getElementById('ddList');
+  list.innerHTML='';
+  // All Time
+  const aOpt=document.createElement('div');
+  aOpt.className='dd-opt'+(selMonth==='all'?' active':'');
+  aOpt.innerHTML='<span style="display:flex;align-items:center;gap:6px"><i class="fa-solid fa-infinity" style="color:#38bdf8;font-size:10px"></i>Semua Waktu</span><i class="fas fa-check ck"></i>';
+  aOpt.addEventListener('click',()=>{selMonth='all';setDDLabel();list.querySelectorAll('.dd-opt').forEach(o=>o.classList.remove('active'));aOpt.classList.add('active');closeDD();if(rawDB)processData(rawDB);});
+  list.appendChild(aOpt);
+  const dv=document.createElement('div');dv.className='dd-div';list.appendChild(dv);
+  // months newest first
+  [...months].reverse().forEach(m=>{
+    const opt=document.createElement('div');
+    opt.className='dd-opt'+(m===selMonth?' active':'');
+    opt.innerHTML='<span>'+mlabel(m)+'</span><i class="fas fa-check ck"></i>';
+    opt.addEventListener('click',()=>{selMonth=m;setDDLabel();list.querySelectorAll('.dd-opt').forEach(o=>o.classList.remove('active'));opt.classList.add('active');closeDD();if(rawDB)processData(rawDB);});
+    list.appendChild(opt);
+  });
+  setDDLabel();
 }
 
-// ── TOAST ────────────────────────────────────────────────────────────────
-let _toastTimer;
-function showToast(msg, duration = 2600) {
-    const el = document.getElementById('toast');
-    el.textContent = msg;
-    el.classList.add('show');
-    clearTimeout(_toastTimer);
-    _toastTimer = setTimeout(() => el.classList.remove('show'), duration);
-}
+function processData(db){
+  const now=new Date(),nowMk=mkey(now);
+  const monthly={},brands={},txAll=[],aging=[];
+  const startBal=Number(db.startBalance)||0;
+  let spent=0,revenue=0,pMain=0,pExtra=0,floatP=0,unitsSold=0;
+  const mSet=new Set([nowMk]);
 
-// ── SYNC STATUS ──────────────────────────────────────────────────────────
-function setSyncState(state) {
-    const dot  = document.getElementById('syncDot');
-    const lbl  = document.getElementById('syncLabel');
-    const icon = document.getElementById('refreshIcon');
+  (db.items||[]).forEach(i=>{
+    const ts=i.id?Math.floor(i.id):now.getTime();
+    mSet.add(mkey(new Date(ts)));
+    if(i.soldAt)mSet.add(mkey(parseD(i.soldAt)));
+  });
+  (db.extraProfits||[]).forEach(p=>{if(p.id)mSet.add(mkey(new Date(Math.floor(p.id))));});
 
-    const cfgs = {
-        loading : { dot: 'bg-brand-400 animate-pulse-soft', lbl: 'text-brand-400',  text: 'Sync...', icon: 'fas fa-rotate-right spinner' },
-        success : { dot: 'bg-emerald-400',                  lbl: 'text-emerald-400', text: 'Live',    icon: 'fas fa-rotate-right text-slate-400' },
-        error   : { dot: 'bg-rose-400',                     lbl: 'text-rose-400',    text: 'Gagal',   icon: 'fas fa-rotate-right text-slate-400' },
-        idle    : { dot: 'bg-slate-500',                    lbl: 'text-slate-500',   text: 'Idle',    icon: 'fas fa-rotate-right text-slate-400' },
-    };
-    const cfg = cfgs[state] || cfgs.idle;
+  const months=Array.from(mSet).sort();
+  if(!selMonth||(selMonth!=='all'&&!months.includes(selMonth)))selMonth=nowMk;
+  buildDD(months);
 
-    dot.className  = `w-1.5 h-1.5 rounded-full ${cfg.dot}`;
-    lbl.className  = `text-[9px] tracking-widest uppercase font-bold ${cfg.lbl}`;
-    lbl.textContent = cfg.text;
-    icon.className  = cfg.icon;
+  function ensure(k){if(!monthly[k])monthly[k]={income:0,expense:0,profit:0,kotor:0,units:0};}
 
-    if (state === 'success') setTimeout(() => setSyncState('idle'), 3000);
-}
-
-// ── FETCH DATABASE ───────────────────────────────────────────────────────
-async function fetchDatabase() {
-    setSyncState('loading');
-    try {
-        const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
-            headers: { 'X-Master-Key': API_KEY }
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const json = await res.json();
-        setSyncState('success');
-        return json.record;
-    } catch (err) {
-        console.error('Fetch error:', err);
-        setSyncState('error');
-        showToast('⚠️ Gagal memuat data. Cek koneksi.');
-        return null;
+  (db.items||[]).forEach(i=>{
+    const ts=i.id?Math.floor(i.id):now.getTime();
+    if(i.status==='sold'){
+      unitsSold++;
+      if(i.type==='new'){spent+=i.modal;txAll.push({id:ts,name:i.name,type:'buy',amount:i.modal,profit:0});}
+      revenue+=i.price;
+      const prof=i.price-i.modal;pMain+=prof;
+      const br=getBrand(i.name);
+      if(!brands[br])brands[br]={profit:0,count:0};
+      brands[br].profit+=prof;brands[br].count++;
+      const sd=parseD(i.soldAt),smk=mkey(sd);
+      ensure(smk);
+      monthly[smk].units++;monthly[smk].profit+=prof;monthly[smk].kotor+=prof;monthly[smk].income+=i.price;monthly[smk].expense+=i.modal;
+      txAll.push({id:sd.getTime(),name:i.name,type:'sold',amount:i.price,profit:prof});
+    }else if(i.status==='stok'){
+      if(i.type==='new'){spent+=i.modal;txAll.push({id:ts,name:i.name,type:'buy',amount:i.modal,profit:0});}
+      floatP+=i.price;
+      const age=i.id?Math.floor(Math.abs(now-new Date(Math.floor(i.id)))/86400000):0;
+      aging.push({name:i.name,days:age,modal:i.modal});
     }
+  });
+
+  (db.extraProfits||[]).forEach(p=>{
+    pExtra+=p.profit;unitsSold++;
+    const d=new Date(Math.floor(p.id)),emk=mkey(d);
+    ensure(emk);
+    monthly[emk].profit+=p.profit;monthly[emk].kotor+=p.profit;monthly[emk].units++;monthly[emk].income+=p.profit;
+    txAll.push({id:Math.floor(p.id),name:p.name||'Laba Jasa',type:'extra',amount:p.profit,profit:p.profit});
+  });
+
+  let gaji=0;
+  if(netMode){Object.keys(monthly).forEach(k=>{monthly[k].profit-=GAJI_EMP;monthly[k].expense+=GAJI_EMP;gaji+=GAJI_EMP;});}
+
+  const totalNet=(pMain+pExtra)-gaji;
+  const cash=startBal-spent+revenue;
+  const totalAset=cash+floatP;
+
+  aging.sort((a,b)=>b.days-a.days);
+  txAll.sort((a,b)=>b.id-a.id);
+
+  let cfIncome=0,cfExpense=0,cfTx=[],cfPeriod='';
+  if(selMonth==='all'){
+    cfIncome=Object.values(monthly).reduce((s,v)=>s+v.income,0);
+    cfExpense=Object.values(monthly).reduce((s,v)=>s+v.expense,0);
+    cfTx=txAll.slice(0,20);cfPeriod='Semua Waktu';
+  }else{
+    const bk=monthly[selMonth]||{};
+    cfIncome=bk.income||0;cfExpense=bk.expense||0;
+    const ts=new Date(selMonth+'-01').getTime();
+    const[y,mm]=selMonth.split('-').map(Number);
+    const te=new Date(y,mm,1).getTime();
+    cfTx=txAll.filter(t=>t.id>=ts&&t.id<te);
+    cfPeriod=mlabel(selMonth);
+  }
+
+  rDashboard({totalAset,totalNet,unitsSold,cash,floatP,monthly,nowMk});
+  rAnalytics({brands,monthly,nowMk,aging});
+  rPerformance({monthly,nowMk,totalNet,unitsSold});
+  rCashflow({cfIncome,cfExpense,cfPeriod,cfTx,isAll:selMonth==='all'});
 }
 
-// ── ANIMATE VALUE ────────────────────────────────────────────────────────
-function animateValue(id, start, end, duration = 900) {
-    const el = document.getElementById(id);
-    if (!el) return;
-    if (start === end) { el.textContent = formatRpFull(end); return; }
-    let t0 = null;
-    const step = ts => {
-        if (!t0) t0 = ts;
-        const p    = Math.min((ts - t0) / duration, 1);
-        const ease = 1 - Math.pow(1 - p, 3);
-        el.textContent = formatRpFull(Math.floor(ease * (end - start) + start));
-        if (p < 1) requestAnimationFrame(step);
-        else el.textContent = formatRpFull(end);
-    };
-    requestAnimationFrame(step);
+function rDashboard({totalAset,totalNet,unitsSold,cash,floatP,monthly,nowMk}){
+  const rem=Math.max(GOAL-totalAset,0);
+  cGoal={cur:totalAset,rem};
+  const pct=Math.min((totalAset/GOAL)*100,100);
+  document.getElementById('goalPct').textContent=pct.toFixed(1)+'%';
+
+  const mKeys=Object.keys(monthly).sort(),r3=mKeys.slice(-3);
+  const avg3=r3.reduce((s,k)=>s+(monthly[k].kotor||monthly[k].profit||0),0)/(r3.length||1);
+  const badge=document.getElementById('etaBadge');
+  if(rem<=0){
+    badge.className='flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-wide border bg-emerald-500/10 border-emerald-500/20 text-emerald-400';
+    badge.innerHTML='<i class="fas fa-check text-[8px]"></i><span>Target Tercapai!</span>';
+  }else if(avg3>0){
+    const d=new Date();d.setMonth(d.getMonth()+Math.ceil(rem/avg3));
+    badge.className='flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-wide border bg-warning/10 border-warning/20 text-warning';
+    badge.innerHTML='<i class="fas fa-clock text-[8px]"></i><span>~'+MN[d.getMonth()]+' '+d.getFullYear()+'</span>';
+  }else{
+    badge.className='flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-wide border bg-white/5 border-white/10 text-slate-500';
+    badge.innerHTML='<i class="fas fa-clock text-[8px]"></i><span>Menghitung...</span>';
+  }
+
+  if(document.getElementById('tab-dashboard').classList.contains('active'))rGoalChart(cGoal.cur,cGoal.rem);
+
+  document.getElementById('totalAsset').textContent=fRp(totalAset);
+  document.getElementById('totalProfit').textContent=fFull(totalNet);
+  document.getElementById('totalUnits').textContent=unitsSold+' Unit';
+  document.getElementById('avgMargin').textContent=unitsSold>0?fRp(totalNet/unitsSold)+'/unit':'—';
+
+  const prev=MILESTONES.slice().reverse().find(m=>m<=totalAset)||0;
+  const next=MILESTONES.find(m=>m>totalAset)||GOAL;
+  const mp=prev===next?100:Math.min(((totalAset-prev)/(next-prev))*100,100);
+  document.getElementById('nextMile').textContent=fFull(next);
+  document.getElementById('milePrev').textContent=prev?fRp(prev):'—';
+  document.getElementById('mileNext').textContent=fRp(next);
+  document.getElementById('milestoneBar').style.width=mp+'%';
+
+  const tot=totalAset>0?totalAset:1;
+  document.getElementById('barCash').style.width=Math.max(0,cash/tot*100)+'%';
+  document.getElementById('barStock').style.width=Math.max(0,floatP/tot*100)+'%';
+  document.getElementById('valCash').textContent=fFull(cash);
+  document.getElementById('valStock').textContent=fFull(floatP);
 }
 
-// ── MONTH DROPDOWN ───────────────────────────────────────────────────────
-function toggleMonthDropdown() {
-    const btn  = document.getElementById('monthDropdownBtn');
-    const list = document.getElementById('monthDropdownList');
-    dropdownOpen = !dropdownOpen;
-    btn.classList.toggle('open', dropdownOpen);
-    list.classList.toggle('open', dropdownOpen);
+function rAnalytics({brands,monthly,nowMk,aging}){
+  document.getElementById('analyticsMon').textContent=mlabel(nowMk);
+  const tb=document.getElementById('topBrands');
+  const arr=Object.entries(brands).map(([n,v])=>({n,...v})).sort((a,b)=>b.profit-a.profit).slice(0,5);
+  if(!arr.length){tb.innerHTML='<div class="text-center text-slate-500 text-xs py-4">Belum ada data penjualan.</div>';}
+  else{
+    const bg=['text-orange-400 bg-orange-400/10 border border-orange-400/20','text-slate-300 bg-slate-400/10 border border-slate-400/20','text-amber-600 bg-amber-600/10 border border-amber-700/20','text-slate-500 bg-white/5 border border-white/5','text-slate-500 bg-white/5 border border-white/5'];
+    const maxP=arr[0].profit||1;
+    tb.innerHTML=arr.map((b,i)=>`<div class="flex justify-between items-center p-3 rounded-xl bg-white/[.02] border border-white/5"><div class="flex items-center gap-3 min-w-0"><div class="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 ${bg[i]}">${i+1}</div><div class="min-w-0"><p style="font-family:Outfit,sans-serif" class="text-[13px] font-bold text-white truncate">${b.n}</p><div class="bar-bg h-1 w-20 mt-1"><div class="bar-fill bg-brand-400" style="width:${(b.profit/maxP*100).toFixed(1)}%"></div></div></div></div><div class="text-right shrink-0 ml-3"><div class="text-[11px] font-bold text-emerald-400">${fFull(b.profit)}</div><div class="text-[9px] text-slate-500 uppercase tracking-wider mt-0.5">${b.count} unit</div></div></div>`).join('');
+  }
+
+  const kotor=monthly[nowMk]?(monthly[nowMk].kotor||monthly[nowMk].profit||0):0;
+  cAlloc.o=Math.max(0,Math.min(1500000,kotor));
+  cAlloc.e=kotor>=1500000?Math.min(1000000,kotor-1500000):0;
+  cAlloc.r=Math.max(0,kotor-2500000);
+  if(document.getElementById('tab-analytics').classList.contains('active'))rDoughnut(cAlloc.o,cAlloc.e,cAlloc.r);
+
+  const al=document.getElementById('agingList');
+  document.getElementById('agingCount').textContent=aging.length?aging.length+' Item':'';
+  if(!aging.length){al.innerHTML='<div class="text-center text-slate-500 text-xs py-4">Gudang kosong — perputaran lancar 🎉</div>';}
+  else{al.innerHTML=aging.slice(0,8).map(it=>{const cls=it.days>30?'text-rose-400 bg-rose-400/10 border-rose-400/20':it.days>14?'text-warning bg-warning/10 border-warning/20':'text-slate-400 bg-white/5 border-white/5';return`<div class="flex justify-between items-center py-2.5 border-b border-white/[.04] last:border-0"><span class="text-[11px] font-medium text-slate-300 pr-3 leading-snug truncate">${it.name}</span><span class="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-widest border shrink-0 ${cls}">${it.days}h</span></div>`;}).join('');}
 }
 
-function closeMonthDropdown() {
-    dropdownOpen = false;
-    document.getElementById('monthDropdownBtn').classList.remove('open');
-    document.getElementById('monthDropdownList').classList.remove('open');
+function rPerformance({monthly,nowMk,totalNet,unitsSold}){
+  cTrend={labels:[],profit:[],unit:[]};
+  const tb=document.getElementById('trackerBody');tb.innerHTML='';
+  const fb=unitsSold>0?totalNet/unitsSold:150000;
+  let deficit=0;
+
+  ROADMAP.forEach(t=>{
+    const yr=RY+Math.floor((t.m-1)/12),mo=((t.m-1)%12)+1;
+    const key=yr+'-'+String(mo).padStart(2,'0');
+    const act=monthly[key]||{units:0,profit:0};
+    const uAct=act.units||0,pAct=act.profit||0;
+    const isPast=key<nowMk,isCur=key===nowMk;
+
+    cTrend.labels.push(MN[mo-1].slice(0,3)+' '+yr);
+    cTrend.profit.push(pAct);cTrend.unit.push(uAct);
+
+    const target=t.p+Math.max(deficit,0);
+    if(key<=nowMk)deficit+=(t.p-pAct);
+
+    const tUnit=pAct>=target?uAct:Math.ceil(target/(Math.abs(fb)||150000));
+    const sisaP=Math.max(target-pAct,0),sisaU=Math.max(tUnit-uAct,0);
+    const kejar=sisaU>0?sisaP/sisaU:0,avgAct=uAct>0?pAct/uAct:0;
+    const pctP=Math.min((pAct/(target||1))*100,100),pctU=Math.min((uAct/(tUnit||1))*100,100);
+    const done=pAct>=target&&target>0;
+
+    const badge=done?'<span style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2)" class="text-emerald-400 px-1.5 py-0.5 rounded-lg text-[8px] font-bold uppercase"><i class="fas fa-check mr-0.5"></i>Tercapai</span>':pAct>0?'<span style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2)" class="text-warning px-1.5 py-0.5 rounded-lg text-[8px] font-bold uppercase">Proses</span>':isPast?'<span style="background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.2)" class="text-rose-400 px-1.5 py-0.5 rounded-lg text-[8px] font-bold uppercase">Lewat</span>':'<span style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.05)" class="text-slate-500 px-1.5 py-0.5 rounded-lg text-[8px] font-bold uppercase">Menunggu</span>';
+    const cardSt=isCur?'border-color:rgba(14,165,233,.4);background:rgba(14,165,233,.05)':isPast&&!done?'border-color:rgba(244,63,94,.15);background:rgba(244,63,94,.03)':'';
+    const dot=isCur?'<span class="w-1.5 h-1.5 rounded-full bg-brand-400 inline-block animate-pulse ml-1.5 align-middle"></span>':'';
+
+    tb.innerHTML+=`<div class="glass rounded-2xl p-4" style="${cardSt}"><div class="flex justify-between items-center mb-3"><h4 style="font-family:Outfit,sans-serif" class="text-sm font-bold text-white flex items-center">${MN[mo-1]} ${yr}${dot}</h4>${badge}</div><div class="flex justify-between text-[10px] font-bold mb-1"><span class="text-slate-500">Laba</span><span class="text-white">${fRp(pAct)} <span class="text-slate-600 font-normal">/ ${fRp(target)}</span></span></div><div class="bar-bg h-1 mb-3"><div class="bar-fill bg-emerald-500" style="width:${pctP}%"></div></div><div class="flex justify-between text-[10px] font-bold mb-1"><span class="text-slate-500">Volume</span><span class="text-white">${uAct} <span class="text-slate-600 font-normal">/ ${tUnit} unit</span></span></div><div class="bar-bg h-1 mb-3"><div class="bar-fill bg-brand-500" style="width:${pctU}%"></div></div><div class="pt-3 border-t border-white/[.05] grid grid-cols-2 gap-x-4 text-[9px]"><div><span class="block text-slate-500 mb-0.5 uppercase tracking-wider font-bold">Avg Margin</span><span class="text-white font-bold">${avgAct>0?fRp(avgAct)+'/unit':'—'}</span></div><div class="text-right"><span class="block text-slate-500 mb-0.5 uppercase tracking-wider font-bold">Target Kejar</span>${done?'<span class="text-emerald-400 font-bold">Done ✓</span>':kejar>0?`<span class="text-brand-400 font-bold">${fRp(kejar)}/unit</span>`:'<span class="text-slate-500 font-bold">—</span>'}</div></div></div>`;
+  });
+
+  if(document.getElementById('tab-performance').classList.contains('active'))rLineChart(cTrend.labels,cTrend.profit,cTrend.unit);
 }
 
-document.addEventListener('click', e => {
-    const wrap = document.getElementById('monthDropdownWrap');
-    if (wrap && !wrap.contains(e.target)) closeMonthDropdown();
-});
+function rCashflow({cfIncome,cfExpense,cfPeriod,cfTx,isAll}){
+  document.getElementById('cfPeriod').textContent=cfPeriod;
+  document.getElementById('cfNetLabel').textContent=isAll?'Total Laba Bersih (All Time)':'Laba Bersih Bulan Ini';
+  animVal('cfIncome',cfIncome,700);
+  animVal('cfExpense',cfExpense,700);
+  const net=cfIncome-cfExpense;
+  const netEl=document.getElementById('cfNet');
+  if(net>0){netEl.textContent='+'+fFull(net);netEl.style.color='#34d399';}
+  else if(net<0){netEl.textContent='-'+fFull(Math.abs(net));netEl.style.color='#fb7185';}
+  else{netEl.textContent=fFull(0);netEl.style.color='#fff';}
 
-function buildMonthDropdown(months) {
-    const list  = document.getElementById('monthDropdownList');
-    const label = document.getElementById('monthDropdownLabel');
+  const lim=isAll?20:15;
+  document.getElementById('txCount').textContent=cfTx.length?Math.min(cfTx.length,lim)+(isAll?' Terakhir':' Transaksi'):'';
 
-    list.innerHTML = '';
+  const tl=document.getElementById('txList');
+  if(!cfTx.length){tl.innerHTML='<div class="text-center text-slate-500 text-xs py-4">Belum ada transaksi.</div>';return;}
 
-    // ── "All Time" option at the top ──
-    const allOpt = document.createElement('div');
-    allOpt.className = `month-option${selectedMonth === 'all' ? ' active' : ''}`;
-    allOpt.dataset.month = 'all';
-    allOpt.innerHTML = `<span style="display:flex;align-items:center;gap:6px;"><i class="fa-solid fa-infinity" style="color:#38bdf8;font-size:10px;"></i>Semua Waktu</span><i class="fas fa-check check-icon"></i>`;
-    allOpt.onclick = () => {
-        selectedMonth = 'all';
-        label.innerHTML = '<i class="fa-solid fa-infinity" style="color:#38bdf8;font-size:10px;margin-right:5px;"></i>Semua Waktu';
-        list.querySelectorAll('.month-option').forEach(o => o.classList.remove('active'));
-        allOpt.classList.add('active');
-        closeMonthDropdown();
-        if (globalRawData) processData(globalRawData);
-    };
-    list.appendChild(allOpt);
+  const cfg={sold:{icon:'fa-arrow-turn-up',cls:'text-emerald-400',bg:'rgba(52,211,153,.1)',br:'rgba(52,211,153,.2)',sign:'+',ac:'color:#34d399'},buy:{icon:'fa-cart-shopping',cls:'text-rose-400',bg:'rgba(251,113,133,.1)',br:'rgba(251,113,133,.2)',sign:'-',ac:'color:#fb7185'},extra:{icon:'fa-star',cls:'text-brand-400',bg:'rgba(56,189,248,.1)',br:'rgba(56,189,248,.2)',sign:'+',ac:'color:#34d399'}};
 
-    // Divider
-    const divEl = document.createElement('div');
-    divEl.style.cssText = 'height:1px;background:rgba(255,255,255,0.06);margin:2px 0;';
-    list.appendChild(divEl);
-
-    // ── Monthly options (newest first) ──
-    [...months].reverse().forEach(m => {
-        const opt = document.createElement('div');
-        opt.className = `month-option${m === selectedMonth ? ' active' : ''}`;
-        opt.dataset.month = m;
-        opt.innerHTML = `<span>${monthLabel(m)}</span><i class="fas fa-check check-icon"></i>`;
-        opt.onclick = () => {
-            selectedMonth = m;
-            label.textContent = monthLabel(m);
-            list.querySelectorAll('.month-option').forEach(o => o.classList.remove('active'));
-            opt.classList.add('active');
-            closeMonthDropdown();
-            if (globalRawData) processData(globalRawData);
-        };
-        list.appendChild(opt);
-    });
-
-    // Set label
-    if (selectedMonth === 'all') {
-        label.innerHTML = '<i class="fa-solid fa-infinity" style="color:#38bdf8;font-size:10px;margin-right:5px;"></i>Semua Waktu';
-    } else {
-        label.textContent = selectedMonth ? monthLabel(selectedMonth) : 'Pilih Bulan';
-    }
+  tl.innerHTML=cfTx.slice(0,lim).map(tx=>{
+    const c=cfg[tx.type]||cfg.extra;
+    const d=new Date(tx.id),ds=String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0');
+    const sub=tx.type==='sold'?'Laba: '+fRp(tx.profit):tx.type==='buy'?'Stok Masuk':'Laba Jasa';
+    return`<div class="flex justify-between items-center py-2.5 border-b border-white/[.04] last:border-0"><div class="flex items-center gap-3 min-w-0"><div class="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs ${c.cls}" style="background:${c.bg};border:1px solid ${c.br}"><i class="fa-solid ${c.icon}"></i></div><div class="min-w-0"><h5 class="text-[11px] font-bold text-white truncate">${tx.name}</h5><span class="text-[9px] font-medium text-slate-500">${ds} · ${sub}</span></div></div><span style="font-family:Outfit,sans-serif;${c.ac}" class="text-[11px] font-black shrink-0 ml-2">${c.sign}${fFull(tx.amount)}</span></div>`;
+  }).join('');
 }
 
-// ── PROCESS DATA ─────────────────────────────────────────────────────────
-function processData(db) {
-    const nowDate = new Date();
-    const nowMk   = monthKey(nowDate);
+function dChart(k){if(charts[k]){charts[k].destroy();charts[k]=null;}}
 
-    let monthlyActuals = {};
-    let brandStats     = {};
-    let allTransactions = [];
-
-    const startBalance = Number(db.startBalance) || 0;
-    let belanjaBaru    = 0;
-    let uangMasuk      = 0;
-    let profitMain     = 0;
-    let profitEkstra   = 0;
-    let floatModal     = 0;
-    let floatPrice     = 0;
-    let totalUnit      = 0;
-    let agingStocks    = [];
-
-    // Collect unique months
-    const uniqueMonths = new Set([nowMk]);
-
-    (db.items || []).forEach(i => {
-        const ts  = i.id ? Math.floor(i.id) : nowDate.getTime();
-        const bMk = monthKey(new Date(ts));
-        uniqueMonths.add(bMk);
-        if (i.soldAt) uniqueMonths.add(monthKey(parseDateStr(i.soldAt)));
-    });
-    (db.extraProfits || []).forEach(p => {
-        uniqueMonths.add(monthKey(new Date(Math.floor(p.id))));
-    });
-
-    const sortedMonths = Array.from(uniqueMonths).sort();
-
-    // Set default selectedMonth
-    if (!selectedMonth || !sortedMonths.includes(selectedMonth)) {
-        selectedMonth = nowMk;
-    }
-
-    buildMonthDropdown(sortedMonths);
-
-    // Process items
-    (db.items || []).forEach(i => {
-        const ts = i.id ? Math.floor(i.id) : nowDate.getTime();
-
-        if (i.status === 'sold') {
-            totalUnit++;
-
-            if (i.type === 'new') {
-                belanjaBaru += i.modal;
-                allTransactions.push({ id: ts, name: i.name, type: 'buy', amount: i.modal, profit: 0 });
-            }
-
-            uangMasuk  += i.price;
-            const prof  = i.price - i.modal;
-            profitMain += prof;
-
-            const brand = getBrand(i.name);
-            if (!brandStats[brand]) brandStats[brand] = { profit: 0, count: 0 };
-            brandStats[brand].profit += prof;
-            brandStats[brand].count++;
-
-            const soldDate = parseDateStr(i.soldAt || nowMk);
-            const soldMk   = monthKey(soldDate);
-
-            allTransactions.push({ id: soldDate.getTime(), name: i.name, type: 'sold', amount: i.price, profit: prof });
-
-            if (!monthlyActuals[soldMk]) monthlyActuals[soldMk] = { units: 0, profit: 0, kotor: 0, income: 0, expense: 0 };
-            monthlyActuals[soldMk].units++;
-            monthlyActuals[soldMk].profit  += prof;
-            monthlyActuals[soldMk].kotor   += prof;
-            monthlyActuals[soldMk].income  += i.price;
-            monthlyActuals[soldMk].expense += i.modal;
-
-        } else if (i.status === 'stok') {
-            if (i.type === 'new') {
-                belanjaBaru += i.modal;
-                allTransactions.push({ id: ts, name: i.name, type: 'buy', amount: i.modal, profit: 0 });
-            }
-            floatPrice += i.price;
-            floatModal += i.modal;
-
-            const ageDays = i.id ? Math.floor(Math.abs(nowDate - new Date(Math.floor(i.id))) / 86400000) : 0;
-            agingStocks.push({ name: i.name, days: ageDays, modal: i.modal });
-        }
-    });
-
-    // Extra profits
-    (db.extraProfits || []).forEach(p => {
-        profitEkstra += p.profit;
-        totalUnit++;
-        const d  = new Date(Math.floor(p.id));
-        const mk = monthKey(d);
-
-        allTransactions.push({ id: Math.floor(p.id), name: p.name || 'Laba Jasa', type: 'extra', amount: p.profit, profit: p.profit });
-
-        if (!monthlyActuals[mk]) monthlyActuals[mk] = { units: 0, profit: 0, kotor: 0, income: 0, expense: 0 };
-        monthlyActuals[mk].profit += p.profit;
-        monthlyActuals[mk].kotor  += p.profit;
-        monthlyActuals[mk].units++;
-        monthlyActuals[mk].income += p.profit;
-    });
-
-    // Net mode: deduct salary per active month
-    let totalGaji = 0;
-    if (isNetProfitMode) {
-        Object.keys(monthlyActuals).forEach(mk => {
-            monthlyActuals[mk].profit  -= GAJI_KARYAWAN;
-            monthlyActuals[mk].expense += GAJI_KARYAWAN;
-            totalGaji += GAJI_KARYAWAN;
-        });
-    }
-
-    const totalGross = profitMain + profitEkstra;
-    const totalNet   = totalGross - totalGaji;
-
-    const cashSisa  = startBalance - belanjaBaru + uangMasuk;
-    const totalAset = cashSisa + floatPrice;
-
-    agingStocks.sort((a, b) => b.days - a.days);
-    allTransactions.sort((a, b) => b.id - a.id);
-
-    // Cashflow for selected month (or all-time)
-    let selActual, selTx, cashflowPeriodText;
-    if (selectedMonth === 'all') {
-        // Aggregate all months
-        const allIncome  = Object.values(monthlyActuals).reduce((s, a) => s + (a.income  || 0), 0);
-        const allExpense = Object.values(monthlyActuals).reduce((s, a) => s + (a.expense || 0), 0);
-        const allProfit  = Object.values(monthlyActuals).reduce((s, a) => s + (a.profit  || 0), 0);
-        selActual = { income: allIncome, expense: allExpense, profit: allProfit };
-        selTx = allTransactions;
-        cashflowPeriodText = 'Semua Waktu';
-    } else {
-        selActual = monthlyActuals[selectedMonth] || { income: 0, expense: 0, profit: 0 };
-        const selTxStart = new Date(selectedMonth + '-01').getTime();
-        const selTxEnd   = new Date(selectedMonth.split('-')[0], parseInt(selectedMonth.split('-')[1]), 1).getTime();
-        selTx = allTransactions.filter(tx => tx.id >= selTxStart && tx.id < selTxEnd);
-        cashflowPeriodText = monthLabel(selectedMonth);
-    }
-    document.getElementById('cashflowPeriodLabel').textContent = cashflowPeriodText;
-
-    updateUI({
-        actuals    : monthlyActuals,
-        totalAset,
-        totalNet,
-        totalUnit,
-        cash       : cashSisa,
-        stock      : floatPrice,
-        aging      : agingStocks,
-        brands     : brandStats,
-        selMonth   : selectedMonth,
-        selIncome  : selActual.income,
-        selExpense : selActual.expense,
-        selProfit  : selActual.profit,
-        recentTx   : selTx.length > 0 ? selTx : allTransactions.slice(0, 10),
-        allTx      : allTransactions,
-        nowMk,
-    });
+function rGoalChart(cur,rem){
+  if(typeof Chart==='undefined')return;
+  dChart('goal');const canvas=document.getElementById('goalChart');if(!canvas)return;
+  charts.goal=new Chart(canvas.getContext('2d'),{type:'doughnut',data:{datasets:[{data:[Math.max(cur,0),Math.max(rem,0)],backgroundColor:['#0ea5e9','rgba(255,255,255,.04)'],borderWidth:0,borderRadius:20}]},options:{cutout:'80%',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{enabled:false}},animation:{animateRotate:true,duration:1400,easing:'easeOutQuart'}}});
 }
 
-// ── CHARTS ───────────────────────────────────────────────────────────────
-function destroyChart(key) {
-    if (chartInstances[key]) { chartInstances[key].destroy(); chartInstances[key] = null; }
+function rDoughnut(o,e,r){
+  if(typeof Chart==='undefined')return;
+  dChart('dough');
+  const canvas=document.getElementById('doughChart'),wrap=document.getElementById('doughWrap'),empty=document.getElementById('doughEmpty');
+  if(!canvas)return;
+  if(o+e+r<=0){wrap.style.display='none';empty.classList.remove('hidden');return;}
+  wrap.style.display='';empty.classList.add('hidden');
+  charts.dough=new Chart(canvas.getContext('2d'),{type:'doughnut',data:{labels:['Gaji Owner','Gaji Karyawan','Laba Ditahan'],datasets:[{data:[o,e,r],backgroundColor:['#38bdf8','#818cf8','#10b981'],borderWidth:0,hoverOffset:4}]},options:{cutout:'72%',responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:8,color:'#e2e8f0',font:{size:10},padding:12}}},animation:{animateScale:true,animateRotate:true,duration:1200,easing:'easeOutBack'}}});
 }
 
-function renderGoalChart(cur, rem) {
-    if (typeof Chart === 'undefined') return;
-    destroyChart('goal');
-    const canvas = document.getElementById('goalChart');
-    if (!canvas) return;
-    chartInstances.goal = new Chart(canvas.getContext('2d'), {
-        type: 'doughnut',
-        data: {
-            datasets: [{
-                data: [Math.max(cur, 0), Math.max(rem, 0)],
-                backgroundColor: ['#0ea5e9', 'rgba(255,255,255,0.04)'],
-                borderWidth: 0, borderRadius: 20
-            }]
-        },
-        options: {
-            cutout: '80%',
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { display: false }, tooltip: { enabled: false } },
-            animation: { animateRotate: true, duration: 1400, easing: 'easeOutQuart' }
-        }
-    });
+function rLineChart(labels,profit,unit){
+  if(typeof Chart==='undefined')return;
+  dChart('line');const canvas=document.getElementById('lineChart');if(!canvas)return;
+  charts.line=new Chart(canvas.getContext('2d'),{type:'line',data:{labels,datasets:[{label:netMode?'Laba Bersih':'Laba Kotor',data:profit,backgroundColor:'rgba(56,189,248,.08)',borderColor:'#38bdf8',borderWidth:2,pointBackgroundColor:'#38bdf8',pointBorderColor:'#020202',pointRadius:3,fill:true,tension:0.4,yAxisID:'y'},{label:'Volume',data:unit,type:'bar',backgroundColor:'rgba(129,140,248,.75)',borderRadius:4,barThickness:7,yAxisID:'y1'}]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',labels:{boxWidth:6,usePointStyle:true,color:'#e2e8f0',font:{size:9},padding:10}}},scales:{x:{grid:{display:false},ticks:{font:{size:8},maxRotation:45}},y:{position:'left',grid:{color:'rgba(255,255,255,.025)'},ticks:{callback:v=>(v/1000000).toFixed(1)+' Jt',font:{size:8}}},y1:{position:'right',grid:{drawOnChartArea:false},ticks:{font:{size:8},stepSize:1}}},animation:{duration:1400,easing:'easeOutQuart'}}});
 }
 
-function renderDoughnutChart(owner, emp, retained) {
-    if (typeof Chart === 'undefined') return;
-    destroyChart('doughnut');
-    const canvas = document.getElementById('doughnutChart');
-    if (!canvas) return;
-    const total = owner + emp + retained;
-    const empty = document.getElementById('allocationEmpty');
-    const wrap  = document.getElementById('doughnutWrap');
-
-    if (total <= 0) {
-        wrap.style.display = 'none';
-        empty && empty.classList.remove('hidden');
-        return;
-    }
-    wrap.style.display = '';
-    empty && empty.classList.add('hidden');
-
-    chartInstances.doughnut = new Chart(canvas.getContext('2d'), {
-        type: 'doughnut',
-        data: {
-            labels: ['Gaji Owner', 'Gaji Karyawan', 'Laba Ditahan'],
-            datasets: [{
-                data: [owner, emp, retained],
-                backgroundColor: ['#38bdf8', '#818cf8', '#10b981'],
-                borderWidth: 0, hoverOffset: 4
-            }]
-        },
-        options: {
-            cutout: '72%',
-            responsive: true, maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: { boxWidth: 8, color: '#e2e8f0', font: { size: 10 }, padding: 12 }
-                }
-            },
-            animation: { animateScale: true, animateRotate: true, duration: 1200, easing: 'easeOutBack' }
-        }
-    });
+function switchTab(id,el){
+  document.querySelectorAll('.tab-pane').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(n=>n.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');el.classList.add('active');
+  requestAnimationFrame(()=>{
+    if(id==='dashboard')rGoalChart(cGoal.cur,cGoal.rem);
+    if(id==='analytics')rDoughnut(cAlloc.o,cAlloc.e,cAlloc.r);
+    if(id==='performance')rLineChart(cTrend.labels,cTrend.profit,cTrend.unit);
+  });
+  window.scrollTo({top:0,behavior:'smooth'});
 }
 
-function renderLineChart(labels, profitData, unitData) {
-    if (typeof Chart === 'undefined') return;
-    destroyChart('sales');
-    const canvas = document.getElementById('salesChart');
-    if (!canvas) return;
-    chartInstances.sales = new Chart(canvas.getContext('2d'), {
-        type: 'line',
-        data: {
-            labels,
-            datasets: [
-                {
-                    label: isNetProfitMode ? 'Laba Bersih' : 'Laba Kotor',
-                    data: profitData,
-                    backgroundColor: 'rgba(56,189,248,0.08)',
-                    borderColor: '#38bdf8', borderWidth: 2,
-                    pointBackgroundColor: '#38bdf8', pointBorderColor: '#020202',
-                    pointRadius: 3, fill: true, tension: 0.4, yAxisID: 'y'
-                },
-                {
-                    label: 'Volume',
-                    data: unitData,
-                    type: 'bar',
-                    backgroundColor: 'rgba(129,140,248,0.75)',
-                    borderRadius: 4, barThickness: 7, yAxisID: 'y1'
-                }
-            ]
-        },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            interaction: { mode: 'index', intersect: false },
-            plugins: {
-                legend: {
-                    position: 'top',
-                    labels: { boxWidth: 6, usePointStyle: true, color: '#e2e8f0', font: { size: 9 }, padding: 10 }
-                }
-            },
-            scales: {
-                x: { grid: { display: false }, ticks: { font: { size: 8 }, maxRotation: 45 } },
-                y: {
-                    position: 'left', grid: { color: 'rgba(255,255,255,0.025)' },
-                    ticks: { callback: v => (v/1_000_000).toFixed(1) + ' Jt', font: { size: 8 } }
-                },
-                y1: {
-                    position: 'right', grid: { drawOnChartArea: false },
-                    ticks: { font: { size: 8 }, stepSize: 1 }
-                }
-            },
-            animation: { duration: 1400, easing: 'easeOutQuart' }
-        }
-    });
+function onNetToggle(){netMode=document.getElementById('netToggle').checked;document.getElementById('labelMode').textContent=netMode?'Bersih':'Kotor';if(rawDB)processData(rawDB);}
+
+async function manualRefresh(){
+  const btn=document.getElementById('refreshBtn');btn.disabled=true;
+  const db=await fetchDB();
+  if(db){localStorage.setItem(CACHE_KEY,JSON.stringify(db));rawDB=db;processData(db);toast('✅ Data berhasil diperbarui');}
+  btn.disabled=false;
 }
 
-// ── UPDATE UI ─────────────────────────────────────────────────────────────
-function updateUI({ actuals, totalAset, totalNet, totalUnit, cash, stock,
-                    aging, brands, selMonth, selIncome, selExpense, selProfit,
-                    recentTx, allTx, nowMk }) {
-
-    const mKeys = Object.keys(actuals).sort();
-
-    // ───── DASHBOARD ─────
-    const remain = Math.max(GOAL - totalAset, 0);
-    cacheGoal = { cur: totalAset, rem: remain };
-
-    const pct = Math.min((totalAset / GOAL) * 100, 100);
-    document.getElementById('uiGoalPct').textContent = pct.toFixed(1) + '%';
-
-    // ETA badge
-    const badge   = document.getElementById('uiEtaBadge');
-    const recent3 = mKeys.slice(-3);
-    const avg3    = recent3.reduce((s, k) => s + (actuals[k].kotor || actuals[k].profit || 0), 0) / (recent3.length || 1);
-
-    if (remain <= 0) {
-        badge.className = 'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-wide border bg-emerald-500/10 border-emerald-500/20 text-emerald-400';
-        badge.innerHTML = '<i class="fas fa-check text-[8px]"></i><span>Target Tercapai!</span>';
-    } else if (avg3 > 0) {
-        const d = new Date(); d.setMonth(d.getMonth() + Math.ceil(remain / avg3));
-        badge.className = 'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-wide border bg-warning/10 border-warning/20 text-warning';
-        badge.innerHTML = `<i class="fas fa-clock text-[8px]"></i><span>~${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}</span>`;
-    } else {
-        badge.className = 'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-wide border bg-white/5 border-white/10 text-slate-500';
-        badge.innerHTML = '<i class="fas fa-clock text-[8px]"></i><span>Menghitung...</span>';
-    }
-
-    if (document.getElementById('tab-dashboard').classList.contains('active')) {
-        renderGoalChart(cacheGoal.cur, cacheGoal.rem);
-    }
-
-    // Animate asset values
-    const assetEl = document.getElementById('uiTotalAsset');
-    assetEl.textContent = formatRp(totalAset);
-
-    const profitEl = document.getElementById('uiTotalProfit');
-    profitEl.textContent = formatRpFull(totalNet);
-
-    document.getElementById('uiTotalUnits').textContent = `${totalUnit} Unit`;
-    document.getElementById('uiAvgMargin').textContent = totalUnit > 0 ? formatRp(totalNet / totalUnit) + '/unit' : '—';
-
-    // Milestone
-    const prevMil = MILESTONES.slice().reverse().find(m => m <= totalAset) || 0;
-    const nextMil = MILESTONES.find(m => m > totalAset) || GOAL;
-    const milPct  = prevMil === nextMil ? 100 : Math.min(((totalAset - prevMil) / (nextMil - prevMil)) * 100, 100);
-    document.getElementById('uiNextMilestone').textContent   = formatRpFull(nextMil);
-    document.getElementById('milestonePrevLabel').textContent = prevMil ? formatRp(prevMil) : '—';
-    document.getElementById('milestoneNextLabel').textContent = formatRp(nextMil);
-    document.getElementById('milestoneBar').style.width       = milPct + '%';
-
-    // Asset allocation bars
-    const cashPct  = totalAset > 0 ? Math.max((cash  / totalAset) * 100, 0) : 0;
-    const stockPct = totalAset > 0 ? Math.max((stock / totalAset) * 100, 0) : 0;
-    document.getElementById('barCash').style.width   = cashPct + '%';
-    document.getElementById('barStock').style.width  = stockPct + '%';
-    document.getElementById('uiValCash').textContent  = formatRpFull(cash);
-    document.getElementById('uiValStock').textContent = formatRpFull(stock);
-
-    // ───── ANALYTICS ─────
-    document.getElementById('analyticsMonthLabel').textContent = monthLabel(nowMk);
-
-    // Top brands
-    const tbUI = document.getElementById('topBrandsUI');
-    const bArr = Object.entries(brands)
-        .map(([n, v]) => ({ n, ...v }))
-        .sort((a, b) => b.profit - a.profit)
-        .slice(0, 5);
-
-    if (bArr.length === 0) {
-        tbUI.innerHTML = '<div class="text-center text-slate-500 text-xs py-4">Belum ada data penjualan.</div>';
-    } else {
-        const badges = [
-            'text-orange-400 bg-orange-400/10 border-orange-400/20',
-            'text-slate-300 bg-slate-400/10 border-slate-400/20',
-            'text-amber-600 bg-amber-600/10 border-amber-700/20',
-            'text-slate-500 bg-white/5 border-white/5',
-            'text-slate-500 bg-white/5 border-white/5'
-        ];
-        const maxP = bArr[0].profit || 1;
-        tbUI.innerHTML = bArr.map((b, i) => `
-            <div class="flex justify-between items-center p-3 rounded-xl bg-white/[0.02] border border-white/5">
-                <div class="flex items-center gap-3 min-w-0">
-                    <div class="w-7 h-7 rounded-full border flex items-center justify-center text-[10px] font-black shrink-0 ${badges[i]}">${i+1}</div>
-                    <div class="min-w-0">
-                        <p class="font-heading text-[13px] font-bold text-white truncate">${b.n}</p>
-                        <div class="bar-bg h-1 w-20 mt-1">
-                            <div class="bar-fill bg-brand-400" style="width:${(b.profit/maxP)*100}%"></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="text-right shrink-0 ml-3">
-                    <div class="text-[11px] font-bold text-emerald-400">${formatRpFull(b.profit)}</div>
-                    <div class="text-[9px] text-slate-500 uppercase tracking-wider mt-0.5">${b.count} unit</div>
-                </div>
-            </div>
-        `).join('');
-    }
-
-    // Doughnut — current month gross profit
-    const currKotor = actuals[nowMk] ? (actuals[nowMk].kotor ?? actuals[nowMk].profit ?? 0) : 0;
-    cacheAlloc.owner    = Math.max(0, Math.min(1_500_000, currKotor));
-    cacheAlloc.emp      = Math.max(0, currKotor >= 1_500_000 ? Math.min(1_000_000, currKotor - 1_500_000) : 0);
-    cacheAlloc.retained = Math.max(0, currKotor - 2_500_000);
-
-    if (document.getElementById('tab-analytics').classList.contains('active')) {
-        renderDoughnutChart(cacheAlloc.owner, cacheAlloc.emp, cacheAlloc.retained);
-    }
-
-    // Aging stock
-    const alUI = document.getElementById('agingListUI');
-    document.getElementById('agingCount').textContent = aging.length > 0 ? `${aging.length} Item` : '';
-    if (aging.length === 0) {
-        alUI.innerHTML = '<div class="text-center text-slate-500 text-xs py-4">Gudang kosong — perputaran lancar 🎉</div>';
-    } else {
-        alUI.innerHTML = aging.slice(0, 8).map(item => {
-            const cls = item.days > 30
-                ? 'text-rose-400 bg-rose-400/10 border-rose-400/20'
-                : item.days > 14
-                ? 'text-warning bg-warning/10 border-warning/20'
-                : 'text-slate-400 bg-white/5 border-white/5';
-            return `
-                <div class="flex justify-between items-center py-2.5 border-b border-white/[0.04] last:border-0">
-                    <span class="text-[11px] font-medium text-slate-300 pr-3 leading-snug truncate">${item.name}</span>
-                    <span class="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-widest border shrink-0 ${cls}">${item.days}h</span>
-                </div>
-            `;
-        }).join('');
-    }
-
-    // ───── PERFORMANCE ─────
-    cacheTrend = { labels: [], profit: [], unit: [] };
-    const tb = document.getElementById('trackerBody');
-    tb.innerHTML = '';
-
-    const avgMarginFallback = totalUnit > 0 ? totalNet / totalUnit : 150_000;
-    const roadmapStartYear  = 2026;
-    let deficit = 0;
-
-    roadmapTargets.forEach((t) => {
-        const rYear = roadmapStartYear + Math.floor((t.month - 1) / 12);
-        const m     = ((t.month - 1) % 12) + 1;
-        const mk    = `${rYear}-${String(m).padStart(2,'0')}`;
-
-        const act     = actuals[mk] || { units: 0, profit: 0 };
-        const unitAct = act.units  || 0;
-        const profAct = act.profit || 0;
-
-        cacheTrend.labels.push(`${MONTH_NAMES[m-1].slice(0,3)} ${rYear}`);
-        cacheTrend.profit.push(profAct);
-        cacheTrend.unit.push(unitAct);
-
-        const targetProfit = t.profit + Math.max(deficit, 0);
-        if (mk <= nowMk) deficit += (t.profit - profAct);
-
-        const tUnitTarget  = profAct >= targetProfit ? unitAct : Math.ceil(targetProfit / (avgMarginFallback || 150_000));
-        const sisaProfit   = Math.max(targetProfit - profAct, 0);
-        const sisaUnit     = Math.max(tUnitTarget - unitAct, 0);
-        const kejarMargin  = sisaUnit > 0 ? sisaProfit / sisaUnit : 0;
-        const avgMarginAct = unitAct > 0 ? profAct / unitAct : 0;
-
-        const pctProfit = Math.min((profAct / (targetProfit || 1)) * 100, 100);
-        const pctUnit   = Math.min((unitAct  / (tUnitTarget || 1)) * 100, 100);
-
-        const isCurrent  = mk === nowMk;
-        const isAchieved = profAct >= targetProfit && targetProfit > 0;
-        const isPast     = mk < nowMk;
-
-        const statusHtml = isAchieved
-            ? '<span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded-lg text-[8px] font-bold uppercase"><i class="fas fa-check mr-0.5"></i>Tercapai</span>'
-            : profAct > 0
-            ? '<span class="bg-warning/10 text-warning border border-warning/20 px-1.5 py-0.5 rounded-lg text-[8px] font-bold uppercase">Proses</span>'
-            : isPast
-            ? '<span class="bg-rose-500/10 text-rose-400 border border-rose-500/20 px-1.5 py-0.5 rounded-lg text-[8px] font-bold uppercase">Lewat</span>'
-            : '<span class="bg-white/5 text-slate-500 border border-white/5 px-1.5 py-0.5 rounded-lg text-[8px] font-bold uppercase">Menunggu</span>';
-
-        const cardClass = isCurrent
-            ? 'border-brand-500/40 bg-brand-500/5'
-            : isPast && !isAchieved
-            ? 'border-rose-500/15 bg-rose-500/[0.03]'
-            : '';
-        const pulseDot = isCurrent ? '<span class="w-1.5 h-1.5 rounded-full bg-brand-400 inline-block animate-pulse ml-1.5 align-middle"></span>' : '';
-
-        tb.innerHTML += `
-            <div class="glass-panel rounded-2xl p-4 ${cardClass}">
-                <div class="flex justify-between items-center mb-3">
-                    <h4 class="font-heading text-sm font-bold text-white flex items-center">
-                        ${MONTH_NAMES[m-1]} ${rYear} ${pulseDot}
-                    </h4>
-                    ${statusHtml}
-                </div>
-                <div class="flex justify-between text-[10px] font-bold mb-1">
-                    <span class="text-slate-500">Laba</span>
-                    <span class="text-white">${formatRp(profAct)} <span class="text-slate-600 font-normal">/ ${formatRp(targetProfit)}</span></span>
-                </div>
-                <div class="bar-bg h-1 mb-3">
-                    <div class="bar-fill bg-emerald-500" style="width:${pctProfit}%"></div>
-                </div>
-                <div class="flex justify-between text-[10px] font-bold mb-1">
-                    <span class="text-slate-500">Volume</span>
-                    <span class="text-white">${unitAct} <span class="text-slate-600 font-normal">/ ${tUnitTarget} unit</span></span>
-                </div>
-                <div class="bar-bg h-1 mb-3">
-                    <div class="bar-fill bg-brand-500" style="width:${pctUnit}%"></div>
-                </div>
-                <div class="pt-3 border-t border-white/[0.05] grid grid-cols-2 gap-x-4 text-[9px]">
-                    <div>
-                        <span class="block text-slate-500 mb-0.5 uppercase tracking-wider font-bold">Avg Margin</span>
-                        <span class="text-white font-bold">${avgMarginAct > 0 ? formatRp(avgMarginAct) + '/unit' : '—'}</span>
-                    </div>
-                    <div class="text-right">
-                        <span class="block text-slate-500 mb-0.5 uppercase tracking-wider font-bold">Target Kejar</span>
-                        ${isAchieved
-                            ? '<span class="text-emerald-400 font-bold">Done ✓</span>'
-                            : kejarMargin > 0
-                            ? `<span class="text-brand-400 font-bold">${formatRp(kejarMargin)}/unit</span>`
-                            : '<span class="text-slate-500 font-bold">—</span>'}
-                    </div>
-                </div>
-            </div>
-        `;
-    });
-
-    if (document.getElementById('tab-performance').classList.contains('active')) {
-        renderLineChart(cacheTrend.labels, cacheTrend.profit, cacheTrend.unit);
-    }
-
-    // ───── CASHFLOW ─────
-    // Update dynamic labels based on all-time vs monthly
-    const isAllTime = selMonth === 'all';
-    const netLbl = document.getElementById('netCashLabel');
-    if (netLbl) netLbl.textContent = isAllTime ? 'Total Laba Bersih (All Time)' : 'Laba Bersih Bulan Ini';
-
-    animateValue('uiTotalIncome',  0, selIncome,  700);
-    animateValue('uiTotalExpense', 0, selExpense, 700);
-
-    const netCash = selIncome - selExpense;
-    const netEl   = document.getElementById('uiNetCashFlow');
-    if (netCash > 0) {
-        netEl.textContent = `+${formatRpFull(netCash)}`;
-        netEl.className   = 'font-heading text-2xl font-black text-emerald-400';
-    } else if (netCash < 0) {
-        netEl.textContent = `-${formatRpFull(Math.abs(netCash))}`;
-        netEl.className   = 'font-heading text-2xl font-black text-rose-400';
-    } else {
-        netEl.textContent = formatRpFull(0);
-        netEl.className   = 'font-heading text-2xl font-black text-white';
-    }
-
-    // Recent transactions
-    const rtUI = document.getElementById('recentTransactionsUI');
-    const isAllTime = selMonth === 'all';
-    const txLimit   = isAllTime ? 20 : 12;
-    document.getElementById('txCountLabel').textContent = recentTx.length > 0
-        ? `${Math.min(recentTx.length, txLimit)} ${isAllTime ? 'Terakhir' : 'Transaksi'}`
-        : '';
-
-    if (recentTx.length === 0) {
-        rtUI.innerHTML = '<div class="text-center text-slate-500 text-xs py-4">Belum ada transaksi.</div>';
-    } else {
-        const txCfg = {
-            sold  : { icon: 'fa-arrow-turn-up',  cls: 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20', sign: '+' },
-            buy   : { icon: 'fa-cart-shopping',   cls: 'text-rose-400 bg-rose-400/10 border-rose-400/20',         sign: '-' },
-            extra : { icon: 'fa-star',             cls: 'text-brand-400 bg-brand-400/10 border-brand-400/20',      sign: '+' },
-        };
-        rtUI.innerHTML = recentTx.slice(0, txLimit).map(tx => {
-            const cfg    = txCfg[tx.type] || txCfg.extra;
-            const d      = new Date(tx.id);
-            const ds     = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`;
-            const sub    = tx.type === 'sold' ? `Laba: ${formatRp(tx.profit)}` : tx.type === 'buy' ? 'Stok Masuk' : 'Laba Jasa';
-            const amtCls = tx.type === 'buy' ? 'text-rose-400' : 'text-emerald-400';
-            return `
-                <div class="flex justify-between items-center py-2.5 border-b border-white/[0.04] last:border-0">
-                    <div class="flex items-center gap-3 min-w-0">
-                        <div class="w-8 h-8 rounded-full border flex items-center justify-center shrink-0 text-xs ${cfg.cls}">
-                            <i class="fa-solid ${cfg.icon}"></i>
-                        </div>
-                        <div class="min-w-0">
-                            <h5 class="text-[11px] font-bold text-white truncate">${tx.name}</h5>
-                            <span class="text-[9px] font-medium text-slate-500">${ds} · ${sub}</span>
-                        </div>
-                    </div>
-                    <span class="font-heading text-[11px] font-black shrink-0 ml-2 ${amtCls}">${cfg.sign}${formatRpFull(tx.amount)}</span>
-                </div>
-            `;
-        }).join('');
-    }
+async function doExport(){
+  if(typeof html2canvas==='undefined'){toast('⚠️ Library belum siap.');return;}
+  const btn=document.getElementById('exportBtn'),card=document.getElementById('exportCard'),mark=document.getElementById('exportMark');
+  const label=document.getElementById('cfPeriod').textContent;
+  btn.style.visibility='hidden';mark.style.display='block';
+  const prevBg=card.style.background,prevBd=card.style.border;
+  card.style.background='#0d0d0d';card.style.border='1px solid rgba(255,255,255,.1)';
+  try{
+    await new Promise(r=>setTimeout(r,80));
+    const cv=await html2canvas(card,{scale:3,backgroundColor:'#0d0d0d',useCORS:true,logging:false,removeContainer:true});
+    const a=document.createElement('a');
+    a.download='Laporan_FaridStore_'+label.replace(/\s/g,'_')+'.png';
+    a.href=cv.toDataURL('image/png');
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    toast('📥 Laporan berhasil disimpan!');
+  }catch(e){console.error(e);toast('⚠️ Gagal menyimpan laporan.');}
+  finally{
+    card.style.background=prevBg;card.style.border=prevBd;
+    mark.style.display='none';btn.style.visibility='';
+    btn.innerHTML='<i class="fa-solid fa-download text-[9px]"></i> Simpan';btn.disabled=false;
+  }
 }
 
-// ── TAB SWITCH ────────────────────────────────────────────────────────────
-function switchTab(tabId, el) {
-    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-
-    document.getElementById(`tab-${tabId}`).classList.add('active');
-    el.classList.add('active');
-
-    requestAnimationFrame(() => {
-        if (tabId === 'dashboard')   renderGoalChart(cacheGoal.cur, cacheGoal.rem);
-        if (tabId === 'analytics')   renderDoughnutChart(cacheAlloc.owner, cacheAlloc.emp, cacheAlloc.retained);
-        if (tabId === 'performance') renderLineChart(cacheTrend.labels, cacheTrend.profit, cacheTrend.unit);
-    });
-
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+async function initApp(){
+  try{const c=localStorage.getItem(CACHE_KEY);if(c){rawDB=JSON.parse(c);processData(rawDB);}}catch(_){localStorage.removeItem(CACHE_KEY);}
+  const db=await fetchDB();
+  if(db){localStorage.setItem(CACHE_KEY,JSON.stringify(db));rawDB=db;processData(db);}
 }
 
-// ── NET PROFIT TOGGLE ─────────────────────────────────────────────────────
-function toggleNetProfit() {
-    isNetProfitMode = document.getElementById('netProfitToggle').checked;
-    document.getElementById('labelNetto').textContent = isNetProfitMode ? 'Bersih' : 'Kotor';
-    if (globalRawData) processData(globalRawData);
-}
-
-// ── MANUAL REFRESH ────────────────────────────────────────────────────────
-async function manualRefresh() {
-    const btn = document.getElementById('refreshBtn');
-    btn.disabled = true;
-    const db = await fetchDatabase();
-    if (db) {
-        localStorage.setItem(CACHE_KEY, JSON.stringify(db));
-        globalRawData = db;
-        processData(db);
-        showToast('✅ Data berhasil diperbarui');
-    }
-    btn.disabled = false;
-}
-
-// ── EXPORT / DOWNLOAD REPORT ──────────────────────────────────────────────
-async function downloadReport() {
-    if (typeof html2canvas === 'undefined') {
-        showToast('⚠️ Library belum siap, coba lagi.');
-        return;
-    }
-
-    const btn       = document.getElementById('btnExport');
-    const area      = document.getElementById('cashflowExportArea');
-    const watermark = document.getElementById('exportWatermark');
-    const periodLbl = document.getElementById('cashflowPeriodLabel').textContent;
-
-    // Disable button
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-[9px]"></i>';
-    btn.disabled  = true;
-    btn.style.visibility = 'hidden';
-
-    // Show watermark
-    watermark.style.display = 'block';
-
-    // Temporarily style the card for capture
-    const prevBg     = area.style.background;
-    const prevBorder = area.style.border;
-    const prevRadius = area.style.borderRadius;
-    area.style.background   = '#0d0d0d';
-    area.style.border       = '1px solid rgba(255,255,255,0.1)';
-    area.style.borderRadius = '16px';
-
-    try {
-        await new Promise(r => setTimeout(r, 80)); // let DOM settle
-        const canvas = await html2canvas(area, {
-            scale: 3,
-            backgroundColor: '#0d0d0d',
-            useCORS: true,
-            logging: false,
-            removeContainer: true
-        });
-
-        const filename = `Laporan_FaridStore_${periodLbl.replace(/\s/g,'_')}.png`;
-        const link = document.createElement('a');
-        link.download = filename;
-        link.href = canvas.toDataURL('image/png');
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-        showToast('📥 Laporan berhasil disimpan!');
-    } catch (e) {
-        console.error('Export error:', e);
-        showToast('⚠️ Gagal menyimpan laporan.');
-    } finally {
-        area.style.background   = prevBg;
-        area.style.border       = prevBorder;
-        area.style.borderRadius = prevRadius;
-        watermark.style.display = 'none';
-        btn.style.visibility    = '';
-        btn.innerHTML = '<i class="fa-solid fa-download text-[9px]"></i> Simpan';
-        btn.disabled  = false;
-    }
-}
-
-// ── INIT ──────────────────────────────────────────────────────────────────
-async function initDashboard() {
-    // Load cached data first for instant display
-    const cached = localStorage.getItem(CACHE_KEY);
-    if (cached) {
-        try {
-            globalRawData = JSON.parse(cached);
-            processData(globalRawData);
-        } catch (e) {
-            localStorage.removeItem(CACHE_KEY);
-        }
-    }
-
-    // Fetch fresh data
-    const fresh = await fetchDatabase();
-    if (fresh) {
-        localStorage.setItem(CACHE_KEY, JSON.stringify(fresh));
-        globalRawData = fresh;
-        processData(fresh);
-    }
-}
-
-// ── PULL TO REFRESH ───────────────────────────────────────────────────────
-{
-    let startY = 0, pulling = false, refreshing = false;
-    const ptr     = document.getElementById('ptr-indicator');
-    const ptrIcon = document.getElementById('ptr-icon');
-    const ptrText = document.getElementById('ptr-text');
-
-    document.addEventListener('touchstart', e => {
-        if (window.scrollY === 0 && !refreshing) {
-            startY = e.touches[0].pageY;
-            pulling = true;
-        }
-    }, { passive: true });
-
-    document.addEventListener('touchmove', e => {
-        if (!pulling) return;
-        const diff = e.touches[0].pageY - startY;
-        if (diff > 0 && window.scrollY === 0) {
-            const h = Math.min(diff * 0.4, 68);
-            ptr.style.height = h + 'px';
-            ptrIcon.style.transform = h > 50 ? 'rotate(180deg)' : 'rotate(0deg)';
-            ptrText.textContent = h > 50 ? 'Lepaskan untuk Memperbarui' : 'Tarik untuk Memperbarui';
-        }
-    }, { passive: true });
-
-    document.addEventListener('touchend', () => {
-        if (!pulling) return;
-        pulling = false;
-        const h = parseInt(ptr.style.height || 0);
-        if (h > 50) {
-            refreshing = true;
-            ptrIcon.className = 'fas fa-circle-notch fa-spin';
-            ptrText.textContent = 'Menyinkronkan...';
-            manualRefresh().finally(() => {
-                refreshing = false;
-                setTimeout(() => {
-                    ptr.style.height = '0px';
-                    ptrIcon.className = 'fas fa-arrow-down';
-                    ptrIcon.style.transform = '';
-                }, 400);
-            });
-        } else {
-            ptr.style.height = '0px';
-            ptrIcon.style.transform = '';
-        }
-    });
-}
-
-// ── POLYFILL ──────────────────────────────────────────────────────────────
-if (!Array.prototype.findLast) {
-    Array.prototype.findLast = function(fn) {
-        for (let i = this.length - 1; i >= 0; i--) {
-            if (fn(this[i], i, this)) return this[i];
-        }
-    };
-}
+(function(){
+  let sy=0,pulling=false,busy=false;
+  const ptr=document.getElementById('ptr'),ico=document.getElementById('ptrIco'),txt=document.getElementById('ptrTxt');
+  document.addEventListener('touchstart',e=>{if(window.scrollY===0&&!busy){sy=e.touches[0].pageY;pulling=true;}},{passive:true});
+  document.addEventListener('touchmove',e=>{if(!pulling)return;const d=e.touches[0].pageY-sy;if(d>0&&window.scrollY===0){const h=Math.min(d*.4,68);ptr.style.height=h+'px';ico.style.transform=h>50?'rotate(180deg)':'';txt.textContent=h>50?'Lepaskan untuk Memperbarui':'Tarik untuk Memperbarui';}},{passive:true});
+  document.addEventListener('touchend',()=>{if(!pulling)return;pulling=false;const h=parseInt(ptr.style.height||0);if(h>50){busy=true;ico.className='fas fa-circle-notch spinning';txt.textContent='Menyinkronkan...';manualRefresh().finally(()=>{busy=false;setTimeout(()=>{ptr.style.height='0px';ico.className='fas fa-arrow-down';ico.style.transform='';},400);});}else{ptr.style.height='0px';ico.style.transform='';}});
+})();
 </script>
 </body>
 </html>
