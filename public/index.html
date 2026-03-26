@@ -123,6 +123,7 @@ body{opacity:0;padding-bottom:96px;animation:bIn .5s ease-out .05s forwards;font
 
 <div class="max-w-xl mx-auto px-4 pt-5 relative z-10">
 
+<!-- ════════════════ HEADER ════════════════ -->
 <header class="flex justify-between items-center mb-5">
   <div class="flex items-center gap-3">
     <div class="w-10 h-10 rounded-2xl flex items-center justify-center text-white font-black text-sm" style="font-family:Outfit;background:linear-gradient(135deg,#0ea5e9,#7c3aed);box-shadow:0 8px 24px rgba(14,165,233,.25)">FS</div>
@@ -142,8 +143,10 @@ body{opacity:0;padding-bottom:96px;animation:bIn .5s ease-out .05s forwards;font
   </div>
 </header>
 
+<!-- ════════════════ TAB: DASBOR ════════════════ -->
 <div id="tab-dashboard" class="tab-pane active space-y-3">
 
+  <!-- Hero Card: Total Aset + Goal Ring -->
   <div class="card p-5 relative overflow-hidden">
     <div class="absolute -right-10 -top-10 w-48 h-48 rounded-full pointer-events-none" style="background:radial-gradient(circle,rgba(14,165,233,.07),transparent 70%)"></div>
 
@@ -156,6 +159,7 @@ body{opacity:0;padding-bottom:96px;animation:bIn .5s ease-out .05s forwards;font
         <div id="etaBadge" class="status-badge bg-warning/10 border border-warning/20 text-warning">
           <i class="fas fa-clock text-[8px]"></i><span id="etaTxt">Menghitung...</span>
         </div>
+        <!-- Currency Toggle -->
         <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full card-inset">
           <span id="lblIDR" class="text-[9px] font-bold text-brand-400 transition-colors">IDR</span>
           <label class="sw" style="transform:scale(.75);margin:-3px -1px"><input type="checkbox" id="currToggle" onchange="onCurrToggle()"><span class="sw-t"></span></label>
@@ -165,6 +169,7 @@ body{opacity:0;padding-bottom:96px;animation:bIn .5s ease-out .05s forwards;font
     </div>
 
     <div class="flex items-center gap-4">
+      <!-- Goal Donut -->
       <div id="goalWrap"><canvas id="goalChart"></canvas>
         <div id="goalInner">
           <span id="goalPct" style="font-family:Outfit" class="text-[12px] font-black text-white leading-none">0%</span>
@@ -174,11 +179,13 @@ body{opacity:0;padding-bottom:96px;animation:bIn .5s ease-out .05s forwards;font
         <p class="metric-label mb-0.5">Total Aset</p>
         <h3 id="totalAsset" style="font-family:Outfit" class="text-[26px] font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-400 tracking-tighter leading-none truncate">Rp 0</h3>
         <p class="text-[9px] text-slate-600 mt-1">Kas + Nilai Stok Gudang</p>
+        <!-- Mini progress -->
         <div class="bar-track h-1 mt-2"><div id="goalBar" class="bar-fill bg-gradient-to-r from-brand-600 to-brand-400" style="width:0%"></div></div>
       </div>
     </div>
   </div>
 
+  <!-- KPI Grid -->
   <div class="grid grid-cols-2 gap-2.5">
     <div class="metric">
       <span class="metric-label">Kas Tunai</span>
@@ -202,6 +209,7 @@ body{opacity:0;padding-bottom:96px;animation:bIn .5s ease-out .05s forwards;font
     </div>
   </div>
 
+  <!-- Kalkulator 12% ROI -->
   <div class="card p-4">
     <div class="flex items-center justify-between mb-3">
       <div class="flex items-center gap-2">
@@ -211,6 +219,7 @@ body{opacity:0;padding-bottom:96px;animation:bIn .5s ease-out .05s forwards;font
       <span id="roiTargetBadge" class="text-[9px] font-bold text-brand-400"></span>
     </div>
 
+    <!-- Margin mode selector -->
     <div class="seg mb-3">
       <button class="seg-btn active" id="btnMarginAuto" onclick="switchMarginMode('auto')">Auto</button>
       <button class="seg-btn" id="btnMargin100" onclick="switchMarginMode(100000)">100k</button>
@@ -236,6 +245,7 @@ body{opacity:0;padding-bottom:96px;animation:bIn .5s ease-out .05s forwards;font
     </div>
   </div>
 
+  <!-- Akumulasi Laba + Net Toggle -->
   <div class="card p-5 relative overflow-hidden">
     <div class="absolute right-4 bottom-4 opacity-[.03] text-[64px] text-white pointer-events-none"><i class="fa-solid fa-chart-line"></i></div>
     <div class="flex justify-between items-center mb-3">
@@ -257,6 +267,7 @@ body{opacity:0;padding-bottom:96px;animation:bIn .5s ease-out .05s forwards;font
     </div>
   </div>
 
+  <!-- Milestone Berikutnya -->
   <div class="card p-4">
     <div class="flex justify-between items-center mb-2">
       <div class="flex items-center gap-2">
@@ -271,7 +282,10 @@ body{opacity:0;padding-bottom:96px;animation:bIn .5s ease-out .05s forwards;font
     </div>
   </div>
 
-</div><div id="tab-analytics" class="tab-pane space-y-3">
+</div><!-- end tab-dashboard -->
+
+<!-- ════════════════ TAB: ANALITIK ════════════════ -->
+<div id="tab-analytics" class="tab-pane space-y-3">
 
   <div class="card p-5">
     <div class="flex items-center gap-2 mb-4">
@@ -289,6 +303,7 @@ body{opacity:0;padding-bottom:96px;animation:bIn .5s ease-out .05s forwards;font
       </div>
       <span id="analyticsMon" class="text-[9px] text-slate-500 font-bold uppercase"></span>
     </div>
+    <!-- Alokasi breakdown -->
     <div id="allocBreakdown" class="mt-3 space-y-2"></div>
     <div id="doughWrap" class="mt-3"><canvas id="doughChart"></canvas></div>
     <div id="doughEmpty" class="hidden text-center text-slate-500 text-xs py-4">Belum ada laba bulan ini</div>
@@ -305,7 +320,10 @@ body{opacity:0;padding-bottom:96px;animation:bIn .5s ease-out .05s forwards;font
     <div id="agingList" class="space-y-1"></div>
   </div>
 
-</div><div id="tab-performance" class="tab-pane space-y-3">
+</div><!-- end tab-analytics -->
+
+<!-- ════════════════ TAB: PERFORMA ════════════════ -->
+<div id="tab-performance" class="tab-pane space-y-3">
 
   <div class="card p-5">
     <div class="flex items-center gap-2 mb-4">
@@ -323,8 +341,12 @@ body{opacity:0;padding-bottom:96px;animation:bIn .5s ease-out .05s forwards;font
 
   <div id="trackerBody" class="space-y-3"></div>
 
-</div><div id="tab-cashflow" class="tab-pane space-y-3">
+</div><!-- end tab-performance -->
 
+<!-- ════════════════ TAB: ARUS KAS ════════════════ -->
+<div id="tab-cashflow" class="tab-pane space-y-3">
+
+  <!-- Month Dropdown -->
   <div class="dd-wrap" id="ddWrap">
     <button class="dd-btn" id="ddBtn" onclick="toggleDD()">
       <i class="fa-regular fa-calendar text-brand-400 text-xs"></i>
@@ -334,6 +356,7 @@ body{opacity:0;padding-bottom:96px;animation:bIn .5s ease-out .05s forwards;font
     <div class="dd-list" id="ddList"></div>
   </div>
 
+  <!-- Summary Card (Exportable) -->
   <div id="exportCard" class="card p-5 relative overflow-hidden">
     <div class="absolute -right-5 -bottom-5 opacity-[.03] text-[72px] text-white pointer-events-none"><i class="fa-solid fa-money-bill-transfer"></i></div>
     <div class="flex justify-between items-center mb-5">
@@ -361,6 +384,7 @@ body{opacity:0;padding-bottom:96px;animation:bIn .5s ease-out .05s forwards;font
           <span id="cfExpense" style="font-family:Outfit" class="text-[17px] font-bold text-rose-400">Rp 0</span>
         </div>
       </div>
+      <!-- Gaji row (only in net mode) -->
       <div id="cfGajiRow" class="hidden flex items-center gap-3 rounded-xl p-3" style="background:rgba(245,158,11,.05);border:1px solid rgba(245,158,11,.1)">
         <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs shrink-0 text-warning" style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2)"><i class="fa-solid fa-users"></i></div>
         <div>
@@ -378,6 +402,7 @@ body{opacity:0;padding-bottom:96px;animation:bIn .5s ease-out .05s forwards;font
     <div id="exportMark">Generated by Farid Store CEO Dashboard</div>
   </div>
 
+  <!-- Mutasi -->
   <div class="card p-5">
     <div class="flex justify-between items-center mb-4">
       <div class="flex items-center gap-2">
@@ -389,7 +414,11 @@ body{opacity:0;padding-bottom:96px;animation:bIn .5s ease-out .05s forwards;font
     <div id="txList"></div>
   </div>
 
-</div></div><nav class="fixed bottom-4 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[420px] pill-nav rounded-full px-2 py-1 flex justify-between items-center z-50" style="box-shadow:0 16px 48px rgba(0,0,0,.9)">
+</div><!-- end tab-cashflow -->
+</div><!-- end max-w -->
+
+<!-- ════════════════ BOTTOM NAV ════════════════ -->
+<nav class="fixed bottom-4 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[420px] pill-nav rounded-full px-2 py-1 flex justify-between items-center z-50" style="box-shadow:0 16px 48px rgba(0,0,0,.9)">
   <button onclick="switchTab('dashboard',this)" class="nav-btn active">
     <i class="fa-solid fa-layer-group ico"></i>
     <span class="lbl">Dasbor</span>
@@ -408,6 +437,7 @@ body{opacity:0;padding-bottom:96px;animation:bIn .5s ease-out .05s forwards;font
   </button>
 </nav>
 
+<!-- ════════════════ SCRIPT ════════════════ -->
 <script>
 'use strict';
 
@@ -488,7 +518,7 @@ function getBrand(name) {
   const n = name.toUpperCase();
   if (/IPHONE|APPLE|IPAD/.test(n))  return 'Apple';
   if (/SAMSUNG|SEIN|GALAXY/.test(n)) return 'Samsung';
-  if (/XIAOMI|REDMI|NOTE|POCO/.test(n))  return 'Xiaomi';
+  if (/XIAOMI|NOTE|REDMI|POCO/.test(n))  return 'Xiaomi';
   if (/OPPO|RENO/.test(n))           return 'Oppo';
   if (/VIVO|IQOO/.test(n))           return 'Vivo';
   if (/REALME|NARZO/.test(n))        return 'Realme';
@@ -598,17 +628,20 @@ async function fetchDB() {
 }
 
 // ─── CORE: PROCESS DATA ────────────────────────────────
+// Single source of truth for all calculations
 function processData(db) {
   const now    = new Date();
   const nowMk  = mkey(now);
   const startBal = Number(db.startBalance) || 0;
 
-  const monthly = {}; 
+  // Working vars
+  const monthly = {};  // YYYY-MM → { income, hpp, units, profitGross }
   const brands  = {};
   const txAll   = [];
   const aging   = [];
   const mSet    = new Set([nowMk]);
 
+  // Collect all months present in data
   (db.items||[]).forEach(i => {
     if (i.id) mSet.add(mkey(new Date(Math.floor(i.id))));
     if (i.soldAt) mSet.add(mkey(parseD(i.soldAt)));
@@ -619,6 +652,7 @@ function processData(db) {
 
   const months = Array.from(mSet).sort();
 
+  // Init selMonth defaults
   if (!selMonth || (selMonth !== 'all' && !months.includes(selMonth))) selMonth = nowMk;
   buildDD(months);
 
@@ -626,12 +660,13 @@ function processData(db) {
     if (!monthly[k]) monthly[k] = { income:0, hpp:0, units:0, profitGross:0 };
   }
 
-  let totalSpent   = 0;  
-  let totalRevenue = 0;  
-  let totalHPP     = 0;  
+  // --- Process items ---
+  let totalSpent   = 0;  // total uang keluar untuk beli stok (all time, termasuk stok belum terjual)
+  let totalRevenue = 0;  // total uang masuk dari penjualan
+  let totalHPP     = 0;  // HPP barang yang sudah terjual
   let totalProfitGross = 0;
   let totalUnitsSold   = 0;
-  let totalFloatStok   = 0; 
+  let totalFloatStok   = 0; // nilai jual stok yang belum terjual (potensi)
 
   (db.items||[]).forEach(i => {
     const ts = i.id ? Math.floor(i.id) : now.getTime();
@@ -643,11 +678,13 @@ function processData(db) {
       const prof = i.price - i.modal;
       totalProfitGross += prof;
 
+      // Brand stats
       const br = getBrand(i.name);
       if (!brands[br]) brands[br] = { profit:0, count:0 };
       brands[br].profit += prof;
       brands[br].count++;
 
+      // Monthly breakdown (keyed by tanggal TERJUAL)
       const sd  = parseD(i.soldAt);
       const smk = mkey(sd);
       ensureMonth(smk);
@@ -659,12 +696,13 @@ function processData(db) {
       txAll.push({ id: sd.getTime(), name:i.name, type:'sold', amount:i.price, profit:prof, modal:i.modal });
 
     } else if (i.status === 'stok') {
-      totalFloatStok += i.modal; 
+      totalFloatStok += i.modal; // nilai modal stok tersisa (conservative = pakai modal)
       const age = Math.floor(Math.abs(now - new Date(ts)) / 86400000);
       aging.push({ name:i.name, days:age, modal:i.modal, harga:i.price });
     }
   });
 
+  // --- Process extra profits (jasa, dll) ---
   let totalExtraProfit = 0;
   (db.extraProfits||[]).forEach(p => {
     totalExtraProfit += p.profit;
@@ -672,31 +710,48 @@ function processData(db) {
     const d   = new Date(Math.floor(p.id));
     const emk = mkey(d);
     ensureMonth(emk);
-    monthly[emk].income      += p.profit;  
+    monthly[emk].income      += p.profit;  // dianggap pure profit (no HPP)
     monthly[emk].units++;
     monthly[emk].profitGross += p.profit;
     totalProfitGross += p.profit;
     txAll.push({ id: Math.floor(p.id), name:p.name||'Laba Jasa', type:'extra', amount:p.profit, profit:p.profit, modal:0 });
   });
 
+  // --- Cashflow Logic ---
+  // Kas = Modal Awal - Total Beli Stok (semua, terjual + belum) + Total Omset Penjualan + Total Laba Extra
+  // Tapi kita tidak tahu berapa yg sudah dibeli untuk stok yang belum terjual, 
+  // jadi: Kas = startBal + (totalRevenue - totalHPP [sudah terjual]) + totalExtraProfit - totalFloatStok [masih di gudang sbg modal]
+  // Sederhananya: Kas = startBal + totalProfitGross - totalFloatStok + (totalRevenue - totalRevenue[sudah terjual] ... )
+  // Cara paling jelas: Kas = startBal + uang masuk - uang keluar
+  // Uang masuk = totalRevenue + totalExtraProfit
+  // Uang keluar = totalHPP (HPP barang terjual) + totalFloatStok (modal stok belum terjual yg sudah dibayar)
+  // Sehingga Kas = startBal + totalRevenue + totalExtraProfit - totalHPP - totalFloatStok
   const totalKas = startBal + totalRevenue + totalExtraProfit - totalHPP - totalFloatStok;
+
+  // Total Aset = Kas + Nilai Modal Stok Gudang
   const totalAset = totalKas + totalFloatStok;
 
+  // Gaji (per bulan yg ada di monthly, hanya jika netMode)
+  // Net profit = gross - gaji per bulan aktif
   const activeMonthCount = Object.keys(monthly).length;
   const totalGaji = netMode ? GAJI_EMP * activeMonthCount : 0;
   const totalProfitNet = totalProfitGross - totalGaji;
   const displayProfit  = netMode ? totalProfitNet : totalProfitGross;
 
+  // Monthly profitNet
   Object.keys(monthly).forEach(k => {
     monthly[k].gaji      = netMode ? GAJI_EMP : 0;
     monthly[k].profitNet = monthly[k].profitGross - (netMode ? GAJI_EMP : 0);
   });
 
+  // Sort txAll
   txAll.sort((a,b) => b.id - a.id);
   aging.sort((a,b) => b.days - a.days);
 
+  // Avg margin
   const avgMargin = totalUnitsSold > 0 ? totalProfitGross / totalUnitsSold : 0;
 
+  // Save state
   Object.assign(state, {
     totalAset, totalKas, totalFloatStok,
     totalProfitGross, totalProfitNet, displayProfit,
@@ -705,6 +760,7 @@ function processData(db) {
     goalPct: Math.min((totalAset / GOAL) * 100, 100),
   });
 
+  // Render all tabs
   renderDashboard();
   renderAnalytics();
   renderPerformance();
@@ -716,16 +772,19 @@ function renderDashboard() {
   const { totalAset, totalKas, totalFloatStok, displayProfit, totalProfitGross,
           totalUnitsSold, avgMargin, nowMk, monthly, goalPct } = state;
 
+  // Goal ring
   const rem = Math.max(GOAL - totalAset, 0);
   rGoalChart(totalAset, rem);
   document.getElementById('goalPct').textContent = goalPct.toFixed(1) + '%';
   document.getElementById('goalBar').style.width = goalPct + '%';
 
+  // Target text
   const tgt = document.getElementById('targetText');
   tgt.innerHTML = isUSD
     ? `$${Math.floor(GOAL/exchangeRate).toLocaleString('en-US')} <span class="text-slate-500 font-normal text-base">USD</span>`
     : `100 Juta <span class="text-slate-500 font-normal text-base">IDR</span>`;
 
+  // ETA badge
   const mKeys = Object.keys(monthly).sort();
   const r3    = mKeys.slice(-3);
   const avg3  = r3.reduce((s,k) => s + (monthly[k].profitGross||0), 0) / (r3.length||1);
@@ -742,6 +801,7 @@ function renderDashboard() {
     badge.innerHTML = '<i class="fas fa-clock text-[8px]"></i><span>Menghitung...</span>';
   }
 
+  // KPI Grid
   document.getElementById('totalAsset').textContent = fFull(totalAset);
   document.getElementById('valCash').textContent    = fFull(totalKas);
   document.getElementById('valStock').textContent   = fFull(totalFloatStok);
@@ -749,17 +809,20 @@ function renderDashboard() {
   document.getElementById('cashPct').textContent  = (totalKas/tot*100).toFixed(1)+'% dari aset';
   document.getElementById('stockPct').textContent = (totalFloatStok/tot*100).toFixed(1)+'% dari aset';
 
+  // Bulan ini
   const thisMon = monthly[nowMk] || {};
   document.getElementById('thisMonthProfit').textContent = fFull(netMode ? (thisMon.profitNet||0) : (thisMon.profitGross||0));
   document.getElementById('thisMonthUnits').textContent  = (thisMon.units||0) + ' unit terjual';
   document.getElementById('avgMarginVal').textContent    = avgMargin > 0 ? fRp(avgMargin) : '—';
   document.getElementById('totalUnitsSold').textContent  = totalUnitsSold + ' unit all-time';
 
+  // Akumulasi laba
   document.getElementById('totalProfit').textContent  = fFull(displayProfit);
   document.getElementById('totalUnitsLabel').textContent = totalUnitsSold + ' Unit';
   document.getElementById('avgMarginLabel').textContent  = avgMargin > 0 ? fRp(avgMargin)+'/unit' : '—';
   document.getElementById('labelMode').textContent = netMode ? 'Bersih' : 'Kotor';
 
+  // Milestone
   const prev = MILESTONES.slice().reverse().find(m=>m<=totalAset) || 0;
   const next = MILESTONES.find(m=>m>totalAset) || GOAL;
   const mp   = prev === next ? 100 : Math.min(((totalAset-prev)/(next-prev))*100, 100);
@@ -768,6 +831,7 @@ function renderDashboard() {
   document.getElementById('mileNext').textContent    = fRp(next);
   document.getElementById('milestoneBar').style.width = mp + '%';
 
+  // Update simulation widget
   updateSimulationUI();
 }
 
@@ -777,28 +841,23 @@ function updateSimulationUI() {
   const avgRealMargin = totalUnitsSold > 0 ? totalProfitGross / totalUnitsSold : 150000;
 
   const targetLaba = totalAset * TARGET_ROI;
-  const targetKotorDibutuhkan = netMode ? (targetLaba + GAJI_EMP) : targetLaba;
-
   document.getElementById('simTargetLaba').textContent = fRp(targetLaba);
-  document.getElementById('roiTargetBadge').textContent = fFull(targetLaba) + (netMode ? ' (Bersih)' : ' (Kotor)');
+  document.getElementById('roiTargetBadge').textContent = fFull(targetLaba);
 
   let effectiveMargin = currentMarginMode === 'auto' ? avgRealMargin : currentMarginMode;
   if (effectiveMargin <= 0) effectiveMargin = 150000;
 
-  const targetUnit   = Math.ceil(targetKotorDibutuhkan / effectiveMargin);
+  const targetUnit   = Math.ceil(targetLaba / effectiveMargin);
   const currentUnit  = (monthly[nowMk] || {}).units || 0;
   const pct          = Math.min((currentUnit / (targetUnit||1)) * 100, 100);
   const sisa         = Math.max(targetUnit - currentUnit, 0);
 
   document.getElementById('simUnitText').innerHTML =
     `${currentUnit} <span class="text-slate-500 font-normal text-sm">/ ${targetUnit} Unit</span>`;
-  
-  const simBar = document.getElementById('simBar');
-  simBar.style.width = pct + '%';
-  simBar.className = pct >= 100
+  document.getElementById('simBar').style.width = pct + '%';
+  document.getElementById('simBar').className = pct >= 100
     ? 'bar-fill bg-gradient-to-r from-emerald-500 to-green-400'
     : 'bar-fill bg-gradient-to-r from-brand-600 to-brand-400';
-    
   document.getElementById('simPctLabel').textContent = pct.toFixed(1) + '%';
   document.getElementById('simRemLabel').textContent = sisa > 0 ? `Sisa ${sisa} unit` : '✅ Target tercapai!';
 }
@@ -817,6 +876,7 @@ function renderAnalytics() {
 
   document.getElementById('analyticsMon').textContent = mlabel(nowMk);
 
+  // Top brands
   const tb  = document.getElementById('topBrands');
   const arr = Object.entries(brands).map(([n,v])=>({n,...v})).sort((a,b)=>b.profit-a.profit).slice(0,5);
   if (!arr.length) {
@@ -846,18 +906,18 @@ function renderAnalytics() {
       </div>`).join('');
   }
 
-  // Doughnut: Alokasi laba bulan ini terkalibrasi dengan GAJI_EMP
+  // Doughnut: Alokasi laba bulan ini
+  // Logika: 1.5Jt → gaji owner, 1Jt → gaji karyawan, sisanya → laba ditahan
   const grossMon = (monthly[nowMk] || {}).profitGross || 0;
-  const e = Math.min(grossMon, GAJI_EMP); 
-  const sisaSetelahKaryawan = Math.max(0, grossMon - GAJI_EMP);
-  const targetOwner = 1500000;
-  const o = Math.min(sisaSetelahKaryawan, targetOwner);
-  const r = Math.max(0, sisaSetelahKaryawan - targetOwner);
+  const o = Math.max(0, Math.min(1_500_000, grossMon));
+  const e = grossMon >= 1_500_000 ? Math.min(1_000_000, grossMon - 1_500_000) : 0;
+  const r = Math.max(0, grossMon - 2_500_000);
 
+  // Breakdown text
   const ab = document.getElementById('allocBreakdown');
   ab.innerHTML = [
-    { label:'Gaji Karyawan', val:e, color:'#818cf8' },
     { label:'Gaji Owner',    val:o, color:'#38bdf8' },
+    { label:'Gaji Karyawan', val:e, color:'#818cf8' },
     { label:'Laba Ditahan',  val:r, color:'#10b981' },
   ].map(x => `
     <div class="flex justify-between items-center text-[11px] font-medium">
@@ -866,8 +926,9 @@ function renderAnalytics() {
     </div>`).join('');
 
   if (document.getElementById('tab-analytics').classList.contains('active'))
-    rDoughnut(e, o, r);
+    rDoughnut(o, e, r);
 
+  // Aging stock
   const al = document.getElementById('agingList');
   document.getElementById('agingCount').textContent = aging.length ? aging.length + ' Item' : '';
   if (!aging.length) {
@@ -903,10 +964,8 @@ function renderPerformance() {
     const yr  = ROADMAP_YEAR + Math.floor((t.m-1)/12);
     const mo  = ((t.m-1) % 12) + 1;
     const key = yr + '-' + String(mo).padStart(2,'0');
-    
-    // Logika revisi membaca Laba Net atau Laba Gross
-    const act = monthly[key] || { units:0, profitGross:0, profitNet:0 };
-    const pAct = netMode ? (act.profitNet || 0) : (act.profitGross || 0);
+    const act = monthly[key] || { units:0, profitGross:0 };
+    const pAct = act.profitGross || 0;
     const uAct = act.units || 0;
     const isPast = key < nowMk, isCur = key === nowMk;
 
@@ -914,6 +973,7 @@ function renderPerformance() {
     trendProfit.push(pAct);
     trendUnits.push(uAct);
 
+    // Rolling deficit target
     const target = t.p + Math.max(deficit, 0);
     if (key <= nowMk) deficit += (t.p - pAct);
 
@@ -968,6 +1028,7 @@ function renderPerformance() {
     </div>`;
   });
 
+  // Store trend for chart
   state.trendLabels = trendLabels;
   state.trendProfit = trendProfit;
   state.trendUnits  = trendUnits;
@@ -980,6 +1041,7 @@ function renderPerformance() {
 function renderCashflow() {
   const { monthly, txAll, months } = state;
 
+  // Calculate cashflow for selected period
   let cfIncome = 0, cfHPP = 0, cfGaji = 0, cfPeriod = '', cfTx = [];
 
   if (selMonth === 'all') {
@@ -1010,6 +1072,7 @@ function renderCashflow() {
   animVal('cfIncome',  cfIncome, 700);
   animVal('cfExpense', cfHPP,    700);
 
+  // Show/hide gaji row
   const gajiRow = document.getElementById('cfGajiRow');
   if (netMode && cfGaji > 0) {
     gajiRow.classList.remove('hidden');
@@ -1018,11 +1081,13 @@ function renderCashflow() {
     gajiRow.classList.add('hidden');
   }
 
+  // Net
   const netEl = document.getElementById('cfNet');
   if (cfNet > 0)      { netEl.textContent = '+'+fFull(cfNet); netEl.style.color='#34d399'; }
   else if (cfNet < 0) { netEl.textContent = '-'+fFull(Math.abs(cfNet)); netEl.style.color='#fb7185'; }
   else                { netEl.textContent = fFull(0); netEl.style.color='#fff'; }
 
+  // Transaction list
   const lim = selMonth === 'all' ? 20 : 15;
   document.getElementById('txCount').textContent = cfTx.length
     ? Math.min(cfTx.length, lim) + (selMonth === 'all' ? ' Terakhir' : ' Transaksi')
@@ -1069,7 +1134,7 @@ function rGoalChart(cur, rem) {
   });
 }
 
-function rDoughnut(e, o, r) {
+function rDoughnut(o, e, r) {
   if (typeof Chart === 'undefined') return;
   dChart('dough');
   const canvas = document.getElementById('doughChart');
@@ -1080,10 +1145,7 @@ function rDoughnut(e, o, r) {
   wrap.style.display=''; empty.classList.add('hidden');
   charts.dough = new Chart(canvas.getContext('2d'), {
     type:'doughnut',
-    data:{ 
-      labels:['Gaji Karyawan','Gaji Owner','Laba Ditahan'], 
-      datasets:[{ data:[e,o,r], backgroundColor:['#818cf8','#38bdf8','#10b981'], borderWidth:0, hoverOffset:4 }] 
-    },
+    data:{ labels:['Gaji Owner','Gaji Karyawan','Laba Ditahan'], datasets:[{ data:[o,e,r], backgroundColor:['#38bdf8','#818cf8','#10b981'], borderWidth:0, hoverOffset:4 }] },
     options:{ cutout:'72%', responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom', labels:{ boxWidth:8, color:'#e2e8f0', font:{size:10}, padding:12 } } }, animation:{ animateScale:true, animateRotate:true, duration:1200, easing:'easeOutBack' } },
   });
 }
@@ -1125,12 +1187,8 @@ function switchTab(id, el) {
     if (id === 'dashboard')  rGoalChart(state.totalAset, Math.max(GOAL-state.totalAset,0));
     if (id === 'analytics')  {
       const grossMon = (state.monthly[state.nowMk]||{}).profitGross||0;
-      const e = Math.min(grossMon, GAJI_EMP);
-      const sisa = Math.max(0, grossMon - GAJI_EMP);
-      const targetOwner = 1500000;
-      const o = Math.min(sisa, targetOwner);
-      const r = Math.max(0, sisa - targetOwner);
-      rDoughnut(e, o, r);
+      const o=Math.max(0,Math.min(1_500_000,grossMon)), e=grossMon>=1_500_000?Math.min(1_000_000,grossMon-1_500_000):0, r=Math.max(0,grossMon-2_500_000);
+      rDoughnut(o,e,r);
     }
     if (id === 'performance') rLineChart(state.trendLabels||[], state.trendProfit||[], state.trendUnits||[]);
   });
