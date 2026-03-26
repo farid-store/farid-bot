@@ -173,7 +173,7 @@ body{opacity:0;padding-bottom:96px;animation:bIn .5s ease-out .05s forwards;font
       <div class="flex-grow min-w-0">
         <p class="metric-label mb-0.5">Total Aset</p>
         <h3 id="totalAsset" style="font-family:Outfit" class="text-[26px] font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-400 tracking-tighter leading-none truncate">Rp 0</h3>
-        <p class="text-[9px] text-slate-600 mt-1">Kas + Nilai Stok Gudang</p>
+        <p class="text-[9px] text-slate-600 mt-1">Kas + Potensi Nilai Gudang</p>
         <div class="bar-track h-1 mt-2"><div id="goalBar" class="bar-fill bg-gradient-to-r from-brand-600 to-brand-400" style="width:0%"></div></div>
       </div>
     </div>
@@ -186,7 +186,7 @@ body{opacity:0;padding-bottom:96px;animation:bIn .5s ease-out .05s forwards;font
       <span class="metric-sub" id="cashPct">0% dari aset</span>
     </div>
     <div class="metric">
-      <span class="metric-label">Nilai Stok</span>
+      <span class="metric-label">Nilai Stok (Jual)</span>
       <span id="valStock" style="font-family:Outfit" class="metric-value text-[16px] text-brand-400">Rp 0</span>
       <span class="metric-sub" id="stockPct">0% dari aset</span>
     </div>
@@ -439,13 +439,13 @@ let currentMarginMode = 'auto';
 let ddOpen        = false;
 let charts        = {};
 
-// Derived cache (for re-rendering without re-processing)
+// Derived cache
 let state = {
   totalAset:0, totalKas:0, totalFloatStok:0,
   totalProfitGross:0, totalProfitNet:0,
   totalUnitsSold:0,
   nowMk:'',
-  monthly:{},       // { 'YYYY-MM': { income, hpp, gaji, profitGross, profitNet, units } }
+  monthly:{},       
   brands:{},
   aging:[],
   txAll:[],
@@ -626,21 +626,26 @@ function processData(db) {
     if (!monthly[k]) monthly[k] = { income:0, hpp:0, units:0, profitGross:0 };
   }
 
-  let totalRevenue = 0;  // Total uang penjualan HP
-  let totalHPP     = 0;  // Total modal HP yang sudah terjual
-  let totalProfitGross = 0;
-  let totalUnitsSold   = 0;
-  let totalFloatStok   = 0; // Total modal HP yang masih di gudang (belum jadi uang fisik)
+  // --- VARIABEL KALKULASI ORIGINAL (Untuk mencapai 50.550.000) ---
+  let spent = 0;
+  let revenue = 0;
+  let pMain = 0;
+  let pExtra = 0;
+  let floatP = 0; 
+  let totalUnitsSold = 0;
 
   (db.items||[]).forEach(i => {
     const ts = i.id ? Math.floor(i.id) : now.getTime();
 
     if (i.status === 'sold') {
       totalUnitsSold++;
-      totalRevenue += i.price;
-      totalHPP     += i.modal;
+      if (i.type === 'new') { 
+        spent += i.modal; 
+        txAll.push({ id: ts, name:i.name, type:'buy', amount:i.modal, profit:0 });
+      }
+      revenue += i.price;
       const prof = i.price - i.modal;
-      totalProfitGross += prof;
+      pMain += prof;
 
       const br = getBrand(i.name);
       if (!brands[br]) brands[br] = { profit:0, count:0 };
@@ -655,18 +660,23 @@ function processData(db) {
       monthly[smk].units++;
       monthly[smk].profitGross += prof;
 
-      txAll.push({ id: sd.getTime(), name:i.name, type:'sold', amount:i.price, profit:prof, modal:i.modal });
+      txAll.push({ id: sd.getTime(), name:i.name, type:'sold', amount:i.price, profit:prof });
 
     } else if (i.status === 'stok') {
-      totalFloatStok += i.modal; 
+      if (i.type === 'new') { 
+        spent += i.modal; 
+        txAll.push({ id: ts, name:i.name, type:'buy', amount:i.modal, profit:0 });
+      }
+      // REVISI: Mengembalikan logika valuasi stok berdasarkan HARGA JUAL potensial
+      floatP += i.price; 
+      
       const age = Math.floor(Math.abs(now - new Date(ts)) / 86400000);
       aging.push({ name:i.name, days:age, modal:i.modal, harga:i.price });
     }
   });
 
-  let totalExtraProfit = 0;
   (db.extraProfits||[]).forEach(p => {
-    totalExtraProfit += p.profit;
+    pExtra += p.profit;
     totalUnitsSold++;
     const d   = new Date(Math.floor(p.id));
     const emk = mkey(d);
@@ -674,27 +684,30 @@ function processData(db) {
     monthly[emk].income      += p.profit;
     monthly[emk].units++;
     monthly[emk].profitGross += p.profit;
-    totalProfitGross += p.profit;
-    txAll.push({ id: Math.floor(p.id), name:p.name||'Laba Jasa', type:'extra', amount:p.profit, profit:p.profit, modal:0 });
+    txAll.push({ id: Math.floor(p.id), name:p.name||'Laba Jasa', type:'extra', amount:p.profit, profit:p.profit });
   });
 
-  // --- LOGIKA AKUNTANSI ---
-  // Menghitung berapa bulan toko sudah aktif untuk potong gaji tetap bulanan
+  const totalProfitGross = pMain + pExtra;
+
+  // REVISI: Mengembalikan formula MURNI Kas Original Anda 
+  // (Tanpa memasukkan Extra Profit ke fisik kas jika memang aslinya tidak masuk)
+  let totalKas = startBal - spent + revenue;
+  
+  // Total Aset = Kas + Nilai Jual Stok 
+  let totalAset = totalKas + floatP;
+
+  // LOGIKA GAJI (Mode Bersih) - Hanya memotong total jika toggle aktif
   const activeMonthCount = Object.keys(monthly).length || 1; 
   const totalGaji = netMode ? GAJI_EMP * activeMonthCount : 0;
+  
   const totalProfitNet = totalProfitGross - totalGaji;
   const displayProfit  = netMode ? totalProfitNet : totalProfitGross;
 
-  // #REVISI: Total Kas = Saldo Awal + Penjualan + Jasa - Modal Terjual - Modal Nyangkut
-  let totalKas = startBal + totalRevenue + totalExtraProfit - totalHPP - totalFloatStok;
-  
-  // #REVISI: Jika Laba Bersih diaktifkan, asumsikan uang Gaji Karyawan dan Owner sudah diambil dari laci toko.
+  // Jika mode bersih aktif, angka Kas & Aset fisik juga dikurangi total biaya operasional
   if (netMode) {
       totalKas -= totalGaji;
+      totalAset -= totalGaji;
   }
-
-  // Total Aset = Kas Fisik Aktual + Nilai Modal Stok Gudang
-  const totalAset = totalKas + totalFloatStok;
 
   // Monthly profitNet untuk breakdown
   Object.keys(monthly).forEach(k => {
@@ -708,7 +721,7 @@ function processData(db) {
   const avgMargin = totalUnitsSold > 0 ? totalProfitGross / totalUnitsSold : 0;
 
   Object.assign(state, {
-    totalAset, totalKas, totalFloatStok,
+    totalAset, totalKas, totalFloatStok: floatP,
     totalProfitGross, totalProfitNet, displayProfit,
     totalUnitsSold, avgMargin, activeMonthCount,
     nowMk, monthly, brands, aging, txAll, months,
