@@ -20,45 +20,31 @@ tailwind.config={theme:{extend:{fontFamily:{sans:['DM Sans','sans-serif'],headin
 html,body{background:#080810;color:#e2e8f0;overflow-x:hidden;overscroll-behavior-y:contain;-webkit-font-smoothing:antialiased}
 body{opacity:0;padding-bottom:96px;animation:bIn .5s ease-out .05s forwards;font-family:'DM Sans',sans-serif;font-size:14px}
 @keyframes bIn{to{opacity:1}}
-
-/* ─── Ambient ─── */
 .amb{position:fixed;pointer-events:none;z-index:0;filter:blur(80px);border-radius:50%}
 .amb1{top:-20%;left:-10%;width:70vw;height:70vw;background:radial-gradient(circle,rgba(14,165,233,.09),transparent 70%);animation:ga 14s ease-in-out infinite alternate}
 .amb2{bottom:0;right:-15%;width:60vw;height:60vw;background:radial-gradient(circle,rgba(124,58,237,.07),transparent 70%);animation:gb 18s ease-in-out infinite alternate}
 @keyframes ga{to{transform:translate(5%,8%)}}
 @keyframes gb{to{transform:translate(-6%,-5%)}}
-
-/* ─── Glass Cards ─── */
 .card{background:rgba(18,18,28,.85);backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,.065);border-radius:20px}
 .card-inset{background:rgba(255,255,255,.028);border:1px solid rgba(255,255,255,.05);border-radius:14px}
 .pill-nav{background:rgba(10,10,18,.95);backdrop-filter:blur(28px);border:1px solid rgba(255,255,255,.08)}
-
-/* ─── Tabs ─── */
 .tab-pane{display:none}
 .tab-pane.active{display:block;animation:tIn .3s cubic-bezier(.34,1.45,.64,1) forwards}
 @keyframes tIn{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
-
-/* ─── Progress Bars ─── */
 .bar-track{width:100%;background:rgba(255,255,255,.05);border-radius:999px;overflow:hidden}
 .bar-fill{height:100%;border-radius:999px;transition:width 1.2s cubic-bezier(.34,1.1,.64,1)}
-
-/* ─── Nav Buttons ─── */
 .nav-btn{transition:all .22s ease;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:10px 4px;border-radius:999px;color:#475569}
 .nav-btn .ico{font-size:15px;transition:all .22s ease;line-height:1}
 .nav-btn .lbl{font-size:7.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;max-height:0;opacity:0;overflow:hidden;transition:all .22s ease}
 .nav-btn.active{color:#fff;background:rgba(255,255,255,.07)}
 .nav-btn.active .ico{color:#38bdf8;transform:translateY(-1px)}
 .nav-btn.active .lbl{max-height:14px;opacity:1}
-
-/* ─── Switch ─── */
 .sw{position:relative;display:inline-flex;width:36px;height:20px;flex-shrink:0}
 .sw input{opacity:0;width:0;height:0;position:absolute}
 .sw-t{position:absolute;inset:0;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.06);border-radius:999px;cursor:pointer;transition:.25s}
 .sw-t::before{content:'';position:absolute;width:14px;height:14px;left:2px;bottom:2px;background:#475569;border-radius:50%;transition:.25s cubic-bezier(.34,1.56,.64,1)}
 .sw input:checked+.sw-t{background:rgba(56,189,248,.18);border-color:rgba(56,189,248,.35)}
 .sw input:checked+.sw-t::before{transform:translateX(16px);background:#38bdf8;box-shadow:0 0 8px rgba(56,189,248,.5)}
-
-/* ─── Dropdown ─── */
 .dd-wrap{position:relative}
 .dd-btn{display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:14px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.07);color:#cbd5e1;font-size:12px;font-weight:600;cursor:pointer;width:100%;transition:.2s}
 .dd-btn:hover{background:rgba(56,189,248,.08);border-color:rgba(56,189,248,.25)}
@@ -74,44 +60,26 @@ body{opacity:0;padding-bottom:96px;animation:bIn .5s ease-out .05s forwards;font
 .dd-opt.active{color:#38bdf8;background:rgba(14,165,233,.08)}
 .dd-opt .ck{display:none;font-size:10px;color:#38bdf8}
 .dd-opt.active .ck{display:block}
-
-/* ─── Metric Tile ─── */
 .metric{display:flex;flex-direction:column;gap:4px;padding:14px;border-radius:14px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.05)}
 .metric-label{font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#475569}
 .metric-value{font-family:'Outfit',sans-serif;font-weight:800;font-size:18px;color:#f1f5f9;line-height:1.1}
 .metric-sub{font-size:10px;color:#475569;margin-top:2px}
-
-/* ─── Segment Toggle ─── */
 .seg{display:flex;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:999px;padding:3px;gap:2px}
 .seg-btn{flex:1;text-align:center;padding:6px 0;border-radius:999px;font-size:10px;font-weight:700;color:#475569;transition:.2s;cursor:pointer;letter-spacing:.05em}
 .seg-btn.active{background:rgba(56,189,248,.15);color:#38bdf8}
-
-/* ─── Toast ─── */
 #toast{position:fixed;bottom:88px;left:50%;transform:translateX(-50%) translateY(16px);background:rgba(14,14,22,.97);border:1px solid rgba(255,255,255,.1);color:#f1f5f9;font-size:12px;font-weight:600;padding:10px 18px;border-radius:999px;backdrop-filter:blur(16px);opacity:0;pointer-events:none;transition:.3s cubic-bezier(.34,1.56,.64,1);z-index:9999;white-space:nowrap}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-
-/* ─── PTR ─── */
 #ptr{text-align:center;color:#475569;font-size:11px;font-weight:700;height:0;overflow:hidden;display:flex;align-items:center;justify-content:center;gap:7px;transition:height .18s ease}
-
-/* ─── Goal Ring ─── */
 #goalWrap{position:relative;width:76px;height:76px;flex-shrink:0}
 #goalWrap canvas{position:absolute;inset:0;width:100%!important;height:100%!important}
 #goalInner{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
-
-/* ─── Charts ─── */
 #doughWrap{height:190px;width:100%;display:flex;align-items:center;justify-content:center}
 #doughWrap canvas{max-height:190px}
 #lineWrap{width:100%;overflow-x:auto;scrollbar-width:none}
 #lineWrap::-webkit-scrollbar{display:none}
 #lineWrap>div{min-width:460px;height:200px}
-
-/* ─── Spinner ─── */
 @keyframes spin{to{transform:rotate(360deg)}}.spin{animation:spin .7s linear infinite}
-
-/* ─── Export ─── */
 #exportMark{display:none;position:absolute;bottom:10px;right:14px;font-size:8px;color:#1e293b;font-weight:700;letter-spacing:.12em;text-transform:uppercase}
-
-/* ─── Status Badge ─── */
 .status-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:999px;font-size:8.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
 </style>
 </head>
@@ -122,8 +90,6 @@ body{opacity:0;padding-bottom:96px;animation:bIn .5s ease-out .05s forwards;font
 <div id="ptr"><i class="fas fa-arrow-down" id="ptrIco" style="transition:transform .2s"></i><span id="ptrTxt">Tarik untuk Memperbarui</span></div>
 
 <div class="max-w-xl mx-auto px-4 pt-5 relative z-10">
-
-<!-- ════════════════ HEADER ════════════════ -->
 <header class="flex justify-between items-center mb-5">
   <div class="flex items-center gap-3">
     <div class="w-10 h-10 rounded-2xl flex items-center justify-center text-white font-black text-sm" style="font-family:Outfit;background:linear-gradient(135deg,#0ea5e9,#7c3aed);box-shadow:0 8px 24px rgba(14,165,233,.25)">FS</div>
@@ -143,13 +109,9 @@ body{opacity:0;padding-bottom:96px;animation:bIn .5s ease-out .05s forwards;font
   </div>
 </header>
 
-<!-- ════════════════ TAB: DASBOR ════════════════ -->
 <div id="tab-dashboard" class="tab-pane active space-y-3">
-
-  <!-- Hero Card: Total Aset + Goal Ring -->
   <div class="card p-5 relative overflow-hidden">
     <div class="absolute -right-10 -top-10 w-48 h-48 rounded-full pointer-events-none" style="background:radial-gradient(circle,rgba(14,165,233,.07),transparent 70%)"></div>
-
     <div class="flex justify-between items-start mb-4">
       <div>
         <span class="text-[9px] font-bold uppercase tracking-[.16em] text-brand-400 block mb-1">Target Utama</span>
@@ -159,7 +121,6 @@ body{opacity:0;padding-bottom:96px;animation:bIn .5s ease-out .05s forwards;font
         <div id="etaBadge" class="status-badge bg-warning/10 border border-warning/20 text-warning">
           <i class="fas fa-clock text-[8px]"></i><span id="etaTxt">Menghitung...</span>
         </div>
-        <!-- Currency Toggle -->
         <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full card-inset">
           <span id="lblIDR" class="text-[9px] font-bold text-brand-400 transition-colors">IDR</span>
           <label class="sw" style="transform:scale(.75);margin:-3px -1px"><input type="checkbox" id="currToggle" onchange="onCurrToggle()"><span class="sw-t"></span></label>
@@ -167,9 +128,7 @@ body{opacity:0;padding-bottom:96px;animation:bIn .5s ease-out .05s forwards;font
         </div>
       </div>
     </div>
-
     <div class="flex items-center gap-4">
-      <!-- Goal Donut -->
       <div id="goalWrap"><canvas id="goalChart"></canvas>
         <div id="goalInner">
           <span id="goalPct" style="font-family:Outfit" class="text-[12px] font-black text-white leading-none">0%</span>
@@ -179,13 +138,11 @@ body{opacity:0;padding-bottom:96px;animation:bIn .5s ease-out .05s forwards;font
         <p class="metric-label mb-0.5">Total Aset</p>
         <h3 id="totalAsset" style="font-family:Outfit" class="text-[26px] font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-400 tracking-tighter leading-none truncate">Rp 0</h3>
         <p class="text-[9px] text-slate-600 mt-1">Kas + Nilai Stok Gudang</p>
-        <!-- Mini progress -->
         <div class="bar-track h-1 mt-2"><div id="goalBar" class="bar-fill bg-gradient-to-r from-brand-600 to-brand-400" style="width:0%"></div></div>
       </div>
     </div>
   </div>
 
-  <!-- KPI Grid -->
   <div class="grid grid-cols-2 gap-2.5">
     <div class="metric">
       <span class="metric-label">Kas Tunai</span>
@@ -209,7 +166,6 @@ body{opacity:0;padding-bottom:96px;animation:bIn .5s ease-out .05s forwards;font
     </div>
   </div>
 
-  <!-- Kalkulator 12% ROI -->
   <div class="card p-4">
     <div class="flex items-center justify-between mb-3">
       <div class="flex items-center gap-2">
@@ -218,15 +174,12 @@ body{opacity:0;padding-bottom:96px;animation:bIn .5s ease-out .05s forwards;font
       </div>
       <span id="roiTargetBadge" class="text-[9px] font-bold text-brand-400"></span>
     </div>
-
-    <!-- Margin mode selector -->
     <div class="seg mb-3">
       <button class="seg-btn active" id="btnMarginAuto" onclick="switchMarginMode('auto')">Auto</button>
       <button class="seg-btn" id="btnMargin100" onclick="switchMarginMode(100000)">100k</button>
       <button class="seg-btn" id="btnMargin150" onclick="switchMarginMode(150000)">150k</button>
       <button class="seg-btn" id="btnMargin200" onclick="switchMarginMode(200000)">200k</button>
     </div>
-
     <div class="card-inset p-3 flex justify-between items-center mb-2">
       <div>
         <p class="metric-label mb-1">Progres Bulan Ini</p>
@@ -245,7 +198,6 @@ body{opacity:0;padding-bottom:96px;animation:bIn .5s ease-out .05s forwards;font
     </div>
   </div>
 
-  <!-- Akumulasi Laba + Net Toggle -->
   <div class="card p-5 relative overflow-hidden">
     <div class="absolute right-4 bottom-4 opacity-[.03] text-[64px] text-white pointer-events-none"><i class="fa-solid fa-chart-line"></i></div>
     <div class="flex justify-between items-center mb-3">
@@ -267,7 +219,6 @@ body{opacity:0;padding-bottom:96px;animation:bIn .5s ease-out .05s forwards;font
     </div>
   </div>
 
-  <!-- Milestone Berikutnya -->
   <div class="card p-4">
     <div class="flex justify-between items-center mb-2">
       <div class="flex items-center gap-2">
@@ -281,12 +232,9 @@ body{opacity:0;padding-bottom:96px;animation:bIn .5s ease-out .05s forwards;font
       <span id="milePrev">—</span><span id="mileNext">—</span>
     </div>
   </div>
+</div>
 
-</div><!-- end tab-dashboard -->
-
-<!-- ════════════════ TAB: ANALITIK ════════════════ -->
 <div id="tab-analytics" class="tab-pane space-y-3">
-
   <div class="card p-5">
     <div class="flex items-center gap-2 mb-4">
       <i class="fa-solid fa-fire text-orange-400 text-sm"></i>
@@ -303,7 +251,6 @@ body{opacity:0;padding-bottom:96px;animation:bIn .5s ease-out .05s forwards;font
       </div>
       <span id="analyticsMon" class="text-[9px] text-slate-500 font-bold uppercase"></span>
     </div>
-    <!-- Alokasi breakdown -->
     <div id="allocBreakdown" class="mt-3 space-y-2"></div>
     <div id="doughWrap" class="mt-3"><canvas id="doughChart"></canvas></div>
     <div id="doughEmpty" class="hidden text-center text-slate-500 text-xs py-4">Belum ada laba bulan ini</div>
@@ -319,12 +266,9 @@ body{opacity:0;padding-bottom:96px;animation:bIn .5s ease-out .05s forwards;font
     </div>
     <div id="agingList" class="space-y-1"></div>
   </div>
+</div>
 
-</div><!-- end tab-analytics -->
-
-<!-- ════════════════ TAB: PERFORMA ════════════════ -->
 <div id="tab-performance" class="tab-pane space-y-3">
-
   <div class="card p-5">
     <div class="flex items-center gap-2 mb-4">
       <i class="fa-solid fa-chart-area text-brand-400 text-sm"></i>
@@ -338,15 +282,10 @@ body{opacity:0;padding-bottom:96px;animation:bIn .5s ease-out .05s forwards;font
     <h3 class="text-[10px] font-bold text-slate-500 tracking-widest uppercase" style="font-family:Outfit">Target Bulanan</h3>
     <div class="flex-grow h-px" style="background:rgba(255,255,255,.04)"></div>
   </div>
-
   <div id="trackerBody" class="space-y-3"></div>
+</div>
 
-</div><!-- end tab-performance -->
-
-<!-- ════════════════ TAB: ARUS KAS ════════════════ -->
 <div id="tab-cashflow" class="tab-pane space-y-3">
-
-  <!-- Month Dropdown -->
   <div class="dd-wrap" id="ddWrap">
     <button class="dd-btn" id="ddBtn" onclick="toggleDD()">
       <i class="fa-regular fa-calendar text-brand-400 text-xs"></i>
@@ -356,7 +295,6 @@ body{opacity:0;padding-bottom:96px;animation:bIn .5s ease-out .05s forwards;font
     <div class="dd-list" id="ddList"></div>
   </div>
 
-  <!-- Summary Card (Exportable) -->
   <div id="exportCard" class="card p-5 relative overflow-hidden">
     <div class="absolute -right-5 -bottom-5 opacity-[.03] text-[72px] text-white pointer-events-none"><i class="fa-solid fa-money-bill-transfer"></i></div>
     <div class="flex justify-between items-center mb-5">
@@ -380,15 +318,14 @@ body{opacity:0;padding-bottom:96px;animation:bIn .5s ease-out .05s forwards;font
       <div class="flex items-center gap-3 rounded-xl p-3" style="background:rgba(244,63,94,.05);border:1px solid rgba(244,63,94,.1)">
         <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs shrink-0 text-rose-400" style="background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.2)"><i class="fa-solid fa-arrow-up"></i></div>
         <div>
-          <span class="block metric-label mb-0.5">HPP (Modal Barang Terjual)</span>
+          <span class="block metric-label mb-0.5">HPP (Modal Terjual)</span>
           <span id="cfExpense" style="font-family:Outfit" class="text-[17px] font-bold text-rose-400">Rp 0</span>
         </div>
       </div>
-      <!-- Gaji row (only in net mode) -->
       <div id="cfGajiRow" class="hidden flex items-center gap-3 rounded-xl p-3" style="background:rgba(245,158,11,.05);border:1px solid rgba(245,158,11,.1)">
         <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs shrink-0 text-warning" style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2)"><i class="fa-solid fa-users"></i></div>
         <div>
-          <span class="block metric-label mb-0.5">Gaji Karyawan</span>
+          <span class="block metric-label mb-0.5">Potongan Gaji (Total)</span>
           <span id="cfGaji" style="font-family:Outfit" class="text-[17px] font-bold text-warning">Rp 0</span>
         </div>
       </div>
@@ -402,7 +339,6 @@ body{opacity:0;padding-bottom:96px;animation:bIn .5s ease-out .05s forwards;font
     <div id="exportMark">Generated by Farid Store CEO Dashboard</div>
   </div>
 
-  <!-- Mutasi -->
   <div class="card p-5">
     <div class="flex justify-between items-center mb-4">
       <div class="flex items-center gap-2">
@@ -413,11 +349,9 @@ body{opacity:0;padding-bottom:96px;animation:bIn .5s ease-out .05s forwards;font
     </div>
     <div id="txList"></div>
   </div>
+</div>
+</div>
 
-</div><!-- end tab-cashflow -->
-</div><!-- end max-w -->
-
-<!-- ════════════════ BOTTOM NAV ════════════════ -->
 <nav class="fixed bottom-4 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[420px] pill-nav rounded-full px-2 py-1 flex justify-between items-center z-50" style="box-shadow:0 16px 48px rgba(0,0,0,.9)">
   <button onclick="switchTab('dashboard',this)" class="nav-btn active">
     <i class="fa-solid fa-layer-group ico"></i>
@@ -437,21 +371,18 @@ body{opacity:0;padding-bottom:96px;animation:bIn .5s ease-out .05s forwards;font
   </button>
 </nav>
 
-<!-- ════════════════ SCRIPT ════════════════ -->
 <script>
 'use strict';
 
-// ─── CONFIG ────────────────────────────────────────────
 const BIN_ID   = '699644fdae596e708f3582af';
 const API_KEY  = '$2a$10$tcKHEWwuz2sqRoMCKJfga.1xxTFW0RxpXUPnP.NI4YbivtlK1xxau';
 const CACHE_KEY = 'fsCacheV15';
-const GOAL      = 100_000_000;       // 100 Juta
-const GAJI_EMP  = 2_500_000;        // Gaji karyawan per bulan
-const TARGET_ROI = 0.12;            // 12% sebulan dari total aset
+const GOAL      = 100_000_000;       
+const GAJI_EMP  = 2_500_000;         // Fix: 1 Juta Karyawan + 1.5 Juta Owner = 2.5 Juta/bulan
+const TARGET_ROI = 0.12;             
 const MILESTONES = [10,20,30,40,50,60,75,90,100].map(v=>v*1e6);
 const MN = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 
-// Roadmap 12 bulan (target laba BULANAN, bukan kumulatif)
 const ROADMAP = [
   {m:1,p:4_500_000},{m:2,p:5_400_000},{m:3,p:6_075_000},{m:4,p:6_750_000},
   {m:5,p:6_750_000},{m:6,p:7_200_000},{m:7,p:7_200_000},{m:8,p:7_650_000},
@@ -459,7 +390,6 @@ const ROADMAP = [
 ];
 const ROADMAP_YEAR = 2026;
 
-// ─── STATE ─────────────────────────────────────────────
 let rawDB         = null;
 let netMode       = false;
 let selMonth      = '';
@@ -469,20 +399,13 @@ let currentMarginMode = 'auto';
 let ddOpen        = false;
 let charts        = {};
 
-// Derived cache (for re-rendering without re-processing)
 let state = {
   totalAset:0, totalKas:0, totalFloatStok:0,
   totalProfitGross:0, totalProfitNet:0,
   totalUnitsSold:0,
-  nowMk:'',
-  monthly:{},       // { 'YYYY-MM': { income, hpp, gaji, profitGross, profitNet, units } }
-  brands:{},
-  aging:[],
-  txAll:[],
-  goalPct:0,
+  nowMk:'', monthly:{}, brands:{}, aging:[], txAll:[], goalPct:0,
 };
 
-// ─── FORMATTING ────────────────────────────────────────
 function fRp(n, compact=true) {
   if (!Number.isFinite(n)) return isUSD ? '$0' : 'Rp 0';
   const v = isUSD ? n / exchangeRate : n;
@@ -528,7 +451,6 @@ function getBrand(name) {
   return n.split(' ')[0];
 }
 
-// ─── UI HELPERS ────────────────────────────────────────
 let _tt;
 function toast(msg, ms=2600) {
   const el = document.getElementById('toast');
@@ -564,7 +486,6 @@ function animVal(id, end, dur=900) {
   })(performance.now());
 }
 
-// ─── DROPDOWN ──────────────────────────────────────────
 function toggleDD() {
   ddOpen = !ddOpen;
   document.getElementById('ddBtn').classList.toggle('open', ddOpen);
@@ -590,7 +511,6 @@ function setDDLabel() {
 function buildDD(months) {
   const list = document.getElementById('ddList');
   list.innerHTML = '';
-
   const makeOpt = (value, label, isActive) => {
     const opt = document.createElement('div');
     opt.className = 'dd-opt' + (isActive ? ' active' : '');
@@ -612,7 +532,6 @@ function buildDD(months) {
   setDDLabel();
 }
 
-// ─── FETCH ─────────────────────────────────────────────
 async function fetchDB() {
   setSyncing('loading');
   try {
@@ -627,21 +546,20 @@ async function fetchDB() {
   }
 }
 
-// ─── CORE: PROCESS DATA ────────────────────────────────
-// Single source of truth for all calculations
 function processData(db) {
   const now    = new Date();
   const nowMk  = mkey(now);
-  const startBal = Number(db.startBalance) || 0;
+  
+  // FIX PENTING: Jika startBalance ter-load kosong/undefined dari DB, otomatis fallback ke 25 Juta 
+  // agar aset tidak anjlok mendadak.
+  const startBal = db.startBalance !== undefined ? Number(db.startBalance) : 25000000;
 
-  // Working vars
-  const monthly = {};  // YYYY-MM → { income, hpp, units, profitGross }
+  const monthly = {}; 
   const brands  = {};
   const txAll   = [];
   const aging   = [];
   const mSet    = new Set([nowMk]);
 
-  // Collect all months present in data
   (db.items||[]).forEach(i => {
     if (i.id) mSet.add(mkey(new Date(Math.floor(i.id))));
     if (i.soldAt) mSet.add(mkey(parseD(i.soldAt)));
@@ -651,8 +569,6 @@ function processData(db) {
   });
 
   const months = Array.from(mSet).sort();
-
-  // Init selMonth defaults
   if (!selMonth || (selMonth !== 'all' && !months.includes(selMonth))) selMonth = nowMk;
   buildDD(months);
 
@@ -660,17 +576,14 @@ function processData(db) {
     if (!monthly[k]) monthly[k] = { income:0, hpp:0, units:0, profitGross:0 };
   }
 
-  // --- Process items ---
-  let totalSpent   = 0;  // total uang keluar untuk beli stok (all time, termasuk stok belum terjual)
-  let totalRevenue = 0;  // total uang masuk dari penjualan
-  let totalHPP     = 0;  // HPP barang yang sudah terjual
+  let totalRevenue = 0; 
+  let totalHPP     = 0; 
   let totalProfitGross = 0;
   let totalUnitsSold   = 0;
-  let totalFloatStok   = 0; // nilai jual stok yang belum terjual (potensi)
+  let totalFloatStok   = 0;
 
   (db.items||[]).forEach(i => {
     const ts = i.id ? Math.floor(i.id) : now.getTime();
-
     if (i.status === 'sold') {
       totalUnitsSold++;
       totalRevenue += i.price;
@@ -678,13 +591,11 @@ function processData(db) {
       const prof = i.price - i.modal;
       totalProfitGross += prof;
 
-      // Brand stats
       const br = getBrand(i.name);
       if (!brands[br]) brands[br] = { profit:0, count:0 };
       brands[br].profit += prof;
       brands[br].count++;
 
-      // Monthly breakdown (keyed by tanggal TERJUAL)
       const sd  = parseD(i.soldAt);
       const smk = mkey(sd);
       ensureMonth(smk);
@@ -694,15 +605,13 @@ function processData(db) {
       monthly[smk].profitGross += prof;
 
       txAll.push({ id: sd.getTime(), name:i.name, type:'sold', amount:i.price, profit:prof, modal:i.modal });
-
     } else if (i.status === 'stok') {
-      totalFloatStok += i.modal; // nilai modal stok tersisa (conservative = pakai modal)
+      totalFloatStok += i.modal; 
       const age = Math.floor(Math.abs(now - new Date(ts)) / 86400000);
       aging.push({ name:i.name, days:age, modal:i.modal, harga:i.price });
     }
   });
 
-  // --- Process extra profits (jasa, dll) ---
   let totalExtraProfit = 0;
   (db.extraProfits||[]).forEach(p => {
     totalExtraProfit += p.profit;
@@ -710,48 +619,37 @@ function processData(db) {
     const d   = new Date(Math.floor(p.id));
     const emk = mkey(d);
     ensureMonth(emk);
-    monthly[emk].income      += p.profit;  // dianggap pure profit (no HPP)
+    monthly[emk].income      += p.profit;  
     monthly[emk].units++;
     monthly[emk].profitGross += p.profit;
     totalProfitGross += p.profit;
     txAll.push({ id: Math.floor(p.id), name:p.name||'Laba Jasa', type:'extra', amount:p.profit, profit:p.profit, modal:0 });
   });
 
-  // --- Cashflow Logic ---
-  // Kas = Modal Awal - Total Beli Stok (semua, terjual + belum) + Total Omset Penjualan + Total Laba Extra
-  // Tapi kita tidak tahu berapa yg sudah dibeli untuk stok yang belum terjual, 
-  // jadi: Kas = startBal + (totalRevenue - totalHPP [sudah terjual]) + totalExtraProfit - totalFloatStok [masih di gudang sbg modal]
-  // Sederhananya: Kas = startBal + totalProfitGross - totalFloatStok + (totalRevenue - totalRevenue[sudah terjual] ... )
-  // Cara paling jelas: Kas = startBal + uang masuk - uang keluar
-  // Uang masuk = totalRevenue + totalExtraProfit
-  // Uang keluar = totalHPP (HPP barang terjual) + totalFloatStok (modal stok belum terjual yg sudah dibayar)
-  // Sehingga Kas = startBal + totalRevenue + totalExtraProfit - totalHPP - totalFloatStok
-  const totalKas = startBal + totalRevenue + totalExtraProfit - totalHPP - totalFloatStok;
-
-  // Total Aset = Kas + Nilai Modal Stok Gudang
-  const totalAset = totalKas + totalFloatStok;
-
-  // Gaji (per bulan yg ada di monthly, hanya jika netMode)
-  // Net profit = gross - gaji per bulan aktif
+  // FIX LOGIKA BERSIH/KOTOR
   const activeMonthCount = Object.keys(monthly).length;
-  const totalGaji = netMode ? GAJI_EMP * activeMonthCount : 0;
+  const totalGaji = GAJI_EMP * activeMonthCount; // Total Gaji 2.5 Juta x Bulan aktif
+  const appliedGaji = netMode ? totalGaji : 0;   // Hanya potong jika mode Bersih aktif
+
   const totalProfitNet = totalProfitGross - totalGaji;
   const displayProfit  = netMode ? totalProfitNet : totalProfitGross;
 
-  // Monthly profitNet
+  // Total Kas = Modal Awal + Uang Masuk (Omset+Jasa) - Uang Keluar (HPP+Stok Mengendap) - Gaji(Hanya jika Bersih)
+  const totalKas = startBal + totalRevenue + totalExtraProfit - totalHPP - totalFloatStok - appliedGaji;
+
+  // Total Aset = Total Kas + Nilai Barang di Gudang (Berdasarkan Modal)
+  const totalAset = totalKas + totalFloatStok; 
+
   Object.keys(monthly).forEach(k => {
     monthly[k].gaji      = netMode ? GAJI_EMP : 0;
-    monthly[k].profitNet = monthly[k].profitGross - (netMode ? GAJI_EMP : 0);
+    monthly[k].profitNet = monthly[k].profitGross - monthly[k].gaji;
   });
 
-  // Sort txAll
   txAll.sort((a,b) => b.id - a.id);
   aging.sort((a,b) => b.days - a.days);
 
-  // Avg margin
   const avgMargin = totalUnitsSold > 0 ? totalProfitGross / totalUnitsSold : 0;
 
-  // Save state
   Object.assign(state, {
     totalAset, totalKas, totalFloatStok,
     totalProfitGross, totalProfitNet, displayProfit,
@@ -760,31 +658,26 @@ function processData(db) {
     goalPct: Math.min((totalAset / GOAL) * 100, 100),
   });
 
-  // Render all tabs
   renderDashboard();
   renderAnalytics();
   renderPerformance();
   renderCashflow();
 }
 
-// ─── RENDER: DASHBOARD ─────────────────────────────────
 function renderDashboard() {
   const { totalAset, totalKas, totalFloatStok, displayProfit, totalProfitGross,
           totalUnitsSold, avgMargin, nowMk, monthly, goalPct } = state;
 
-  // Goal ring
   const rem = Math.max(GOAL - totalAset, 0);
   rGoalChart(totalAset, rem);
   document.getElementById('goalPct').textContent = goalPct.toFixed(1) + '%';
   document.getElementById('goalBar').style.width = goalPct + '%';
 
-  // Target text
   const tgt = document.getElementById('targetText');
   tgt.innerHTML = isUSD
     ? `$${Math.floor(GOAL/exchangeRate).toLocaleString('en-US')} <span class="text-slate-500 font-normal text-base">USD</span>`
     : `100 Juta <span class="text-slate-500 font-normal text-base">IDR</span>`;
 
-  // ETA badge
   const mKeys = Object.keys(monthly).sort();
   const r3    = mKeys.slice(-3);
   const avg3  = r3.reduce((s,k) => s + (monthly[k].profitGross||0), 0) / (r3.length||1);
@@ -801,7 +694,6 @@ function renderDashboard() {
     badge.innerHTML = '<i class="fas fa-clock text-[8px]"></i><span>Menghitung...</span>';
   }
 
-  // KPI Grid
   document.getElementById('totalAsset').textContent = fFull(totalAset);
   document.getElementById('valCash').textContent    = fFull(totalKas);
   document.getElementById('valStock').textContent   = fFull(totalFloatStok);
@@ -809,20 +701,17 @@ function renderDashboard() {
   document.getElementById('cashPct').textContent  = (totalKas/tot*100).toFixed(1)+'% dari aset';
   document.getElementById('stockPct').textContent = (totalFloatStok/tot*100).toFixed(1)+'% dari aset';
 
-  // Bulan ini
   const thisMon = monthly[nowMk] || {};
   document.getElementById('thisMonthProfit').textContent = fFull(netMode ? (thisMon.profitNet||0) : (thisMon.profitGross||0));
   document.getElementById('thisMonthUnits').textContent  = (thisMon.units||0) + ' unit terjual';
   document.getElementById('avgMarginVal').textContent    = avgMargin > 0 ? fRp(avgMargin) : '—';
   document.getElementById('totalUnitsSold').textContent  = totalUnitsSold + ' unit all-time';
 
-  // Akumulasi laba
   document.getElementById('totalProfit').textContent  = fFull(displayProfit);
   document.getElementById('totalUnitsLabel').textContent = totalUnitsSold + ' Unit';
   document.getElementById('avgMarginLabel').textContent  = avgMargin > 0 ? fRp(avgMargin)+'/unit' : '—';
   document.getElementById('labelMode').textContent = netMode ? 'Bersih' : 'Kotor';
 
-  // Milestone
   const prev = MILESTONES.slice().reverse().find(m=>m<=totalAset) || 0;
   const next = MILESTONES.find(m=>m>totalAset) || GOAL;
   const mp   = prev === next ? 100 : Math.min(((totalAset-prev)/(next-prev))*100, 100);
@@ -831,11 +720,9 @@ function renderDashboard() {
   document.getElementById('mileNext').textContent    = fRp(next);
   document.getElementById('milestoneBar').style.width = mp + '%';
 
-  // Update simulation widget
   updateSimulationUI();
 }
 
-// ─── SIMULATION 12% ROI ────────────────────────────────
 function updateSimulationUI() {
   const { totalAset, nowMk, monthly, totalProfitGross, totalUnitsSold } = state;
   const avgRealMargin = totalUnitsSold > 0 ? totalProfitGross / totalUnitsSold : 150000;
@@ -870,13 +757,11 @@ function switchMarginMode(mode) {
   updateSimulationUI();
 }
 
-// ─── RENDER: ANALYTICS ─────────────────────────────────
 function renderAnalytics() {
   const { brands, monthly, nowMk, aging } = state;
 
   document.getElementById('analyticsMon').textContent = mlabel(nowMk);
 
-  // Top brands
   const tb  = document.getElementById('topBrands');
   const arr = Object.entries(brands).map(([n,v])=>({n,...v})).sort((a,b)=>b.profit-a.profit).slice(0,5);
   if (!arr.length) {
@@ -906,17 +791,14 @@ function renderAnalytics() {
       </div>`).join('');
   }
 
-  // Doughnut: Alokasi laba bulan ini
-  // Logika: 1.5Jt → gaji owner, 1Jt → gaji karyawan, sisanya → laba ditahan
   const grossMon = (monthly[nowMk] || {}).profitGross || 0;
   const o = Math.max(0, Math.min(1_500_000, grossMon));
   const e = grossMon >= 1_500_000 ? Math.min(1_000_000, grossMon - 1_500_000) : 0;
   const r = Math.max(0, grossMon - 2_500_000);
 
-  // Breakdown text
   const ab = document.getElementById('allocBreakdown');
   ab.innerHTML = [
-    { label:'Gaji Owner',    val:o, color:'#38bdf8' },
+    { label:'Gaji Owner',   val:o, color:'#38bdf8' },
     { label:'Gaji Karyawan', val:e, color:'#818cf8' },
     { label:'Laba Ditahan',  val:r, color:'#10b981' },
   ].map(x => `
@@ -928,7 +810,6 @@ function renderAnalytics() {
   if (document.getElementById('tab-analytics').classList.contains('active'))
     rDoughnut(o, e, r);
 
-  // Aging stock
   const al = document.getElementById('agingList');
   document.getElementById('agingCount').textContent = aging.length ? aging.length + ' Item' : '';
   if (!aging.length) {
@@ -951,9 +832,8 @@ function renderAnalytics() {
   }
 }
 
-// ─── RENDER: PERFORMANCE ───────────────────────────────
 function renderPerformance() {
-  const { monthly, nowMk, totalProfitGross, totalProfitNet, totalUnitsSold } = state;
+  const { monthly, nowMk, totalProfitGross, totalUnitsSold } = state;
   const tb = document.getElementById('trackerBody'); tb.innerHTML = '';
   const fallbackMargin = totalUnitsSold > 0 ? totalProfitGross / totalUnitsSold : 150000;
 
@@ -973,7 +853,6 @@ function renderPerformance() {
     trendProfit.push(pAct);
     trendUnits.push(uAct);
 
-    // Rolling deficit target
     const target = t.p + Math.max(deficit, 0);
     if (key <= nowMk) deficit += (t.p - pAct);
 
@@ -1028,7 +907,6 @@ function renderPerformance() {
     </div>`;
   });
 
-  // Store trend for chart
   state.trendLabels = trendLabels;
   state.trendProfit = trendProfit;
   state.trendUnits  = trendUnits;
@@ -1037,11 +915,9 @@ function renderPerformance() {
     rLineChart(trendLabels, trendProfit, trendUnits);
 }
 
-// ─── RENDER: CASHFLOW ──────────────────────────────────
 function renderCashflow() {
   const { monthly, txAll, months } = state;
 
-  // Calculate cashflow for selected period
   let cfIncome = 0, cfHPP = 0, cfGaji = 0, cfPeriod = '', cfTx = [];
 
   if (selMonth === 'all') {
@@ -1072,7 +948,6 @@ function renderCashflow() {
   animVal('cfIncome',  cfIncome, 700);
   animVal('cfExpense', cfHPP,    700);
 
-  // Show/hide gaji row
   const gajiRow = document.getElementById('cfGajiRow');
   if (netMode && cfGaji > 0) {
     gajiRow.classList.remove('hidden');
@@ -1081,13 +956,11 @@ function renderCashflow() {
     gajiRow.classList.add('hidden');
   }
 
-  // Net
   const netEl = document.getElementById('cfNet');
   if (cfNet > 0)      { netEl.textContent = '+'+fFull(cfNet); netEl.style.color='#34d399'; }
   else if (cfNet < 0) { netEl.textContent = '-'+fFull(Math.abs(cfNet)); netEl.style.color='#fb7185'; }
   else                { netEl.textContent = fFull(0); netEl.style.color='#fff'; }
 
-  // Transaction list
   const lim = selMonth === 'all' ? 20 : 15;
   document.getElementById('txCount').textContent = cfTx.length
     ? Math.min(cfTx.length, lim) + (selMonth === 'all' ? ' Terakhir' : ' Transaksi')
@@ -1120,7 +993,6 @@ function renderCashflow() {
   }).join('');
 }
 
-// ─── CHARTS ────────────────────────────────────────────
 function dChart(k) { if(charts[k]){ charts[k].destroy(); charts[k]=null; } }
 
 function rGoalChart(cur, rem) {
@@ -1177,7 +1049,6 @@ function rLineChart(labels, profit, unit) {
   });
 }
 
-// ─── TAB SWITCHING ─────────────────────────────────────
 function switchTab(id, el) {
   document.querySelectorAll('.tab-pane').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(n=>n.classList.remove('active'));
@@ -1195,7 +1066,6 @@ function switchTab(id, el) {
   window.scrollTo({ top:0, behavior:'smooth' });
 }
 
-// ─── TOGGLES ───────────────────────────────────────────
 function onNetToggle() {
   netMode = document.getElementById('netToggle').checked;
   if (rawDB) processData(rawDB);
@@ -1208,7 +1078,6 @@ function onCurrToggle() {
   if (rawDB) processData(rawDB);
 }
 
-// ─── REFRESH ───────────────────────────────────────────
 async function manualRefresh() {
   const btn = document.getElementById('refreshBtn'); btn.disabled = true;
   const db  = await fetchDB();
@@ -1216,7 +1085,6 @@ async function manualRefresh() {
   btn.disabled = false;
 }
 
-// ─── EXPORT ────────────────────────────────────────────
 async function doExport() {
   if (typeof html2canvas === 'undefined') { toast('⚠️ Library belum siap.'); return; }
   const btn  = document.getElementById('exportBtn');
@@ -1242,26 +1110,21 @@ async function doExport() {
   }
 }
 
-// ─── INIT ──────────────────────────────────────────────
 async function initApp() {
-  // Fetch exchange rate
   try {
     const fx = await fetch('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json');
     if (fx.ok) { const d=await fx.json(); if(d?.usd?.idr) exchangeRate=d.usd.idr; }
   } catch(e) { console.log('FX Error:', e); }
 
-  // Load cache immediately
   try {
     const c = localStorage.getItem(CACHE_KEY);
     if (c) { rawDB=JSON.parse(c); processData(rawDB); }
   } catch(_) { localStorage.removeItem(CACHE_KEY); }
 
-  // Then fetch fresh
   const db = await fetchDB();
   if (db) { localStorage.setItem(CACHE_KEY, JSON.stringify(db)); rawDB=db; processData(db); }
 }
 
-// ─── PULL TO REFRESH ───────────────────────────────────
 (function() {
   let sy=0, pulling=false, busy=false;
   const ptr=document.getElementById('ptr'), ico=document.getElementById('ptrIco'), txt=document.getElementById('ptrTxt');
