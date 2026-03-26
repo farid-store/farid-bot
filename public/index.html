@@ -242,10 +242,6 @@ body{opacity:0;padding-bottom:110px;animation:bIn .4s ease-out .1s forwards;font
         <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs shrink-0 text-rose-400" style="background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.2)"><i class="fa-solid fa-arrow-up"></i></div>
         <div><span class="block text-[9px] font-bold text-slate-400 uppercase tracking-widest">Pengeluaran (HPP)</span><span id="cfExpense" style="font-family:Outfit,sans-serif" class="text-[17px] font-bold text-rose-400">Rp 0</span></div>
       </div>
-      <div id="cfGajiRow" class="hidden flex items-center gap-3 rounded-xl p-3" style="background:rgba(245,158,11,.05);border:1px solid rgba(245,158,11,.1)">
-        <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs shrink-0 text-warning" style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2)"><i class="fa-solid fa-users"></i></div>
-        <div><span class="block text-[9px] font-bold text-slate-400 uppercase tracking-widest">Potongan Gaji</span><span id="cfGaji" style="font-family:Outfit,sans-serif" class="text-[17px] font-bold text-warning">Rp 0</span></div>
-      </div>
     </div>
     <div class="w-full h-px mb-4 relative z-10" style="background:linear-gradient(to right,transparent,rgba(255,255,255,.1),transparent)"></div>
     <div class="flex justify-between items-center relative z-10">
@@ -289,14 +285,14 @@ const BIN_ID='699644fdae596e708f3582af';
 const API_KEY='$2a$10$tcKHEWwuz2sqRoMCKJfga.1xxTFW0RxpXUPnP.NI4YbivtlK1xxau';
 const CACHE_KEY='fsCacheV14';
 const GOAL=100000000;
-const GAJI_EMP=2500000; // 1 Juta Karyawan + 1.5 Juta Owner
+const GAJI_EMP=2500000;
 const MILESTONES=[10,20,30,40,50,60,75,90,100].map(v=>v*1000000);
 const MN=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 const ROADMAP=[{m:1,p:4500000},{m:2,p:5400000},{m:3,p:6075000},{m:4,p:6750000},{m:5,p:6750000},{m:6,p:7200000},{m:7,p:7200000},{m:8,p:7650000},{m:9,p:7650000},{m:10,p:7875000},{m:11,p:7875000},{m:12,p:6750000}];
 const RY=2026;
 
 let rawDB=null,netMode=false,selMonth='';
-let isUSD=false, exchangeRate=15500; 
+let isUSD=false, exchangeRate=15500; // default fallback rate
 let cGoal={cur:0,rem:GOAL},cAlloc={o:0,e:0,r:0},cTrend={labels:[],profit:[],unit:[]};
 let charts={};
 let ddOpen=false;
@@ -421,16 +417,11 @@ function onCurrToggle(){
   if(rawDB) processData(rawDB);
 }
 
-// LOGIKA UTAMA YANG TELAH DIREVISI
 function processData(db){
   const now=new Date(),nowMk=mkey(now);
   const monthly={},brands={},txAll=[],aging=[];
-  
-  // FIX: Menggunakan Fallback 25 Juta Jika startBalance Kosong
-  const startBal = db.startBalance !== undefined ? Number(db.startBalance) : 25000000;
-  
-  let totalRevenue=0, totalHPP=0, totalExtraProfit=0, totalFloatStok=0, unitsSold=0;
-  let totalProfitGross=0;
+  const startBal=Number(db.startBalance)||0;
+  let spent=0,revenue=0,pMain=0,pExtra=0,floatP=0,unitsSold=0;
   const mSet=new Set([nowMk]);
 
   (db.items||[]).forEach(i=>{
@@ -444,82 +435,56 @@ function processData(db){
   if(!selMonth||(selMonth!=='all'&&!months.includes(selMonth)))selMonth=nowMk;
   buildDD(months);
 
-  function ensure(k){if(!monthly[k])monthly[k]={income:0,expense:0,profitGross:0,profitNet:0,units:0,gaji:0};}
+  function ensure(k){if(!monthly[k])monthly[k]={income:0,expense:0,profit:0,kotor:0,units:0};}
 
   (db.items||[]).forEach(i=>{
     const ts=i.id?Math.floor(i.id):now.getTime();
     if(i.status==='sold'){
       unitsSold++;
-      totalRevenue += i.price;
-      totalHPP += i.modal;
-      const prof = i.price - i.modal;
-      totalProfitGross += prof;
-
+      if(i.type==='new'){spent+=i.modal;txAll.push({id:ts,name:i.name,type:'buy',amount:i.modal,profit:0});}
+      revenue+=i.price;
+      const prof=i.price-i.modal;pMain+=prof;
       const br=getBrand(i.name);
       if(!brands[br])brands[br]={profit:0,count:0};
       brands[br].profit+=prof;brands[br].count++;
-
       const sd=parseD(i.soldAt),smk=mkey(sd);
       ensure(smk);
-      monthly[smk].units++;
-      monthly[smk].profitGross+=prof;
-      monthly[smk].income+=i.price;
-      monthly[smk].expense+=i.modal;
-      
+      monthly[smk].units++;monthly[smk].profit+=prof;monthly[smk].kotor+=prof;monthly[smk].income+=i.price;monthly[smk].expense+=i.modal;
       txAll.push({id:sd.getTime(),name:i.name,type:'sold',amount:i.price,profit:prof});
     }else if(i.status==='stok'){
-      totalFloatStok += i.modal;
+      if(i.type==='new'){spent+=i.modal;txAll.push({id:ts,name:i.name,type:'buy',amount:i.modal,profit:0});}
+      floatP+=i.price;
       const age=i.id?Math.floor(Math.abs(now-new Date(Math.floor(i.id)))/86400000):0;
       aging.push({name:i.name,days:age,modal:i.modal});
     }
   });
 
   (db.extraProfits||[]).forEach(p=>{
-    totalExtraProfit+=p.profit;
-    unitsSold++;
+    pExtra+=p.profit;unitsSold++;
     const d=new Date(Math.floor(p.id)),emk=mkey(d);
     ensure(emk);
-    monthly[emk].profitGross+=p.profit;
-    monthly[emk].units++;
-    monthly[emk].income+=p.profit;
-    totalProfitGross+=p.profit;
+    monthly[emk].profit+=p.profit;monthly[emk].kotor+=p.profit;monthly[emk].units++;monthly[emk].income+=p.profit;
     txAll.push({id:Math.floor(p.id),name:p.name||'Laba Jasa',type:'extra',amount:p.profit,profit:p.profit});
   });
 
-  // LOGIKA GAJI (TOGGLE KOTOR/BERSIH)
-  const activeMonthCount = Object.keys(monthly).length;
-  const totalGaji = GAJI_EMP * activeMonthCount;
-  const appliedGaji = netMode ? totalGaji : 0;
+  let gaji=0;
+  if(netMode){Object.keys(monthly).forEach(k=>{monthly[k].profit-=GAJI_EMP;monthly[k].expense+=GAJI_EMP;gaji+=GAJI_EMP;});}
 
-  const totalProfitNet = totalProfitGross - totalGaji;
-  const displayProfit = netMode ? totalProfitNet : totalProfitGross;
-
-  // LOGIKA ASET DAN KAS
-  const cash = startBal + totalRevenue + totalExtraProfit - totalHPP - totalFloatStok - appliedGaji;
-  const totalAset = cash + totalFloatStok;
-
-  Object.keys(monthly).forEach(k=>{
-    monthly[k].gaji = netMode ? GAJI_EMP : 0;
-    monthly[k].profitNet = monthly[k].profitGross - monthly[k].gaji;
-    // Disimpan dengan variable pendukung untuk Chart performa
-    monthly[k].kotor = monthly[k].profitGross;
-    monthly[k].profit = netMode ? monthly[k].profitNet : monthly[k].profitGross;
-  });
+  const totalNet=(pMain+pExtra)-gaji;
+  const cash=startBal-spent+revenue;
+  const totalAset=cash+floatP;
 
   aging.sort((a,b)=>b.days-a.days);
   txAll.sort((a,b)=>b.id-a.id);
 
-  let cfIncome=0,cfExpense=0,cfGaji=0,cfTx=[],cfPeriod='';
+  let cfIncome=0,cfExpense=0,cfTx=[],cfPeriod='';
   if(selMonth==='all'){
     cfIncome=Object.values(monthly).reduce((s,v)=>s+v.income,0);
     cfExpense=Object.values(monthly).reduce((s,v)=>s+v.expense,0);
-    cfGaji=Object.values(monthly).reduce((s,v)=>s+v.gaji,0);
     cfTx=txAll.slice(0,20);cfPeriod='Semua Waktu';
   }else{
     const bk=monthly[selMonth]||{};
-    cfIncome=bk.income||0;
-    cfExpense=bk.expense||0;
-    cfGaji=bk.gaji||0;
+    cfIncome=bk.income||0;cfExpense=bk.expense||0;
     const ts=new Date(selMonth+'-01').getTime();
     const[y,mm]=selMonth.split('-').map(Number);
     const te=new Date(y,mm,1).getTime();
@@ -527,10 +492,10 @@ function processData(db){
     cfPeriod=mlabel(selMonth);
   }
 
-  rDashboard({totalAset,totalNet:displayProfit,unitsSold,cash,floatP:totalFloatStok,monthly,nowMk});
+  rDashboard({totalAset,totalNet,unitsSold,cash,floatP,monthly,nowMk});
   rAnalytics({brands,monthly,nowMk,aging});
-  rPerformance({monthly,nowMk,totalNet:displayProfit,unitsSold});
-  rCashflow({cfIncome,cfExpense,cfGaji,cfPeriod,cfTx,isAll:selMonth==='all'});
+  rPerformance({monthly,nowMk,totalNet,unitsSold});
+  rCashflow({cfIncome,cfExpense,cfPeriod,cfTx,isAll:selMonth==='all'});
 }
 
 function rDashboard({totalAset,totalNet,unitsSold,cash,floatP,monthly,nowMk}){
@@ -644,21 +609,12 @@ function rPerformance({monthly,nowMk,totalNet,unitsSold}){
   if(document.getElementById('tab-performance').classList.contains('active'))rLineChart(cTrend.labels,cTrend.profit,cTrend.unit);
 }
 
-function rCashflow({cfIncome,cfExpense,cfGaji,cfPeriod,cfTx,isAll}){
+function rCashflow({cfIncome,cfExpense,cfPeriod,cfTx,isAll}){
   document.getElementById('cfPeriod').textContent=cfPeriod;
   document.getElementById('cfNetLabel').textContent=isAll?'Total Laba Bersih (All Time)':'Laba Bersih Bulan Ini';
   animVal('cfIncome',cfIncome,700);
   animVal('cfExpense',cfExpense,700);
-  
-  const gajiRow=document.getElementById('cfGajiRow');
-  if(netMode && cfGaji>0){
-    gajiRow.classList.remove('hidden');
-    document.getElementById('cfGaji').textContent=fFull(cfGaji);
-  } else {
-    gajiRow.classList.add('hidden');
-  }
-
-  const net=cfIncome-cfExpense-cfGaji;
+  const net=cfIncome-cfExpense;
   const netEl=document.getElementById('cfNet');
   if(net>0){netEl.textContent='+'+fFull(net);netEl.style.color='#34d399';}
   else if(net<0){netEl.textContent='-'+fFull(Math.abs(net));netEl.style.color='#fb7185';}
