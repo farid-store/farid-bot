@@ -11,6 +11,7 @@
 // ═══════════════════════════════════════════════════════════════════
 
 // ── CONFIG ──────────────────────────────────────────────────────────
+const GEMINI_KEY = process.env.GEMINI_KEY;
 const BOT_TOKEN   = process.env.BOT_TOKEN;
 const ADMIN_IDS   = (process.env.ADMIN_IDS || '').split(',').map(s => s.trim()).filter(Boolean);
 const BIN_ID      = process.env.BIN_ID      || '699644fdae596e708f3582af';
@@ -73,6 +74,24 @@ function parseDate(s) {
   const p = s.split(' ')[0].split('/');
   if (p.length === 3) return new Date(+p[2], +p[1] - 1, +p[0]);
   return new Date();
+}
+
+// ── AI INTEGRATION ────────────────────────────────────────────────────
+async function askGemini(promptText) {
+  if (!GEMINI_KEY) return "⚠️ GEMINI_KEY belum diatur di Vercel!";
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`;
+  
+  try {
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
+    });
+    const data = await r.json();
+    return data.candidates[0].content.parts[0].text;
+  } catch (e) {
+    return "❌ Gagal menghubungi AI: " + e.message;
+  }
 }
 
 // ── JSONBIN API ──────────────────────────────────────────────────────
@@ -1345,6 +1364,7 @@ async function handleCommand(msg) {
 
   if (text === '/help' || text === '/h') {
     await send(chat, `🤖 <b>FARID STORE BOT V11 — BANTUAN</b>
+
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 
 <b>PERINTAH:</b>
@@ -1377,6 +1397,46 @@ Ketuk tombol nomor barang di daftar stok untuk detail, edit, hapus, atau tandai 
   await send(chat, `❓ Perintah tidak dikenal.\n\nGunakan /menu untuk memulai.`, kbMenuUtama());
 }
 
+  if (text.startsWith('/promo ')) {
+    const keyword = text.slice(7).trim();
+    if (!keyword) { await send(chat, '❌ Format: /promo [nama barang]'); return; }
+
+    await send(chat, '⏳ <i>AI sedang meracik kata-kata marketing...</i>');
+
+    // Cari barang di database untuk mendapatkan info harganya
+    const item = (db.items || []).find(i => i.status === 'stok' && i.name.toLowerCase().includes(keyword.toLowerCase()));
+    let hargaTeks = '';
+    if (item) hargaTeks = `Harga jual di toko kita: ${rp(item.price)}.`;
+
+    const prompt = `Buatkan caption promosi yang menarik, asik, dan kekinian untuk jualan gadget di WhatsApp/Instagram. Nama barang: ${keyword}. ${hargaTeks} Nama toko: Farid Store. Gunakan emoji yang pas, berikan kesan garansi aman, dan jangan terlalu panjang.`;
+
+    const aiResponse = await askGemini(prompt);
+    await send(chat, `🤖 <b>Hasil AI Copywriter:</b>\n\n${esc(aiResponse)}\n\n<i>Tinggal copas aja bos!</i>`);
+    return;
+  }
+
+  // Taruh di dalam handleCommand
+  if (text.startsWith('/tanya ')) {
+    const pertanyaan = text.slice(7).trim();
+    if (!pertanyaan) { await send(chat, '❌ Format: /tanya [pertanyaan ke AI]'); return; }
+
+    await send(chat, '⏳ <i>Bentar, AI lagi ngecek buku kas...</i>');
+
+    // Suntikkan data komputasi toko agar AI punya konteks
+    const c = compute(db);
+    const stokNganggur = c.agingStocks.filter(i => i.days > 30).length;
+    
+    const prompt = `Kamu adalah asisten keuangan dan bisnis pintar untuk Farid Store (toko ritel & servis gadget). 
+    Data toko saat ini: Total Aset ${rp(c.totalAset)}, Kas ${rp(c.cashSisa)}, Omset bulan ini ${rp(c.curMonth.income)}, Laba bulan ini ${rp(c.curMonth.profit)}. Ada ${stokNganggur} barang mengendap lebih dari 30 hari. 
+    Pertanyaan bos kamu: "${pertanyaan}". Jawab dengan singkat, padat, berikan saran bisnis yang realistis jika diminta.`;
+
+    const aiResponse = await askGemini(prompt);
+    // Kita hapus format markdown tebal AI (*) agar tidak bentrok dengan HTML Telegram
+    const cleanResponse = esc(aiResponse).replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+    
+    await send(chat, `🤖 <b>Asisten Toko:</b>\n\n${cleanResponse}`);
+    return;
+  }
 // ══════════════════════════════════════════════════════════════════════
 //  MAIN VERCEL HANDLER
 // ══════════════════════════════════════════════════════════════════════
