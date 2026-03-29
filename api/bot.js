@@ -1,20 +1,19 @@
 // ═══════════════════════════════════════════════════════════════════
-//  FARID STORE BOT V11.1 — Full Dynamic Inline + Reply Keyboard
+//  FARID STORE BOT V11.2 — Full Dynamic Inline + Reply Keyboard
 //  Vercel Serverless Webhook Handler
 //  
 //  PERBAIKAN & FITUR BARU:
-//  - Fix bug Strict Type ID: String() casting untuk pencarian ID stok
-//  - Fix fallback item.id yang kosong (auto-generate saat load)
-//  - Keyboard daftar stok menggunakan tombol grid angka yang rapi
-//  - Penambahan escape HTML agar nama barang dengan simbol tidak error
-//  - Tambahan Reply Keyboard (tombol bawah) khusus saat /start
+//  - FIX FATAL BUG: Scope block /promo dan /tanya dimasukkan ke dalam fungsi
+//  - UX: Auto-cancel session jika user mengetik command baru (cegah stuck)
+//  - UX: Penambahan perintah /cancel untuk membatalkan aksi kapan saja
+//  - UI: Layout tombol inline lebih proporsional dan ramah jari
 // ═══════════════════════════════════════════════════════════════════
 
 // ── CONFIG ──────────────────────────────────────────────────────────
 const GEMINI_KEY = process.env.GEMINI_KEY;
-const BOT_TOKEN   = process.env.BOT_TOKEN;
-const ADMIN_IDS   = (process.env.ADMIN_IDS || '').split(',').map(s => s.trim()).filter(Boolean);
-const BIN_ID      = process.env.BIN_ID      || '699644fdae596e708f3582af';
+const BOT_TOKEN  = process.env.BOT_TOKEN;
+const ADMIN_IDS  = (process.env.ADMIN_IDS || '').split(',').map(s => s.trim()).filter(Boolean);
+const BIN_ID     = process.env.BIN_ID      || '699644fdae596e708f3582af';
 const JSONBIN_KEY = process.env.JSONBIN_KEY  || '$2a$10$tcKHEWwuz2sqRoMCKJfga.1xxTFW0RxpXUPnP.NI4YbivtlK1xxau';
 
 const TG  = `https://api.telegram.org/bot${BOT_TOKEN}`;
@@ -100,7 +99,6 @@ async function getData() {
   if (!r.ok) throw new Error(`JSONBin GET failed: ${r.status}`);
   const db = (await r.json()).record;
   
-  // Auto-fix item tanpa ID agar fungsi klik stok selalu jalan
   if (db.items) {
     db.items.forEach((item, idx) => {
       if (!item.id) item.id = Date.now() + idx; 
@@ -141,16 +139,7 @@ const edit   = (chat, mid, text, kb = null, extra = {}) => tg('editMessageText',
   ...extra
 });
 
-const editKb = (chat, mid, kb) => tg('editMessageReplyMarkup', {
-  chat_id: chat, message_id: mid, reply_markup: { inline_keyboard: kb }
-});
-
-const removeKb = (chat, mid) => tg('editMessageReplyMarkup', {
-  chat_id: chat, message_id: mid, reply_markup: { inline_keyboard: [] }
-});
-
 const answer    = (id, text = '', alert = false) => tg('answerCallbackQuery', { callback_query_id: id, text, show_alert: alert });
-const deleteMsg = (chat, mid) => tg('deleteMessage', { chat_id: chat, message_id: mid });
 
 const prompt = (chat, text) => tg('sendMessage', {
   chat_id: chat, text, parse_mode: 'HTML',
@@ -253,7 +242,7 @@ function compute(db) {
 
 function kbMenuUtama() {
   return [
-    [{ text: '📊 Dashboard', callback_data: 'menu_dashboard' }, { text: '📦 Stok & Inventori', callback_data: 'menu_stok' }],
+    [{ text: '📊 Dashboard', callback_data: 'menu_dashboard' }, { text: '📦 Stok Gudang', callback_data: 'menu_stok' }],
     [{ text: '💳 Transaksi', callback_data: 'menu_transaksi' }, { text: '📈 Analitik', callback_data: 'menu_analitik' }],
     [{ text: '➕ Catat Masuk', callback_data: 'aksi_masuk' },   { text: '✅ Tandai Terjual', callback_data: 'aksi_terjual' }],
     [{ text: '⭐ Laba Jasa', callback_data: 'aksi_ekstra' },    { text: '⚙️ Pengaturan', callback_data: 'menu_settings' }],
@@ -288,7 +277,7 @@ function kbStokItems(items, page, totalPages, LIMIT) {
   }
 
   rows.push([{ text: '🔍 Cari Barang', callback_data: 'stok_cari' }, { text: '⏳ Stok Lama', callback_data: 'stok_aging' }]);
-  rows.push([{ text: '➕ Catat Masuk', callback_data: 'aksi_masuk' }, { text: '🏠 Menu Utama', callback_data: 'menu_utama' }]);
+  rows.push([{ text: '➕ Tambah Stok', callback_data: 'aksi_masuk' }, { text: '🏠 Menu Utama', callback_data: 'menu_utama' }]);
   return rows;
 }
 
@@ -305,7 +294,7 @@ function kbItemDetail(itemId, page = 1) {
 function kbHapusKonfirm(itemId, page = 1) {
   return [
     [{ text: '✅ Ya, Hapus Permanen', callback_data: `item_hapus_eksekusi_${itemId}` }],
-    [{ text: '❌ Batal, Kembali', callback_data: `item_detail_${itemId}` }]
+    [{ text: '❌ Batal', callback_data: `item_detail_${itemId}` }]
   ];
 }
 
@@ -347,7 +336,7 @@ function kbMenuStok() {
 function kbAksiSukses(opts = {}) {
   const rows = [];
   if (opts.tambahLagi) rows.push([{ text: opts.tambahLagi.text, callback_data: opts.tambahLagi.cb }]);
-  rows.push([{ text: '📊 Dashboard', callback_data: 'menu_dashboard' }, { text: '📦 Stok', callback_data: 'menu_stok' }]);
+  rows.push([{ text: '📊 Dashboard', callback_data: 'menu_dashboard' }, { text: '📦 Menu Stok', callback_data: 'menu_stok' }]);
   rows.push([{ text: '🏠 Menu Utama', callback_data: 'menu_utama' }]);
   return rows;
 }
@@ -887,7 +876,7 @@ Catat laba ini?`, kbKonfirmasiYaTidak('ekstra_confirm', 'cancel'));
 ✅ Sudah Terjual: ${sold.length} item
 
 ${rows || '—'}`, [
-      [{ text: '📦 Kembali ke Menu Stok', callback_data: 'menu_stok' }],
+      [{ text: '📦 Kembali ke Stok', callback_data: 'menu_stok' }],
       [{ text: '🏠 Menu Utama', callback_data: 'menu_utama' }]
     ]);
     return;
@@ -1287,7 +1276,7 @@ Ketik nama atau kata kunci barang:`, [[{ text: '❌ Batal', callback_data: 'canc
   if (data === 'cancel') {
     clearSession(db, uid);
     await putData(db);
-    await edit(chat, mid, `✅ Dibatalkan.\n\n${txtMenuUtama()}`, kbMenuUtama());
+    await edit(chat, mid, `✅ Aksi dibatalkan.\n\n${txtMenuUtama()}`, kbMenuUtama());
     return;
   }
 
@@ -1311,11 +1300,14 @@ async function handleCommand(msg) {
   try { db = await getData(); }
   catch (e) { await send(chat, '❌ Gagal ambil data.'); return; }
 
-  // ── FIX: MEMUNCULKAN KEYBOARD BAWAH SAAT /START ──
-  if (text === '/start' || text === '/menu' || text === '/m') {
+  // ── AUTO CANCEL UX ──
+  // Jika user mengetik perintah (dimulai dgn slash), otomatis bersihkan sesi yang menggantung
+  if (text.startsWith('/')) {
     clearSession(db, uid);
     await putData(db);
-    
+  }
+
+  if (text === '/start' || text === '/menu' || text === '/m') {
     // Kirim pesan pancingan agar Telegram me-load keyboard bawah
     if (text === '/start') {
       await tg('sendMessage', {
@@ -1344,6 +1336,11 @@ async function handleCommand(msg) {
     return;
   }
 
+  if (text === '/cancel' || text === '/c') {
+    await send(chat, '✅ Semua sesi dan aksi aktif telah dibatalkan.', kbMenuUtama());
+    return;
+  }
+
   if (text.startsWith('/masuk ')) {
     const parts = text.slice(7).split(',').map(s => s.trim());
     if (parts.length < 3) { await send(chat, '❌ Format: /masuk Nama, Modal, HargaJual'); return; }
@@ -1356,31 +1353,72 @@ async function handleCommand(msg) {
       db.items.push({ id: Date.now(), name: nama, modal, price: harga, status: 'stok', type: 'new', addedAt: new Date().toISOString() });
       await putData(db);
       await send(chat, `✅ Barang dicatat!\n📦 ${esc(nama)}\n💰 Modal: ${rp(modal)}\n💵 Harga: ${rp(harga)}\n💛 Margin: ${rp(harga - modal)}`, [
-        [{ text: '📦 Lihat Stok', callback_data: 'stok_list_1' }, { text: '🏠 Menu', callback_data: 'menu_utama' }]
+        [{ text: '📦 Lihat Stok', callback_data: 'stok_list_1' }, { text: '🏠 Menu Utama', callback_data: 'menu_utama' }]
       ]);
     } catch (e) { await send(chat, '❌ Gagal menyimpan.'); }
     return;
   }
 
+  if (text.startsWith('/promo ')) {
+    const keyword = text.slice(7).trim();
+    if (!keyword) { await send(chat, '❌ Format: /promo [nama barang]'); return; }
+
+    await send(chat, '⏳ <i>AI sedang meracik kata-kata marketing...</i>');
+
+    const item = (db.items || []).find(i => i.status === 'stok' && i.name.toLowerCase().includes(keyword.toLowerCase()));
+    let hargaTeks = '';
+    if (item) hargaTeks = `Harga jual di toko kita: ${rp(item.price)}.`;
+
+    const promptText = `Buatkan caption promosi yang menarik, asik, dan kekinian untuk jualan gadget di WhatsApp/Instagram. Nama barang: ${keyword}. ${hargaTeks} Nama toko: Farid Store. Gunakan emoji yang pas, berikan kesan garansi aman, dan jangan terlalu panjang.`;
+
+    const aiResponse = await askGemini(promptText);
+    await send(chat, `🤖 <b>Hasil AI Copywriter:</b>\n\n${esc(aiResponse)}\n\n<i>Tinggal copas aja bos!</i>`, kbKembali('menu_utama'));
+    return;
+  }
+
+  if (text.startsWith('/tanya ')) {
+    const pertanyaan = text.slice(7).trim();
+    if (!pertanyaan) { await send(chat, '❌ Format: /tanya [pertanyaan ke AI]'); return; }
+
+    await send(chat, '⏳ <i>Bentar, AI lagi ngecek buku kas...</i>');
+
+    const c = compute(db);
+    const stokNganggur = c.agingStocks.filter(i => i.days > 30).length;
+    
+    const promptText = `Kamu adalah asisten keuangan dan bisnis pintar untuk Farid Store (toko ritel & servis gadget). 
+    Data toko saat ini: Total Aset ${rp(c.totalAset)}, Kas ${rp(c.cashSisa)}, Omset bulan ini ${rp(c.curMonth.income)}, Laba bulan ini ${rp(c.curMonth.profit)}. Ada ${stokNganggur} barang mengendap lebih dari 30 hari. 
+    Pertanyaan bos kamu: "${pertanyaan}". Jawab dengan singkat, padat, berikan saran bisnis yang realistis jika diminta.`;
+
+    const aiResponse = await askGemini(promptText);
+    const cleanResponse = esc(aiResponse).replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+    
+    await send(chat, `🤖 <b>Asisten Toko:</b>\n\n${cleanResponse}`, kbKembali('menu_utama'));
+    return;
+  }
+
   if (text === '/help' || text === '/h') {
-    await send(chat, `🤖 <b>FARID STORE BOT V11 — BANTUAN</b>
+    await send(chat, `🤖 <b>FARID STORE BOT V11.2 — BANTUAN</b>
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 
 <b>PERINTAH:</b>
-/menu  — Menu utama
-/d — Dashboard
-/s — Menu stok
-/l — Laporan & analitik
-/h — Bantuan ini
+/menu — Buka Menu Utama
+/d    — Dashboard
+/s    — Menu Stok Gudang
+/l    — Laporan & Analitik
+/c    — Batalkan sesi/input yang berjalan
+/h    — Bantuan ini
 
-<b>CEPAT MASUK:</b>
+<b>AI ASSISTANT:</b>
+<code>/promo [Nama Barang]</code> → Bikin caption jualan otomatis
+<code>/tanya [Pertanyaan]</code> → Analisis bisnis & data kas toko
+
+<b>CARA MASUK CEPAT:</b>
 <code>/masuk Nama, Modal, HargaJual</code>
 Contoh: <code>/masuk iPhone 13, 4500000, 5200000</code>
 
-<b>CARA PAKAI:</b>
-Semua navigasi via tombol inline di bubble chat.
-Ketuk tombol nomor barang di daftar stok untuk detail, edit, hapus, atau tandai terjual.`, kbKembali('menu_utama', '🏠 Menu Utama'));
+<b>TIPS:</b>
+Semua aksi bisa dilakukan lewat tombol *inline* di bawah pesan untuk pengalaman terbaik!`, kbKembali('menu_utama', '🏠 Menu Utama'));
     return;
   }
 
@@ -1389,60 +1427,20 @@ Ketuk tombol nomor barang di daftar stok untuk detail, edit, hapus, atau tandai 
     try {
       await handleInput(chat, uid, text, db);
     } catch (e) {
-      await send(chat, '❌ Terjadi error. Coba lagi dengan /menu.', kbKembali('menu_utama'));
+      await send(chat, '❌ Terjadi error saat memproses input. Ketik /menu untuk mengulang.', kbKembali('menu_utama'));
     }
     return;
   }
 
-  await send(chat, `❓ Perintah tidak dikenal.\n\nGunakan /menu untuk memulai.`, kbMenuUtama());
+  await send(chat, `❓ Perintah tidak dikenal.\n\nGunakan /menu untuk memulai atau /help untuk panduan.`, kbMenuUtama());
 }
 
-  if (text.startsWith('/promo ')) {
-    const keyword = text.slice(7).trim();
-    if (!keyword) { await send(chat, '❌ Format: /promo [nama barang]'); return; }
-
-    await send(chat, '⏳ <i>AI sedang meracik kata-kata marketing...</i>');
-
-    // Cari barang di database untuk mendapatkan info harganya
-    const item = (db.items || []).find(i => i.status === 'stok' && i.name.toLowerCase().includes(keyword.toLowerCase()));
-    let hargaTeks = '';
-    if (item) hargaTeks = `Harga jual di toko kita: ${rp(item.price)}.`;
-
-    const prompt = `Buatkan caption promosi yang menarik, asik, dan kekinian untuk jualan gadget di WhatsApp/Instagram. Nama barang: ${keyword}. ${hargaTeks} Nama toko: Farid Store. Gunakan emoji yang pas, berikan kesan garansi aman, dan jangan terlalu panjang.`;
-
-    const aiResponse = await askGemini(prompt);
-    await send(chat, `🤖 <b>Hasil AI Copywriter:</b>\n\n${esc(aiResponse)}\n\n<i>Tinggal copas aja bos!</i>`);
-    return;
-  }
-
-  // Taruh di dalam handleCommand
-  if (text.startsWith('/tanya ')) {
-    const pertanyaan = text.slice(7).trim();
-    if (!pertanyaan) { await send(chat, '❌ Format: /tanya [pertanyaan ke AI]'); return; }
-
-    await send(chat, '⏳ <i>Bentar, AI lagi ngecek buku kas...</i>');
-
-    // Suntikkan data komputasi toko agar AI punya konteks
-    const c = compute(db);
-    const stokNganggur = c.agingStocks.filter(i => i.days > 30).length;
-    
-    const prompt = `Kamu adalah asisten keuangan dan bisnis pintar untuk Farid Store (toko ritel & servis gadget). 
-    Data toko saat ini: Total Aset ${rp(c.totalAset)}, Kas ${rp(c.cashSisa)}, Omset bulan ini ${rp(c.curMonth.income)}, Laba bulan ini ${rp(c.curMonth.profit)}. Ada ${stokNganggur} barang mengendap lebih dari 30 hari. 
-    Pertanyaan bos kamu: "${pertanyaan}". Jawab dengan singkat, padat, berikan saran bisnis yang realistis jika diminta.`;
-
-    const aiResponse = await askGemini(prompt);
-    // Kita hapus format markdown tebal AI (*) agar tidak bentrok dengan HTML Telegram
-    const cleanResponse = esc(aiResponse).replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
-    
-    await send(chat, `🤖 <b>Asisten Toko:</b>\n\n${cleanResponse}`);
-    return;
-  }
 // ══════════════════════════════════════════════════════════════════════
 //  MAIN VERCEL HANDLER
 // ══════════════════════════════════════════════════════════════════════
 export default async function handler(req, res) {
   if (req.method === 'GET') {
-    return res.status(200).send('Farid Store Bot V11.1 — Full Dynamic Inline + Reply Keyboard');
+    return res.status(200).send('Farid Store Bot V11.2 — Full Dynamic Inline + Reply Keyboard');
   }
   if (req.method !== 'POST') {
     return res.status(405).send('Method Not Allowed');
