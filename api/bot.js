@@ -262,6 +262,36 @@ function kbMenuUtama() {
   ];
 }
 
+function kbPromo(currentStyle) {
+  return [
+    [
+      { text: currentStyle === 'v1' ? '✅ V1 (Asik)' : '😎 V1 (Asik)', callback_data: 'promo_v1' },
+      { text: currentStyle === 'v2' ? '✅ V2 (Pro)' : '👔 V2 (Pro)', callback_data: 'promo_v2' },
+      { text: currentStyle === 'v3' ? '✅ V3 (FOMO)' : '🔥 V3 (FOMO)', callback_data: 'promo_v3' }
+    ],
+    [{ text: '🔄 Regenerate Text', callback_data: 'promo_refresh' }],
+    [{ text: '🏠 Menu Utama', callback_data: 'menu_utama' }]
+  ];
+}
+
+// Helper untuk generate AI dengan berbagai style
+async function generatePromoText(keyword, price, styleCode) {
+  let hargaTeks = price ? `Harga jual di toko kita: ${rp(price)}.` : '';
+  let styleDesc = '';
+  
+  if (styleCode === 'v1') styleDesc = 'asik, kekinian, santai bahasa anak muda tongkrongan, banyak emoji.';
+  else if (styleCode === 'v2') styleDesc = 'profesional, elegan, meyakinkan, menonjolkan garansi dan kualitas barang (cocok untuk bapak-bapak/pekerja).';
+  else if (styleCode === 'v3') styleDesc = 'FOMO (Fear of Missing Out), hard selling, promo sangat terbatas, mendesak orang untuk cepat beli sekarang juga sebelum kehabisan.';
+
+  const promptText = `Kamu adalah copywriter handal jualan handphone dan laptop. Buatkan caption promosi untuk: ${keyword}. ${hargaTeks} Nama toko: Farid Store. Gaya bahasa: ${styleDesc} Format teks langsung jadi, tanpa kalimat pembuka/penutup. Pastikan panjangnya pas untuk broadcast WhatsApp/Instagram.`;
+
+  const aiResponse = await askGemini(promptText);
+  if (aiResponse.includes('❌') || aiResponse.includes('⚠️')) return aiResponse;
+
+  // Bersihkan format tebal bawaan AI agar mulus saat di-copy
+  return esc(aiResponse).replace(/\*\*(.*?)\*\*/g, '$1');
+}
+
 function kbStokItems(items, page, totalPages, LIMIT) {
   const slice   = items.slice((page - 1) * LIMIT, page * LIMIT);
   const rows    = [];
@@ -913,6 +943,45 @@ async function handleCallback(cb) {
     return;
   }
 
+  // ── HANDLER TOMBOL PROMO V1, V2, V3 & REFRESH ──
+  if (data.startsWith('promo_')) {
+    const action = data.split('_')[1]; // isinya: v1, v2, v3, atau refresh
+    const sess = getSession(db, uid);
+    
+    // Cek apakah sesi promo masih ada
+    if (!sess.promoKeyword) {
+      await answer(cb.id, '❌ Sesi promo habis. Silakan ketik ulang /promo', true);
+      return;
+    }
+
+    // Tentukan style yang akan digenerate
+    let newStyle = sess.promoStyle || 'v1';
+    if (['v1', 'v2', 'v3'].includes(action)) {
+      newStyle = action;
+      sess.promoStyle = newStyle; // Update style terbaru ke sesi
+      await putData(db);
+    }
+    
+    // Beri tahu user bot sedang loading (hapus keyboard sementara)
+    await edit(chat, mid, '⏳ <i>AI sedang memeras otak meracik ulang kata-kata...</i>', null);
+
+    const copyText = await generatePromoText(sess.promoKeyword, sess.promoPrice, newStyle);
+    
+    if (copyText.includes('❌') || copyText.includes('⚠️')) {
+      await edit(chat, mid, copyText, kbKembali('menu_utama'));
+      return;
+    }
+
+    // Nama style untuk judul
+    let styleName = 'Asik';
+    if (newStyle === 'v2') styleName = 'Profesional';
+    if (newStyle === 'v3') styleName = 'FOMO / Hard Sell';
+
+    // Tampilkan hasil baru
+    await edit(chat, mid, `🤖 <b>Copywriting Siap Bos! (Style: ${styleName})</b>\n\n👇 <i>Tap teks di dalam kotak bawah ini untuk Auto-Copy:</i>\n\n<code>${copyText}</code>`, kbPromo(newStyle));
+    return;
+  }
+
   if (data === 'noop') return;
 
   let db;
@@ -1400,31 +1469,31 @@ async function handleCommand(msg) {
     return;
   }
 
-  // ── FITUR AI COPYWRITER (ONE-TAP COPY) ──
+// ── FITUR AI COPYWRITER MULTI-STYLE ──
   if (text.startsWith('/promo ')) {
     const keyword = text.slice(7).trim();
     if (!keyword) { await send(chat, '❌ Format: /promo [nama barang]'); return; }
 
+    const item = (db.items || []).find(i => i.status === 'stok' && i.name.toLowerCase().includes(keyword.toLowerCase()));
+    const price = item ? item.price : null;
+
+    // Simpan data keyword & harga ke session agar diingat bot saat klik tombol V1/V2/V3
+    const sess = getSession(db, uid);
+    sess.promoKeyword = keyword;
+    sess.promoPrice = price;
+    sess.promoStyle = 'v1'; // Default ke V1
+    await putData(db);
+
     await send(chat, '⏳ <i>AI sedang meracik kata-kata marketing...</i>');
 
-    const item = (db.items || []).find(i => i.status === 'stok' && i.name.toLowerCase().includes(keyword.toLowerCase()));
-    let hargaTeks = '';
-    if (item) hargaTeks = `Harga jual di toko kita: ${rp(item.price)}.`;
-
-    const promptText = `Kamu adalah copywriter jualan handphone dan laptop. Buatkan caption promosi yang menarik, asik, FOMO (Fear of Missing Out), dan kekinian untuk barang: ${keyword}. ${hargaTeks} Nama toko: Farid Store. Gunakan emoji yang pas, berikan kesan garansi aman, dan jangan terlalu panjang. Format teks langsung jadi, jangan ada kalimat pembuka/penutup darimu.`;
-
-    const aiResponse = await askGemini(promptText);
+    const copyText = await generatePromoText(keyword, price, 'v1');
     
-    if (aiResponse.includes('❌') || aiResponse.includes('⚠️')) {
-      await send(chat, aiResponse);
+    if (copyText.includes('❌') || copyText.includes('⚠️')) {
+      await send(chat, copyText);
       return;
     }
 
-    // Bersihkan format markdown tebal (**) bawaan Gemini agar teksnya bersih saat dicopy
-    const cleanResponse = esc(aiResponse).replace(/\*\*(.*?)\*\*/g, '$1');
-    
-    // Fitur <code> Telegram akan membuat teks bisa dicopy hanya dengan 1 kali ketuk
-    await send(chat, `🤖 <b>Copywriting Siap Bos!</b>\n\n👇 <i>Tap teks di dalam kotak bawah ini untuk Auto-Copy:</i>\n\n<code>${cleanResponse}</code>`, kbKembali('menu_utama'));
+    await send(chat, `🤖 <b>Copywriting Siap Bos! (Style: Asik)</b>\n\n👇 <i>Tap teks di dalam kotak bawah ini untuk Auto-Copy:</i>\n\n<code>${copyText}</code>`, kbPromo('v1'));
     return;
   }
 
