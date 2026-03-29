@@ -281,16 +281,16 @@ body{opacity:0;padding-bottom:96px;animation:bIn .5s ease-out .05s forwards;font
     <div id="topBrands" class="space-y-2.5"></div>
   </div>
 
-  <div class="card p-5">
-    <div class="flex items-center justify-between mb-1">
+<div class="card p-5">
+    <div class="flex items-center justify-between mb-3">
       <div class="flex items-center gap-2">
-        <i class="fa-solid fa-chart-pie text-brand-400 text-sm"></i>
-        <span class="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Alokasi Laba Bulan Ini</span>
+        <i class="fa-solid fa-building-columns text-brand-400 text-sm"></i>
+        <span class="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Pengelompokan Rekening</span>
       </div>
       <span id="analyticsMon" class="text-[9px] text-slate-500 font-bold uppercase"></span>
     </div>
-    <div id="allocBreakdown" class="mt-3 space-y-2"></div>
-    <div id="doughWrap" class="mt-3"><canvas id="doughChart"></canvas></div>
+    <div id="allocBreakdown" class="space-y-2"></div>
+    <div id="doughWrap" class="mt-4"><canvas id="doughChart"></canvas></div>
     <div id="doughEmpty" class="hidden text-center text-slate-500 text-xs py-4">Belum ada laba bulan ini</div>
   </div>
 
@@ -451,6 +451,41 @@ let state = {
   txAll:[],
   goalPct:0,
 };
+
+
+// ─── STATE REKENING (Tersimpan di LocalStorage) ────────
+let accountsData = JSON.parse(localStorage.getItem('fsAccounts')) || {
+  ops: { title: 'Rekening Operasional', no: 'BCA 1234567890', color: '#38bdf8' },
+  gaji: { title: 'Rekening Gaji Karyawan', no: 'MANDIRI 0987654321', color: '#818cf8' },
+  profit: { title: 'Rekening Profit (Ditahan)', no: 'BRI 1122334455', color: '#10b981' }
+};
+
+function saveAccounts() {
+  localStorage.setItem('fsAccounts', JSON.stringify(accountsData));
+  renderAnalytics(); // Re-render otomatis
+}
+
+function editAccount(key, field) {
+  const fieldName = field === 'title' ? 'Nama Rekening' : 'Nomor Rekening';
+  const newVal = prompt(`Masukkan ${fieldName} baru:`, accountsData[key][field]);
+  if(newVal !== null && newVal.trim() !== '') {
+    accountsData[key][field] = newVal.trim();
+    saveAccounts();
+  }
+}
+
+function copyToClipboard(text) {
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(() => toast('📋 Nomor Rekening Disalin!'));
+  } else {
+    // Fallback untuk browser lawas
+    const el = document.createElement('textarea');
+    el.value = text; document.body.appendChild(el); el.select();
+    document.execCommand('copy'); document.body.removeChild(el);
+    toast('📋 Nomor Rekening Disalin!');
+  }
+}
+  
 
 // ─── FORMATTING ────────────────────────────────────────
 function fRp(n, compact=true) {
@@ -865,23 +900,42 @@ function renderAnalytics() {
   }
 
   const grossMon = (monthly[nowMk] || {}).profitGross || 0;
-  const o = Math.max(0, Math.min(1_500_000, grossMon));
-  const e = grossMon >= 1_500_000 ? Math.min(1_000_000, grossMon - 1_500_000) : 0;
-  const r = Math.max(0, grossMon - 2_500_000);
+  
+  // Perhitungan porsi masing-masing rekening
+  const vOps = Math.max(0, Math.min(1_500_000, grossMon));
+  const vGaji = grossMon >= 1_500_000 ? Math.min(1_000_000, grossMon - 1_500_000) : 0;
+  const vProfit = Math.max(0, grossMon - 2_500_000);
+
+  const accList = [
+    { key: 'ops', val: vOps },
+    { key: 'gaji', val: vGaji },
+    { key: 'profit', val: vProfit }
+  ];
 
   const ab = document.getElementById('allocBreakdown');
-  ab.innerHTML = [
-    { label:'Gaji Owner',    val:o, color:'#38bdf8' },
-    { label:'Gaji Karyawan', val:e, color:'#818cf8' },
-    { label:'Laba Ditahan',  val:r, color:'#10b981' },
-  ].map(x => `
-    <div class="flex justify-between items-center text-[11px] font-medium">
-      <span class="flex items-center gap-1.5 text-slate-400"><span class="w-2 h-2 rounded-full shrink-0" style="background:${x.color}"></span>${x.label}</span>
-      <span class="font-bold text-white">${fFull(x.val)}</span>
-    </div>`).join('');
+  ab.innerHTML = accList.map(x => {
+    const acc = accountsData[x.key];
+    return `
+    <div class="flex justify-between items-center p-3 rounded-xl bg-white/[.02] border border-white/5 shadow-sm">
+      <div>
+        <div class="flex items-center gap-1.5 mb-1 cursor-pointer group" onclick="editAccount('${x.key}', 'title')" title="Klik untuk edit nama rekening">
+          <span class="w-2 h-2 rounded-full shrink-0" style="background:${acc.color}"></span>
+          <span class="text-[11px] font-bold text-slate-300 group-hover:text-white transition">${acc.title}</span>
+          <i class="fa-solid fa-pen text-[9px] text-slate-600 opacity-0 group-hover:opacity-100 group-hover:text-brand-400 transition ml-1"></i>
+        </div>
+        <div class="flex items-center gap-2 pl-3.5 mt-0.5">
+          <span class="text-[10px] text-slate-500 font-medium cursor-pointer hover:text-white transition" onclick="editAccount('${x.key}', 'no')" title="Klik untuk edit nomor rekening">${acc.no}</span>
+          <button onclick="copyToClipboard('${acc.no}')" class="text-slate-500 hover:text-brand-400 active:scale-90 transition-all">
+            <i class="fa-regular fa-copy text-[10px]"></i>
+          </button>
+        </div>
+      </div>
+      <span class="font-bold text-white text-[13px] tracking-tight" style="font-family:Outfit">${fFull(x.val)}</span>
+    </div>`;
+  }).join('');
 
   if (document.getElementById('tab-analytics').classList.contains('active'))
-    rDoughnut(o, e, r);
+    rDoughnut(accList);
 
   const al = document.getElementById('agingList');
   document.getElementById('agingCount').textContent = aging.length ? aging.length + ' Item' : '';
@@ -1082,18 +1136,25 @@ function rGoalChart(cur, rem) {
   });
 }
 
-function rDoughnut(o, e, r) {
+function rDoughnut(accList) {
   if (typeof Chart === 'undefined') return;
   dChart('dough');
   const canvas = document.getElementById('doughChart');
   const wrap   = document.getElementById('doughWrap');
   const empty  = document.getElementById('doughEmpty');
   if (!canvas) return;
-  if (o+e+r <= 0) { wrap.style.display='none'; empty.classList.remove('hidden'); return; }
+
+  const total = accList.reduce((sum, item) => sum + item.val, 0);
+  if (total <= 0) { wrap.style.display='none'; empty.classList.remove('hidden'); return; }
   wrap.style.display=''; empty.classList.add('hidden');
+
+  const labels = accList.map(x => accountsData[x.key].title);
+  const data = accList.map(x => x.val);
+  const bgColors = accList.map(x => accountsData[x.key].color);
+
   charts.dough = new Chart(canvas.getContext('2d'), {
     type:'doughnut',
-    data:{ labels:['Gaji Owner','Gaji Karyawan','Laba Ditahan'], datasets:[{ data:[o,e,r], backgroundColor:['#38bdf8','#818cf8','#10b981'], borderWidth:0, hoverOffset:4 }] },
+    data:{ labels: labels, datasets:[{ data: data, backgroundColor: bgColors, borderWidth:0, hoverOffset:4 }] },
     options:{ cutout:'72%', responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom', labels:{ boxWidth:8, color:'#e2e8f0', font:{size:10}, padding:12 } } }, animation:{ animateScale:true, animateRotate:true, duration:1200, easing:'easeOutBack' } },
   });
 }
@@ -1134,10 +1195,16 @@ function switchTab(id, el) {
   requestAnimationFrame(() => {
     if (id === 'dashboard')  rGoalChart(state.totalAset, Math.max(GOAL-state.totalAset,0));
     if (id === 'analytics')  {
-      const grossMon = (state.monthly[state.nowMk]||{}).profitGross||0;
-      const o=Math.max(0,Math.min(1_500_000,grossMon)), e=grossMon>=1_500_000?Math.min(1_000_000,grossMon-1_500_000):0, r=Math.max(0,grossMon-2_500_000);
-      rDoughnut(o,e,r);
-    }
+          const grossMon = (state.monthly[state.nowMk]||{}).profitGross||0;
+          const vOps = Math.max(0, Math.min(1_500_000, grossMon));
+          const vGaji = grossMon >= 1_500_000 ? Math.min(1_000_000, grossMon - 1_500_000) : 0;
+          const vProfit = Math.max(0, grossMon - 2_500_000);
+          rDoughnut([
+            { key: 'ops', val: vOps },
+            { key: 'gaji', val: vGaji },
+            { key: 'profit', val: vProfit }
+          ]);
+        }
     if (id === 'performance') rLineChart(state.trendLabels||[], state.trendProfit||[], state.trendUnits||[]);
   });
   window.scrollTo({ top:0, behavior:'smooth' });
