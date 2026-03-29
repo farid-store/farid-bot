@@ -87,9 +87,24 @@ async function askGemini(promptText) {
       body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
     });
     const data = await r.json();
+
+    // 1. Cek apakah ada error bawaan dari Google API (misal: API Key salah)
+    if (data.error) {
+      console.error("Gemini API Error:", data.error);
+      return `❌ Error dari Google: ${data.error.message}`;
+    }
+
+    // 2. Cek apakah respon dikosongkan karena filter keamanan
+    if (!data.candidates || data.candidates.length === 0) {
+      console.error("Gemini Blocked Response:", data);
+      return "⚠️ AI menolak menjawab. Biasanya karena prompt mengandung kata yang diblokir oleh filter keamanan Google.";
+    }
+
+    // 3. Jika aman, ambil teksnya
     return data.candidates[0].content.parts[0].text;
+    
   } catch (e) {
-    return "❌ Gagal menghubungi AI: " + e.message;
+    return "❌ Gagal menghubungi server AI: " + e.message;
   }
 }
 
