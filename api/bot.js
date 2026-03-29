@@ -78,6 +78,7 @@ function parseDate(s) {
 // ── AI INTEGRATION ────────────────────────────────────────────────────
 async function askGemini(promptText) {
   if (!GEMINI_KEY) return "⚠️ GEMINI_KEY belum diatur di Vercel!";
+  // Menggunakan Gemini 2.5 Flash sesuai update terbaru
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`;
   
   try {
@@ -88,19 +89,15 @@ async function askGemini(promptText) {
     });
     const data = await r.json();
 
-    // 1. Cek apakah ada error bawaan dari Google API (misal: API Key salah)
     if (data.error) {
       console.error("Gemini API Error:", data.error);
       return `❌ Error dari Google: ${data.error.message}`;
     }
 
-    // 2. Cek apakah respon dikosongkan karena filter keamanan
     if (!data.candidates || data.candidates.length === 0) {
-      console.error("Gemini Blocked Response:", data);
-      return "⚠️ AI menolak menjawab. Biasanya karena prompt mengandung kata yang diblokir oleh filter keamanan Google.";
+      return "⚠️ AI menolak menjawab (terkena filter keamanan).";
     }
 
-    // 3. Jika aman, ambil teksnya
     return data.candidates[0].content.parts[0].text;
     
   } catch (e) {
@@ -1374,6 +1371,36 @@ async function handleCommand(msg) {
     return;
   }
 
+// ── FITUR GENERATE BANNER / GAMBAR PROMO ──
+  if (text.startsWith('/banner ') || text.startsWith('/img ')) {
+    const promptImg = text.replace(/^\/(banner|img)\s+/i, '').trim();
+    if (!promptImg) { await send(chat, '❌ Format: /banner [ide gambar]\nContoh: /banner toko gadget estetik warna biru neon'); return; }
+
+    await send(chat, '🎨 <i>AI sedang mendesain visual... Tunggu sebentar!</i>');
+
+    // Tahap 1: Minta Gemini meracik visual prompt bahasa Inggris yang super detail khusus untuk toko gadget
+    const enhancePrompt = `Buatkan deskripsi gambar (image prompt) dalam bahasa Inggris untuk visual promosi toko ritel dan servis gadget (handphone & laptop). Ide utama dari user: "${promptImg}". Buat promptnya sangat detail, hyperrealistic, cinematic lighting, 4k, marketing style. JANGAN gunakan teks apa pun di dalam gambar, fokus pada objek. Hanya balas dengan prompt bahasa Inggrisnya saja tanpa basa-basi.`;
+    const englishPrompt = await askGemini(enhancePrompt);
+
+    if (englishPrompt.includes('❌') || englishPrompt.includes('⚠️')) {
+      await send(chat, englishPrompt); // Tampilkan error jika Gemini gagal
+      return;
+    }
+
+    // Tahap 2: Generate gambar menggunakan Pollinations API (Gratis & Cepat untuk Telegram)
+    const imgUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(englishPrompt)}?width=1024&height=1024&nologo=true`;
+
+    // Kirim foto langsung ke Telegram
+    await tg('sendPhoto', {
+      chat_id: chat,
+      photo: imgUrl,
+      caption: `🎨 <b>Banner berhasil di-generate!</b>\n\n<i>Prompt AI: ${esc(englishPrompt)}</i>\n\nGunakan fitur ini untuk mencari inspirasi foto sosmed toko.`,
+      parse_mode: 'HTML'
+    });
+    return;
+  }
+
+  // ── FITUR AI COPYWRITER (ONE-TAP COPY) ──
   if (text.startsWith('/promo ')) {
     const keyword = text.slice(7).trim();
     if (!keyword) { await send(chat, '❌ Format: /promo [nama barang]'); return; }
@@ -1384,27 +1411,40 @@ async function handleCommand(msg) {
     let hargaTeks = '';
     if (item) hargaTeks = `Harga jual di toko kita: ${rp(item.price)}.`;
 
-    const promptText = `Buatkan caption promosi yang menarik, asik, dan kekinian untuk jualan gadget di WhatsApp/Instagram. Nama barang: ${keyword}. ${hargaTeks} Nama toko: Farid Store. Gunakan emoji yang pas, berikan kesan garansi aman, dan jangan terlalu panjang.`;
+    const promptText = `Kamu adalah copywriter jualan handphone dan laptop. Buatkan caption promosi yang menarik, asik, FOMO (Fear of Missing Out), dan kekinian untuk barang: ${keyword}. ${hargaTeks} Nama toko: Farid Store. Gunakan emoji yang pas, berikan kesan garansi aman, dan jangan terlalu panjang. Format teks langsung jadi, jangan ada kalimat pembuka/penutup darimu.`;
 
     const aiResponse = await askGemini(promptText);
-    await send(chat, `🤖 <b>Hasil AI Copywriter:</b>\n\n${esc(aiResponse)}\n\n<i>Tinggal copas aja bos!</i>`, kbKembali('menu_utama'));
+    
+    if (aiResponse.includes('❌') || aiResponse.includes('⚠️')) {
+      await send(chat, aiResponse);
+      return;
+    }
+
+    // Bersihkan format markdown tebal (**) bawaan Gemini agar teksnya bersih saat dicopy
+    const cleanResponse = esc(aiResponse).replace(/\*\*(.*?)\*\*/g, '$1');
+    
+    // Fitur <code> Telegram akan membuat teks bisa dicopy hanya dengan 1 kali ketuk
+    await send(chat, `🤖 <b>Copywriting Siap Bos!</b>\n\n👇 <i>Tap teks di dalam kotak bawah ini untuk Auto-Copy:</i>\n\n<code>${cleanResponse}</code>`, kbKembali('menu_utama'));
     return;
   }
 
+  // ── FITUR ASISTEN KEUANGAN TOKO ──
   if (text.startsWith('/tanya ')) {
     const pertanyaan = text.slice(7).trim();
     if (!pertanyaan) { await send(chat, '❌ Format: /tanya [pertanyaan ke AI]'); return; }
 
-    await send(chat, '⏳ <i>Bentar, AI lagi ngecek buku kas...</i>');
+    await send(chat, '⏳ <i>Bentar, AI lagi ngecek buku kas & data gudang...</i>');
 
     const c = compute(db);
     const stokNganggur = c.agingStocks.filter(i => i.days > 30).length;
     
-    const promptText = `Kamu adalah asisten keuangan dan bisnis pintar untuk Farid Store (toko ritel & servis gadget). 
-    Data toko saat ini: Total Aset ${rp(c.totalAset)}, Kas ${rp(c.cashSisa)}, Omset bulan ini ${rp(c.curMonth.income)}, Laba bulan ini ${rp(c.curMonth.profit)}. Ada ${stokNganggur} barang mengendap lebih dari 30 hari. 
-    Pertanyaan bos kamu: "${pertanyaan}". Jawab dengan singkat, padat, berikan saran bisnis yang realistis jika diminta.`;
+    const promptText = `Kamu adalah asisten keuangan dan bisnis pintar untuk toko ritel & servis gadget. 
+    Data toko saat ini: Total Aset ${rp(c.totalAset)}, Kas Tunai ${rp(c.cashSisa)}, Omset bulan ini ${rp(c.curMonth.income)}, Laba bulan ini ${rp(c.curMonth.profit)}. Ada ${stokNganggur} barang mengendap di gudang lebih dari 30 hari. 
+    Pertanyaan bos kamu: "${pertanyaan}". Jawab dengan profesional, singkat, padat, dan berikan saran bisnis yang realistis berdasarkan data tersebut.`;
 
     const aiResponse = await askGemini(promptText);
+    
+    // Rapikan formatting teks tebal Gemini agar sesuai dengan HTML Telegram
     const cleanResponse = esc(aiResponse).replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
     
     await send(chat, `🤖 <b>Asisten Toko:</b>\n\n${cleanResponse}`, kbKembali('menu_utama'));
