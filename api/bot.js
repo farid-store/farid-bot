@@ -78,7 +78,7 @@ function parseDate(s) {
 // ── AI INTEGRATION ────────────────────────────────────────────────────
 async function askGemini(promptText) {
   if (!GEMINI_KEY) return "⚠️ GEMINI_KEY belum diatur di Vercel!";
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`;
   
   try {
     const r = await fetch(url, {
