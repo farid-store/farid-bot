@@ -282,16 +282,17 @@ body{opacity:0;padding-bottom:96px;animation:bIn .5s ease-out .05s forwards;font
   </div>
 
 <div class="card p-5">
-    <div class="flex items-center justify-between mb-3">
+    <div class="flex items-center justify-between mb-4">
       <div class="flex items-center gap-2">
         <i class="fa-solid fa-building-columns text-brand-400 text-sm"></i>
         <span class="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Pengelompokan Rekening</span>
       </div>
-      <span id="analyticsMon" class="text-[9px] text-slate-500 font-bold uppercase"></span>
+      <select id="allocMonthSel" onchange="renderAnalytics()" class="bg-[#12121c] border border-white/10 text-brand-400 text-[9px] font-bold uppercase tracking-wider rounded-lg px-2 py-1.5 outline-none cursor-pointer text-right hover:border-brand-400/50 transition-colors">
+        </select>
     </div>
     <div id="allocBreakdown" class="space-y-2"></div>
     <div id="doughWrap" class="mt-4"><canvas id="doughChart"></canvas></div>
-    <div id="doughEmpty" class="hidden text-center text-slate-500 text-xs py-4">Belum ada laba bulan ini</div>
+    <div id="doughEmpty" class="hidden text-center text-slate-500 text-xs py-4">Belum ada data di periode ini</div>
   </div>
 
   <div class="card p-5">
@@ -866,9 +867,7 @@ function switchMarginMode(mode) {
 
 // ─── RENDER: ANALYTICS ─────────────────────────────────
 function renderAnalytics() {
-  const { brands, monthly, nowMk, aging } = state;
-
-  document.getElementById('analyticsMon').textContent = mlabel(nowMk);
+  const { brands, monthly, nowMk, aging, months } = state; // Tambahkan 'months' di sini
 
   const tb  = document.getElementById('topBrands');
   const arr = Object.entries(brands).map(([n,v])=>({n,...v})).sort((a,b)=>b.profit-a.profit).slice(0,5);
@@ -899,12 +898,33 @@ function renderAnalytics() {
       </div>`).join('');
   }
 
-  const grossMon = (monthly[nowMk] || {}).profitGross || 0;
+  // --- Perhitungan porsi masing-masing rekening ---
+  const allocSel = document.getElementById('allocMonthSel');
   
-  // Perhitungan porsi masing-masing rekening
-  const vOps = Math.max(0, Math.min(1_500_000, grossMon));
-  const vGaji = grossMon >= 1_500_000 ? Math.min(1_000_000, grossMon - 1_500_000) : 0;
-  const vProfit = Math.max(0, grossMon - 2_500_000);
+  if (allocSel && allocSel.options.length === 0) {
+    allocSel.innerHTML = `<option value="current">Bulan Ini</option><option value="all">Semua Waktu</option>`;
+    [...months].reverse().forEach(m => {
+      allocSel.innerHTML += `<option value="${m}">${mlabel(m)}</option>`;
+    });
+  }
+
+  let vOps = 0, vGaji = 0, vProfit = 0;
+  const selVal = allocSel ? allocSel.value : 'current';
+
+  if (selVal === 'all') {
+    Object.values(monthly).forEach(m => {
+       const p = m.profitGross || 0;
+       vOps += Math.max(0, Math.min(1_500_000, p));
+       vGaji += p >= 1_500_000 ? Math.min(1_000_000, p - 1_500_000) : 0;
+       vProfit += Math.max(0, p - 2_500_000);
+    });
+  } else {
+    const mKey = selVal === 'current' ? nowMk : selVal;
+    const p = (monthly[mKey] || {}).profitGross || 0;
+    vOps = Math.max(0, Math.min(1_500_000, p));
+    vGaji = p >= 1_500_000 ? Math.min(1_000_000, p - 1_500_000) : 0;
+    vProfit = Math.max(0, p - 2_500_000);
+  }
 
   const accList = [
     { key: 'ops', val: vOps },
@@ -1194,17 +1214,11 @@ function switchTab(id, el) {
   el.classList.add('active');
   requestAnimationFrame(() => {
     if (id === 'dashboard')  rGoalChart(state.totalAset, Math.max(GOAL-state.totalAset,0));
+    
     if (id === 'analytics')  {
-          const grossMon = (state.monthly[state.nowMk]||{}).profitGross||0;
-          const vOps = Math.max(0, Math.min(1_500_000, grossMon));
-          const vGaji = grossMon >= 1_500_000 ? Math.min(1_000_000, grossMon - 1_500_000) : 0;
-          const vProfit = Math.max(0, grossMon - 2_500_000);
-          rDoughnut([
-            { key: 'ops', val: vOps },
-            { key: 'gaji', val: vGaji },
-            { key: 'profit', val: vProfit }
-          ]);
-        }
+      renderAnalytics(); // Cukup panggil ini saja, dia akan otomatis baca dropdown
+    }
+    
     if (id === 'performance') rLineChart(state.trendLabels||[], state.trendProfit||[], state.trendUnits||[]);
   });
   window.scrollTo({ top:0, behavior:'smooth' });
